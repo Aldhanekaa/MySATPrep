@@ -15,10 +15,8 @@ export async function GET(request: NextRequest) {
     const apiUrl =
       "https://qbank-api.collegeboard.org/msreportingquestionbank-prod/questionbank/lookup";
 
-    const fullApiUrl = `${apiUrl}`;
-
     // Make the request to College Board API
-    const response = await fetch(fullApiUrl, {
+    const response = await fetch(apiUrl, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",

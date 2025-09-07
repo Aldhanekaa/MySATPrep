@@ -117,6 +117,88 @@ export type StateOfferings = [
   }
 ];
 
+export type DomainItems =
+  | "INI"
+  | "CAS"
+  | "EOI"
+  | "SEC" // Reading & Writing domains
+  | "H"
+  | "P"
+  | "Q"
+  | "S"; // Math domains
+
+export const DomainItemsArray = [
+  "INI",
+  "CAS",
+  "EOI",
+  "SEC",
+  "H",
+  "P",
+  "Q",
+  "S",
+];
+
+export type SkillCd_Variants =
+  | "CID"
+  | "INF"
+  | "COE"
+  | "WIC"
+  | "TSP"
+  | "CTC"
+  | "SYN"
+  | "TRA"
+  | "BOU"
+  | "FSS"
+  | "H.A."
+  | "H.B."
+  | "H.C."
+  | "H.D."
+  | "H.E."
+  | "P.C."
+  | "P.B."
+  | "P.A."
+  | "Q.A."
+  | "Q.B."
+  | "Q.D."
+  | "Q.E."
+  | "Q.F."
+  | "Q.G."
+  | "S.A."
+  | "S.B."
+  | "S.C."
+  | "S.D.";
+
+export type SkillDesc =
+  | "Central Ideas and Details"
+  | "Inferences"
+  | "Command of Evidence"
+  | "Words in Context"
+  | "Text Structure and Purpose"
+  | "Cross-Text Connections"
+  | "Rhetorical Synthesis"
+  | "Transitions"
+  | "Boundaries"
+  | "Form, Structure, and Sense"
+  | "Linear equations in one variable"
+  | "Linear functions"
+  | "Linear equations in two variables"
+  | "Systems of two linear equations in two variables"
+  | "Linear inequalities in one or two variables"
+  | "Nonlinear functions"
+  | "Nonlinear equations in one variable and systems of equations in two variables"
+  | "Equivalent expressions"
+  | "Ratios, rates, proportional relationships, and units"
+  | "Percentages"
+  | "One-variable data: Distributions and measures of center and spread"
+  | "Two-variable data: Models and scatterplots"
+  | "Probability and conditional probability"
+  | "Inference from sample statistics and margin of error"
+  | "Evaluating statistical claims: Observational studies and experiments"
+  | "Area and volume"
+  | "Lines, angles, and triangles"
+  | "Right triangles and trigonometry"
+  | "Circles";
+
 export const LookupDomainData = {
   "R&W": [
     {
