@@ -159,6 +159,7 @@ export type SkillCd_Variants =
   | "P.A."
   | "Q.A."
   | "Q.B."
+  | "Q.C."
   | "Q.D."
   | "Q.E."
   | "Q.F."

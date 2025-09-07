@@ -1,3 +1,31 @@
+import { SkillCd_Variants } from "@/types/lookup";
+
+export const skillCds: SkillCd_Variants[] = [
+  "CID",
+  "INF",
+  "COE",
+  "WIC",
+  "TSP",
+  "CTC",
+  "SYN",
+  "TRA",
+  "BOU",
+  "FSS",
+  "H.A.",
+  "H.B.",
+  "H.C.",
+  "H.D.",
+  "H.E.",
+  "P.C.",
+  "P.B.",
+  "P.A.",
+  "Q.A.",
+  "Q.B.",
+  "Q.C.",
+  "Q.D.",
+  "Q.E.",
+  "Q.F.",
+];
 export const domains = {
   "R&W": [
     {

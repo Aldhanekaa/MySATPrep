@@ -97,12 +97,14 @@ export function HeroSection() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.4, duration: 0.5 }}
                 >
-                  <Button className="rounded-xl bg-foreground text-background hover:bg-foreground/90 py-6 text-lg">
-                    Practice Rush
-                    <div className="ml-2 space-x-1 hidden sm:inline-flex">
-                      <FingerprintIcon className="w-5 h-5" />
-                    </div>
-                  </Button>
+                  <Link href={"/practice"}>
+                    <Button className="rounded-xl bg-foreground text-background hover:bg-foreground/90 py-6 text-lg">
+                      Practice Rush
+                      <div className="ml-2 space-x-1 hidden sm:inline-flex">
+                        <FingerprintIcon className="w-5 h-5" />
+                      </div>
+                    </Button>
+                  </Link>
                   <Button variant="outline" className="rounded-xl py-6 text-lg">
                     <div className="mr-1 space-x-1 hidden sm:inline-flex justify-center items-center">
                       <span className="w-5 h-5 text-xs rounded-sm border">

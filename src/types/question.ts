@@ -1,3 +1,8 @@
+import { DomainItems, SkillCd_Variants } from "./lookup";
+
+export type QuestionDifficulty = "E" | "M" | "H";
+export type ProgramType = "SAT" | "P10" | "P89";
+
 export type MultipleChoiceDisclosedQuestion = {
   answer: {
     choices: {
@@ -45,3 +50,20 @@ export type API_Response_Question = {
   externalid?: string;
   ibn?: null | string;
 };
+
+export type API_Response_Question_List = Array<{
+  updateDate: number;
+  pPcc: string;
+  questionId: string;
+  skill_cd: SkillCd_Variants;
+  score_band_range_cd: number;
+  uId: string;
+  skill_desc: string;
+  createDate: number;
+  program: string;
+  primary_class_cd_desc: string;
+  ibn: null | string;
+  external_id: null | string;
+  primary_class_cd: DomainItems;
+  difficulty: QuestionDifficulty;
+}>;

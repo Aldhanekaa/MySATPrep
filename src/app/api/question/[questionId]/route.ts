@@ -6,6 +6,8 @@ import {
 } from "@/types/question";
 import { NextRequest, NextResponse } from "next/server";
 
+export const revalidate = 3600;
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ questionId: string }> }
@@ -50,6 +52,8 @@ export async function GET(
           "Content-Type": "application/json",
           Accept: "application/json",
         },
+        cache: "force-cache",
+        next: { revalidate: 3600 }, // 1 hour revalidation
         // Add timeout to prevent hanging requests
         signal: AbortSignal.timeout(30000), // 30 second timeout
       });
@@ -145,6 +149,9 @@ export async function GET(
         // 'Authorization': `Bearer ${process.env.COLLEGEBOARD_API_KEY}`,
       },
       body: JSON.stringify({ external_id: questionId }),
+      cache: "force-cache",
+      next: { revalidate: 3600 }, // 1 hour revalidation
+
       // Add timeout to prevent hanging requests
       signal: AbortSignal.timeout(30000), // 30 second timeout
     });

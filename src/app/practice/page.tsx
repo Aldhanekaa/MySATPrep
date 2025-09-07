@@ -3,35 +3,75 @@
 import React, { useState } from "react";
 import { SiteHeader } from "../navbar";
 import PracticeOnboarding from "@/components/practice-onboarding";
+import OnboardCard from "@/components/ui/onboard-card";
 
-export default function PracticePage() {
-  const [onboardingComplete, setOnboardingComplete] = useState(false);
+export default function Practice() {
+  const [onboardingComplete, setOnboardingComplete] = useState<boolean>(false);
   const [practiceSelections, setPracticeSelections] = useState<{
     practiceType: string;
+    assessment: string;
     subject: string;
-    domains: string[];
+    domains: Array<{
+      id: string;
+      text: string;
+      primaryClassCd: string;
+    }>;
     skills: Array<{
       id: string;
       text: string;
       skill_cd: string;
     }>;
+    difficulties: string[];
   } | null>(null);
+
+  // External step control states
+  const [currentStep, setCurrentStep] = useState(1);
+  const [useExternalControl, setUseExternalControl] = useState(false);
 
   const handleOnboardingComplete = (selections: {
     practiceType: string;
+    assessment: string;
     subject: string;
-    domains: string[];
+    domains: Array<{
+      id: string;
+      text: string;
+      primaryClassCd: string;
+    }>;
     skills: Array<{
       id: string;
       text: string;
       skill_cd: string;
     }>;
+    difficulties: string[];
   }) => {
     setPracticeSelections(selections);
     setOnboardingComplete(true);
-    console.log("Practice selections:", selections);
+
+    console.log("Onboarding complete with selections:", selections);
   };
 
+  const steps = [
+    {
+      id: "preparing",
+      title: "Prepare",
+      content: "Preparing Practice",
+    },
+    {
+      id: "querying",
+      title: "Querying",
+      content: "Querying Questions 🔍",
+    },
+    {
+      id: "filtering",
+      title: "Filtering",
+      content: "Generating Personalized Questions 🔍",
+    },
+    {
+      id: "verifying",
+      title: "Verifying",
+      content: "Verifying Questions... ✅",
+    },
+  ];
   return (
     <React.Fragment>
       <SiteHeader />
@@ -39,47 +79,51 @@ export default function PracticePage() {
         {!onboardingComplete ? (
           <PracticeOnboarding onComplete={handleOnboardingComplete} />
         ) : (
-          <div className="w-full flex flex-col min-h-screen py-60 items-center justify-center">
-            <h1 className="text-4xl font-bold mb-8">Practice Session</h1>
-            <div className="bg-white p-8 rounded-lg shadow-lg max-w-2xl">
-              <h2 className="text-2xl font-semibold mb-4">Your Selections:</h2>
-              <div className="space-y-4">
-                <p>
-                  <strong>Practice Type:</strong>{" "}
-                  {practiceSelections?.practiceType}
-                </p>
-                <p>
-                  <strong>Subject:</strong> {practiceSelections?.subject}
-                </p>
-                <p>
-                  <strong>Domains:</strong> {practiceSelections?.domains.length}{" "}
-                  selected
-                </p>
-                <div>
-                  <strong>Skills:</strong> {practiceSelections?.skills.length}{" "}
-                  selected
-                  <div className="mt-2 space-y-2">
-                    {practiceSelections?.skills.map((skill) => (
-                      <div
-                        key={skill.id}
-                        className="bg-gray-100 p-3 rounded-lg"
-                      >
-                        <p className="font-medium">{skill.text}</p>
-                        <p className="text-sm text-gray-600">
-                          Code: {skill.skill_cd}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-              <button
-                onClick={() => setOnboardingComplete(false)}
-                className="mt-6 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-              >
-                Back to Setup
-              </button>
+          <div className="h-screen flex flex-col items-center justify-center gap-8">
+            {/* External Control Toggle */}
+            <div className="flex items-center gap-4">
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={useExternalControl}
+                  onChange={(e) => setUseExternalControl(e.target.checked)}
+                  className="rounded"
+                />
+                External Control Mode
+              </label>
             </div>
+
+            {/* Step Control Buttons (only shown in external control mode) */}
+            {useExternalControl && (
+              <div className="flex gap-2">
+                {steps.map((_, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setCurrentStep(index + 1)}
+                    className={`px-4 py-2 rounded-md transition-colors ${
+                      currentStep === index + 1
+                        ? "bg-blue-500 text-white"
+                        : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                    }`}
+                  >
+                    Step {index + 1}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* OnboardCard Component */}
+            <OnboardCard
+              steps={steps}
+              currentStep={currentStep}
+              onStepChange={(step) => {
+                console.log("Step changed to:", step);
+                if (!useExternalControl) {
+                  setCurrentStep(step);
+                }
+              }}
+              autoPlay={!useExternalControl}
+            />
           </div>
         )}
       </div>

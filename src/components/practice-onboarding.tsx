@@ -2,6 +2,8 @@
 
 import React, { useId, useState } from "react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
@@ -11,13 +13,19 @@ import { domains } from "@/static-data/domains";
 interface PracticeOnboardingProps {
   onComplete: (selections: {
     practiceType: string;
+    assessment: string;
     subject: string;
-    domains: string[];
+    domains: Array<{
+      id: string;
+      text: string;
+      primaryClassCd: string;
+    }>;
     skills: Array<{
       id: string;
       text: string;
       skill_cd: string;
     }>;
+    difficulties: string[];
   }) => void;
 }
 
@@ -27,9 +35,13 @@ export default function PracticeOnboarding({
   const id = useId();
   const [selectedValue, setSelectedValue] = useState<string>("");
   const [step, setStep] = useState<number>(1);
+  const [selectedAssessment, setSelectedAssessment] = useState<string>("");
   const [selectedSubject, setSelectedSubject] = useState<string>("");
   const [selectedDomains, setSelectedDomains] = useState<string[]>([]);
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
+  const [selectedDifficulties, setSelectedDifficulties] = useState<string[]>(
+    []
+  );
 
   const items = [
     {
@@ -44,6 +56,24 @@ export default function PracticeOnboarding({
       description:
         "Take a full length practice with problems from Collegeboard's question bank.",
       disabled: true,
+    },
+  ];
+
+  const assessmentItems = [
+    {
+      value: "SAT",
+      label: "SAT",
+      description: "Digital SAT Assessment",
+    },
+    {
+      value: "PSAT/NMSQT",
+      label: "PSAT/NMSQT",
+      description: "PSAT/NMSQT & PSAT 10",
+    },
+    {
+      value: "PSAT",
+      label: "PSAT 8/9",
+      description: "PSAT 8/9 Assessment",
     },
   ];
 
@@ -65,6 +95,8 @@ export default function PracticeOnboarding({
       setStep(2);
     } else if (step === 2) {
       setStep(3);
+    } else if (step === 3) {
+      setStep(4);
     } else {
       // Handle final submission - map selected skill IDs to full skill objects
       const selectedSkillObjects = getSubjectDomains()
@@ -76,23 +108,38 @@ export default function PracticeOnboarding({
           skill_cd: skill.skill_cd,
         }));
 
+      // Map selected domain IDs to full domain objects
+      const selectedDomainObjects = getSubjectDomains()
+        .filter((domain) => selectedDomains.includes(domain.id))
+        .map((domain) => ({
+          id: domain.id,
+          text: domain.text,
+          primaryClassCd: domain.primaryClassCd,
+        }));
+
       onComplete({
         practiceType: selectedValue,
+        assessment: selectedAssessment,
         subject: selectedSubject,
-        domains: selectedDomains,
+        domains: selectedDomainObjects,
         skills: selectedSkillObjects,
+        difficulties: selectedDifficulties,
       });
     }
   };
 
   const handleBack = () => {
-    if (step === 3) {
-      setStep(2);
+    if (step === 4) {
+      setStep(3);
       setSelectedDomains([]);
       setSelectedSkills([]);
+      setSelectedDifficulties([]);
+    } else if (step === 3) {
+      setStep(2);
+      setSelectedSubject("");
     } else if (step === 2) {
       setStep(1);
-      setSelectedSubject("");
+      setSelectedAssessment("");
     }
   };
 
@@ -147,6 +194,14 @@ export default function PracticeOnboarding({
     return [];
   };
 
+  const hasSkillsFromSelectedDomains = () => {
+    return selectedDomains.some((domainId) => {
+      const domain = getSubjectDomains().find((d) => d.id === domainId);
+      const domainSkillIds = domain?.skill?.map((skill) => skill.id) || [];
+      return domainSkillIds.some((skillId) => selectedSkills.includes(skillId));
+    });
+  };
+
   const staggerContainer = {
     animate: {
       transition: {
@@ -174,8 +229,10 @@ export default function PracticeOnboarding({
         {step === 1
           ? "Choose Your Practice Method"
           : step === 2
+          ? "Choose Assessment"
+          : step === 3
           ? "Choose Subject"
-          : "Choose Domains & Skills"}
+          : "Choose Domains, Skills & Difficulty"}
       </motion.h1>
 
       <AnimatePresence mode="wait">
@@ -255,6 +312,74 @@ export default function PracticeOnboarding({
             >
               <motion.div variants={cardVariants}>
                 <RadioGroup
+                  className="w-full grid grid-cols-3 gap-6"
+                  value={selectedAssessment}
+                  onValueChange={setSelectedAssessment}
+                >
+                  {assessmentItems.map((item) => (
+                    <label
+                      key={`${id}-assessment-${item.value}`}
+                      className="w-full px-4 py-6 relative flex cursor-pointer flex-col items-center gap-3 rounded-lg border border-input text-center shadow-sm shadow-black/5 outline-offset-2 transition-colors has-[[data-disabled]]:cursor-not-allowed  has-[[data-state=checked]]:border-blue-500/50 has-[[data-state=checked]]:bg-blue-500/10 has-[[data-disabled]]:opacity-50 has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-ring/70"
+                    >
+                      <RadioGroupItem
+                        id={`${id}-assessment-${item.value}`}
+                        value={item.value}
+                        className="sr-only after:absolute after:inset-0"
+                      />
+                      <Image
+                        src={"https://originui.com/ui-light.png"}
+                        alt={"label"}
+                        width={88}
+                        height={70}
+                        className="mt-6 mb-8 relative cursor-pointer overflow-hidden rounded-lg border border-input shadow-sm shadow-black/5 outline-offset-2 transition-colors peer-[:focus-visible]:outline peer-[:focus-visible]:outline-2 peer-[:focus-visible]:outline-ring/70 peer-data-[disabled]:cursor-not-allowed peer-data-[state=checked]:border-ring peer-data-[state=checked]:bg-accent peer-data-[disabled]:opacity-50"
+                      />
+                      <p className="text-2xl font-bold leading-none text-foreground">
+                        {item.label}
+                      </p>
+                      <p className="text-lg">{item.description}</p>
+                    </label>
+                  ))}
+                </RadioGroup>
+              </motion.div>
+              <motion.div
+                variants={cardVariants}
+                className="grid grid-cols-1 w-full gap-4 mt-10"
+              >
+                <Button
+                  variant="default"
+                  className="group w-full hover:cursor-pointer  text-lg py-6"
+                  onClick={handleContinue}
+                  disabled={!selectedAssessment}
+                >
+                  Choose Subject
+                  <div className=" text-white   size-6 overflow-hidden rounded-full duration-500">
+                    <div className="flex w-12 -translate-x-1/2 duration-500 ease-in-out group-hover:translate-x-0">
+                      <span className="flex size-6">
+                        <ArrowRight className="m-auto size-5" />
+                      </span>
+                      <span className="flex size-6">
+                        <ArrowRight className="m-auto size-5" />
+                      </span>
+                    </div>
+                  </div>
+                </Button>
+                <Button
+                  variant="outline"
+                  className=" text-lg w-full py-6"
+                  onClick={handleBack}
+                >
+                  Back
+                </Button>
+              </motion.div>
+            </motion.div>
+          ) : step === 3 ? (
+            <motion.div
+              variants={staggerContainer}
+              initial="initial"
+              animate="animate"
+            >
+              <motion.div variants={cardVariants}>
+                <RadioGroup
                   className="w-full grid grid-cols-2 gap-8 "
                   value={selectedSubject}
                   onValueChange={setSelectedSubject}
@@ -294,7 +419,7 @@ export default function PracticeOnboarding({
                   onClick={handleContinue}
                   disabled={!selectedSubject}
                 >
-                  Choose Domains & Skills
+                  Choose Domains, Skills & Difficulty
                   <div className=" text-white   size-6 overflow-hidden rounded-full duration-500">
                     <div className="flex w-12 -translate-x-1/2 duration-500 ease-in-out group-hover:translate-x-0">
                       <span className="flex size-6">
@@ -315,7 +440,7 @@ export default function PracticeOnboarding({
                 </Button>
               </motion.div>
             </motion.div>
-          ) : (
+          ) : step === 4 ? (
             <motion.div
               variants={staggerContainer}
               initial="initial"
@@ -324,6 +449,10 @@ export default function PracticeOnboarding({
               <motion.div variants={cardVariants}>
                 <div className="space-y-6">
                   <div className="text-center mb-6">
+                    <p className="text-gray-600 mb-4">
+                      Select domains and then choose specific skills within each
+                      domain. You must select at least one skill to continue.
+                    </p>
                     <div className="flex gap-3 justify-center">
                       <Button
                         variant="default"
@@ -492,6 +621,61 @@ export default function PracticeOnboarding({
                       </div>
                     ))}
                   </div>
+
+                  {/* Difficulty Selection Section */}
+                  <div className="space-y-4">
+                    {selectedDomains.length > 0 &&
+                      !hasSkillsFromSelectedDomains() && (
+                        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-center">
+                          <p className="text-amber-800 text-sm font-medium">
+                            Please select at least one skill from your chosen
+                            domains before proceeding.
+                          </p>
+                        </div>
+                      )}
+                    <h2 className="text-xl font-semibold text-gray-900 text-center">
+                      Select Difficulty Levels
+                    </h2>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {[
+                        { value: "Easy", label: "Easy" },
+                        { value: "Medium", label: "Medium" },
+                        { value: "Hard", label: "Hard" },
+                      ].map((difficulty) => (
+                        <div
+                          key={`${id}-difficulty-${difficulty.value}`}
+                          className="relative flex flex-col items-start gap-4 rounded-lg border border-input p-3 shadow-sm shadow-black/5 has-[[data-state=checked]]:border-ring"
+                        >
+                          <div className="flex items-center gap-2">
+                            <Checkbox
+                              id={`${id}-difficulty-${difficulty.value}`}
+                              checked={selectedDifficulties.includes(
+                                difficulty.value
+                              )}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  setSelectedDifficulties((prev) => [
+                                    ...prev,
+                                    difficulty.value,
+                                  ]);
+                                } else {
+                                  setSelectedDifficulties((prev) =>
+                                    prev.filter((d) => d !== difficulty.value)
+                                  );
+                                }
+                              }}
+                              className="after:absolute after:inset-0"
+                            />
+                            <Label
+                              htmlFor={`${id}-difficulty-${difficulty.value}`}
+                            >
+                              {difficulty.label}
+                            </Label>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </motion.div>
               <motion.div
@@ -503,7 +687,9 @@ export default function PracticeOnboarding({
                   className="group w-full hover:cursor-pointer text-lg py-6"
                   onClick={handleContinue}
                   disabled={
-                    selectedDomains.length === 0 || selectedSkills.length === 0
+                    selectedDomains.length === 0 ||
+                    selectedDifficulties.length === 0 ||
+                    !hasSkillsFromSelectedDomains()
                   }
                 >
                   Start Practice
@@ -527,7 +713,8 @@ export default function PracticeOnboarding({
                 </Button>
               </motion.div>
             </motion.div>
-          )}
+          ) : // Step 3 handled above
+          null}
         </motion.fieldset>
       </AnimatePresence>
     </div>
