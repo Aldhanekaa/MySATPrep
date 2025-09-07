@@ -15,6 +15,10 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+
+  images: {
+    remotePatterns: [new URL("https://originui.com/**")],
+  },
 };
 
 export default nextConfig;
