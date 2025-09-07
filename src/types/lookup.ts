@@ -636,3 +636,20 @@ export type LookupResponseData = {
 
   stateOfferings: StateOfferings;
 };
+
+export type QuestionsBank = {
+  updateDate: number;
+  pPcc: string;
+  questionId: string;
+  skill_cd: SkillCd_Variants;
+  score_band_range_cd: number;
+  uId: string;
+  skill_desc: string;
+  createDate: number;
+  program: "SAT";
+  primary_class_cd_desc: string;
+  ibn: null | string;
+  external_id?: "05e23e94-a65b-4643-b1c5-c59ea1dafada" | null;
+  primary_class_cd: DomainItems;
+  difficulty: "E" | "M" | "H";
+};

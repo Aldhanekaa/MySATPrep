@@ -21,8 +21,6 @@ export async function GET() {
       headers: {
         "Content-Type": "application/json",
         Accept: "application/json",
-        // Add any required authentication headers here if needed
-        // 'Authorization': `Bearer ${process.env.COLLEGEBOARD_API_KEY}`,
       },
       // Add timeout to prevent hanging requests
       signal: AbortSignal.timeout(30000), // 30 second timeout
