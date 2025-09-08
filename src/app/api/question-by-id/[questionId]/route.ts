@@ -35,6 +35,8 @@ export async function GET(
           test: 2,
           domain: DomainItemsArray.join(","), // Assuming you want to fetch all domains
         }),
+        next: { revalidate: 3600 },
+
         signal: AbortSignal.timeout(30000),
       });
 

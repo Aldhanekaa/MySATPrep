@@ -20,6 +20,7 @@ import {
   PyramidIcon,
   GripHorizontal,
   Calculator,
+  Maximize2Icon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MathJax, MathJaxContext } from "better-react-mathjax";
@@ -28,8 +29,10 @@ import { Label } from "./ui/label";
 import { Button } from "./ui/button";
 import { useLocalStorage } from "@/lib/useLocalStorage";
 import { playSound } from "@/lib/playSound";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import ReferenceSheet from "@/src/sat-math-refrence-sheet.webp";
+import { toast, useSonner } from "sonner";
 
 // Reference Popup State Management
 interface PopupState {
@@ -683,11 +686,16 @@ const DuolingoInput = React.memo(function DuolingoInput({
 export default function QuestionProblemCard({
   question,
   hideToolsPopup = false,
+  hideViewQuestionButton = false,
+  hideSubjectHeaders = false,
 }: {
   question: QuestionById_Data;
   hideToolsPopup?: boolean;
+  hideViewQuestionButton?: boolean;
+  hideSubjectHeaders?: boolean;
 }) {
-  console.log(question.question.program);
+  const sonner = useSonner();
+  const router = useRouter();
 
   // Load saved questions from localStorage
   const [savedQuestions, setSavedQuestions] = useLocalStorage<SavedQuestions>(
@@ -770,9 +778,11 @@ export default function QuestionProblemCard({
   // Set share URL when component mounts
   useEffect(() => {
     if (typeof window !== "undefined") {
-      setShareUrl(window.location.href);
+      const baseUrl = window.location.origin;
+      const questionUrl = `${baseUrl}/question/${question.question.questionId}`;
+      setShareUrl(questionUrl);
     }
-  }, []);
+  }, [question.question.questionId]);
 
   // Play sound when share modal opens
   useEffect(() => {
@@ -899,14 +909,16 @@ export default function QuestionProblemCard({
     <React.Fragment>
       <MathJaxContext>
         {/* Subject and Skill Headers */}
-        <div className="mb-4 space-y-2">
-          <h3 className="text-lg font-bold text-gray-800">
-            {question.question.primary_class_cd_desc}
-          </h3>
-          <h3 className="text-base font-semibold text-gray-600">
-            {question.question.skill_desc}
-          </h3>
-        </div>
+        {!hideSubjectHeaders && (
+          <div className="mb-4 space-y-2">
+            <h3 className="text-lg font-bold text-gray-800">
+              {question.question.primary_class_cd_desc}
+            </h3>
+            <h3 className="text-base font-semibold text-gray-600">
+              {question.question.skill_desc}
+            </h3>
+          </div>
+        )}
 
         <Card
           variant="accent"
@@ -1032,6 +1044,33 @@ export default function QuestionProblemCard({
                     >
                       <SendIcon className="w-3 h-3 md:w-4 md:h-4 duration-300 group-hover:rotate-12" />
                     </Button>
+
+                    {!hideViewQuestionButton && (
+                      <Button
+                        variant="default"
+                        className="flex cursor-pointer items-center gap-1 md:gap-2 font-bold py-2 md:py-3 px-3 md:px-6 rounded-xl md:rounded-2xl border-b-4 shadow-md hover:shadow-lg transform transition-all duration-200 active:translate-y-0.5 active:border-b-2 bg-blue-500 hover:bg-blue-600 text-white border-blue-700 hover:border-blue-800 text-xs md:text-sm"
+                        onClick={() => {
+                          playSound("button-pressed.wav");
+                          const toastId = toast.loading(
+                            "Redirecting to question page",
+                            {
+                              position: "top-center",
+                            }
+                          );
+
+                          router.push(
+                            `/question/${question.question.questionId}`
+                          );
+
+                          // Dismiss the toast after 2 seconds
+                          setTimeout(() => {
+                            toast.dismiss(toastId);
+                          }, 2000);
+                        }}
+                      >
+                        <Maximize2Icon className="w-3 h-3 md:w-4 md:h-4 duration-300 group-hover:rotate-12" />
+                      </Button>
+                    )}
                   </div>
                 </div>
               </CardTitle>
@@ -1320,6 +1359,21 @@ export default function QuestionProblemCard({
                 )}
               </Button>
             </div>
+
+            {!hideViewQuestionButton && (
+              <div className="mb-4">
+                <Button
+                  variant="default"
+                  onClick={() => {
+                    playSound("button-pressed.wav");
+                    router.push(`/question/${question.question.questionId}`);
+                  }}
+                  className="w-full px-4 py-2 rounded-xl border-2 border-b-4 font-bold transition-all duration-200 bg-gray-500 hover:bg-gray-600 border-gray-700 text-white"
+                >
+                  🔗 View Question Page
+                </Button>
+              </div>
+            )}
 
             <div className="text-xs text-gray-500">
               Anyone with this link can view this specific question.

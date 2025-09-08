@@ -58,6 +58,8 @@ export async function GET(
           test: 2,
           domain: domain,
         }),
+        next: { revalidate: 3600 },
+
         signal: AbortSignal.timeout(30000),
       });
 

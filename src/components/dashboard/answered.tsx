@@ -2,11 +2,12 @@ import React, { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { AssessmentWorkspace } from "@/app/dashboard/types";
 import { useLocalStorage } from "@/lib/useLocalStorage";
-import { SavedQuestions, SavedQuestion } from "@/types/savedQuestions";
+import { PracticeStatistics } from "@/types/statistics";
 import { QuestionById_Data } from "@/types/question";
 import QuestionProblemCard from "@/components/question-problem-card";
 import { Card, CardContent, CardHeader } from "@/components/ui/card-v2";
 import { Separator } from "../ui/separator";
+import { Badge } from "../ui/badge";
 
 // Simple skeleton component
 const Skeleton = ({
@@ -19,29 +20,51 @@ const Skeleton = ({
   />
 );
 
-interface SavedTabProps {
+interface AnsweredTabProps {
   selectedAssessment?: AssessmentWorkspace;
 }
 
-interface QuestionWithData extends SavedQuestion {
+interface AnsweredQuestionWithData {
+  questionId: string;
+  difficulty: string;
+  isCorrect: boolean;
+  timeSpent: number;
+  timestamp: string;
+  selectedAnswer?: string;
+  plainQuestion?: unknown;
   questionData?: QuestionById_Data;
   isLoading?: boolean;
   hasError?: boolean;
   errorMessage?: string;
 }
 
-export function SavedTab({ selectedAssessment }: SavedTabProps) {
-  // Load saved questions from localStorage
-  const [savedQuestions] = useLocalStorage<SavedQuestions>(
-    "savedQuestions",
+export function AnsweredTab({ selectedAssessment }: AnsweredTabProps) {
+  // Load practice statistics from localStorage
+  const [practiceStatistics] = useLocalStorage<PracticeStatistics>(
+    "practiceStatistics",
     {}
   );
 
   // State for managing questions with their fetched data
   const [questionsWithData, setQuestionsWithData] = useState<
-    QuestionWithData[]
+    AnsweredQuestionWithData[]
   >([]);
   const [isInitialized, setIsInitialized] = useState(false);
+
+  // Track which questions have been fetched to prevent duplicate requests
+  const [fetchedQuestionIds, setFetchedQuestionIds] = useState<Set<string>>(
+    new Set()
+  );
+
+  // Infinite scrolling states
+  const [allAnsweredQuestions, setAllAnsweredQuestions] = useState<
+    AnsweredQuestionWithData[]
+  >([]);
+  const [displayedQuestionsCount, setDisplayedQuestionsCount] = useState(15);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+
+  // Intersection observer ref for infinite scrolling
+  const loadMoreRef = React.useRef<HTMLDivElement>(null);
 
   // Get the assessment key from selectedAssessment
   const getAssessmentKey = useCallback(
@@ -85,29 +108,41 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
     []
   );
 
-  // Initialize questions when assessment or saved questions change
+  // Initialize questions when assessment or practice statistics change
   useEffect(() => {
     const assessmentKey = getAssessmentKey(selectedAssessment);
-    const assessmentSavedQuestions = savedQuestions[assessmentKey] || [];
+    const assessmentStats = practiceStatistics[assessmentKey];
+    const answeredQuestionsDetailed =
+      assessmentStats?.answeredQuestionsDetailed || [];
 
-    // Initialize questions with loading state
-    const initialQuestions: QuestionWithData[] = assessmentSavedQuestions.map(
-      (question) => ({
-        ...question,
-        isLoading: true,
-        hasError: false,
-      })
-    );
+    // Sort all questions by timestamp (most recent first)
+    const sortedQuestions: AnsweredQuestionWithData[] =
+      answeredQuestionsDetailed
+        .sort(
+          (a, b) =>
+            new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+        )
+        .map((question) => ({
+          ...question,
+          isLoading: false,
+          hasError: false,
+        }));
+
+    // Store all questions and reset display count
+    setAllAnsweredQuestions(sortedQuestions);
+    setDisplayedQuestionsCount(15);
+
+    // Initialize with first 15 questions (or all if less than 15)
+    const initialQuestions = sortedQuestions.slice(0, 15).map((question) => ({
+      ...question,
+      isLoading: true,
+      hasError: false,
+    }));
 
     setQuestionsWithData(initialQuestions);
     setFetchedQuestionIds(new Set()); // Reset fetched questions when assessment changes
     setIsInitialized(true);
-  }, [selectedAssessment, savedQuestions, getAssessmentKey]);
-
-  // Track which questions have been fetched to prevent duplicate requests
-  const [fetchedQuestionIds, setFetchedQuestionIds] = useState<Set<string>>(
-    new Set()
-  );
+  }, [selectedAssessment, practiceStatistics, getAssessmentKey]);
 
   // Fetch question data progressively
   useEffect(() => {
@@ -174,14 +209,85 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
     fetchQuestionsProgressively();
   }, [isInitialized, questionsWithData, fetchQuestionData, fetchedQuestionIds]);
 
+  // Function to load more questions
+  const loadMoreQuestions = useCallback(() => {
+    if (isLoadingMore || allAnsweredQuestions.length <= displayedQuestionsCount)
+      return;
+
+    setIsLoadingMore(true);
+
+    // Calculate next batch
+    const nextCount = Math.min(
+      displayedQuestionsCount + 15,
+      allAnsweredQuestions.length
+    );
+    const newQuestions = allAnsweredQuestions.slice(
+      displayedQuestionsCount,
+      nextCount
+    );
+
+    // Add new questions with loading state
+    const questionsToAdd = newQuestions.map((question) => ({
+      ...question,
+      isLoading: true,
+      hasError: false,
+    }));
+
+    setQuestionsWithData((prev) => [...prev, ...questionsToAdd]);
+    setDisplayedQuestionsCount(nextCount);
+    setIsLoadingMore(false);
+  }, [allAnsweredQuestions, displayedQuestionsCount, isLoadingMore]);
+
+  // Intersection Observer for infinite scrolling
+  useEffect(() => {
+    const currentLoadMoreRef = loadMoreRef.current;
+    if (
+      !currentLoadMoreRef ||
+      allAnsweredQuestions.length <= displayedQuestionsCount
+    )
+      return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && !isLoadingMore) {
+          loadMoreQuestions();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    observer.observe(currentLoadMoreRef);
+
+    return () => {
+      if (currentLoadMoreRef) {
+        observer.unobserve(currentLoadMoreRef);
+      }
+    };
+  }, [
+    allAnsweredQuestions.length,
+    displayedQuestionsCount,
+    isLoadingMore,
+    loadMoreQuestions,
+  ]);
+
   const assessmentName = selectedAssessment?.name || "SAT";
+
+  // Calculate statistics from all answered questions, not just displayed ones
+  const totalQuestions = allAnsweredQuestions.length;
+  const correctQuestions = allAnsweredQuestions.filter(
+    (q) => q.isCorrect
+  ).length;
+  const accuracy =
+    totalQuestions > 0
+      ? ((correctQuestions / totalQuestions) * 100).toFixed(1)
+      : "0";
 
   if (!isInitialized) {
     return (
       <div className="space-y-4">
-        <h2 className="text-lg font-semibold">Saved Questions</h2>
+        <h2 className="text-lg font-semibold">Answered Questions</h2>
         <p className="text-sm text-muted-foreground">
-          Loading saved questions...
+          Loading answered questions...
         </p>
         <Skeleton className="h-20 w-full" />
       </div>
@@ -191,17 +297,19 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
   if (questionsWithData.length === 0) {
     return (
       <div className="space-y-4">
-        <h2 className="text-lg font-semibold">Saved Questions</h2>
+        <h2 className="text-lg font-semibold">Answered Questions</h2>
         <p className="text-sm text-muted-foreground">
-          No saved questions found for {assessmentName}.
+          No answered questions found for {assessmentName}.
         </p>
         <Card>
           <CardContent className="pt-6">
             <div className="text-center text-gray-500">
-              <p className="text-lg">📚</p>
-              <p className="mt-2">You haven&apos;t saved any questions yet.</p>
+              <p className="text-lg">📝</p>
+              <p className="mt-2">
+                You haven&apos;t answered any questions yet.
+              </p>
               <p className="text-sm text-muted-foreground">
-                Questions you bookmark will appear here for easy review.
+                Questions you complete will appear here for review.
               </p>
             </div>
           </CardContent>
@@ -213,16 +321,41 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
   return (
     <div className="space-y-6 px-2">
       <div className="px-8 lg:px-28">
-        <h2 className="text-lg font-semibold">Saved Questions</h2>
-        <p className="text-sm text-muted-foreground">
-          {questionsWithData.length} saved question
-          {questionsWithData.length !== 1 ? "s" : ""} for {assessmentName}
-        </p>
+        <h2 className="text-lg font-semibold">Answered Questions</h2>
+        <div className="flex flex-wrap gap-2 items-center text-sm text-muted-foreground">
+          <span>
+            {totalQuestions} answered question{totalQuestions !== 1 ? "s" : ""}{" "}
+            for {assessmentName}
+          </span>
+          <span>•</span>
+          <span className="flex items-center gap-1">
+            Accuracy:{" "}
+            <Badge
+              variant={parseFloat(accuracy) >= 70 ? "default" : "destructive"}
+            >
+              {accuracy}%
+            </Badge>
+          </span>
+          <span>•</span>
+          <span className="flex items-center gap-1">
+            Correct:{" "}
+            <Badge variant="default" className="bg-green-500">
+              {correctQuestions}
+            </Badge>
+          </span>
+          <span>•</span>
+          <span className="flex items-center gap-1">
+            Incorrect:{" "}
+            <Badge variant="destructive">
+              {totalQuestions - correctQuestions}
+            </Badge>
+          </span>
+        </div>
       </div>
 
       <div className="space-y-4 max-w-full mx-auto px-6 lg:px-22">
         {questionsWithData.map((question, index) => (
-          <div key={`${question.questionId}-${index}`} className=" mb-32">
+          <div key={`${question.questionId}-${index}`} className="mb-6">
             {question.isLoading && (
               <Card>
                 <CardHeader>
@@ -292,9 +425,26 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
               !question.hasError && (
                 <React.Fragment>
                   <div className="">
-                    <div className="mb-2 text-xs text-muted-foreground">
-                      Saved on{" "}
-                      {new Date(question.timestamp).toLocaleDateString()}
+                    <div className="mb-2 flex flex-wrap gap-2 items-center text-xs text-muted-foreground">
+                      <span>
+                        Answered on{" "}
+                        {new Date(question.timestamp).toLocaleDateString()}
+                      </span>
+                      <span>•</span>
+                      <Badge
+                        variant={question.isCorrect ? "default" : "destructive"}
+                        className={question.isCorrect ? "bg-green-500" : ""}
+                      >
+                        {question.isCorrect ? "Correct" : "Incorrect"}
+                      </Badge>
+                      <span>•</span>
+                      <Badge variant="outline">
+                        {(question.timeSpent / 1000).toFixed(1)}s
+                      </Badge>
+                      <span>•</span>
+                      <Badge variant="outline">
+                        Difficulty: {question.difficulty}
+                      </Badge>
                     </div>
                     <QuestionProblemCard
                       question={question.questionData}
@@ -310,9 +460,41 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
         ))}
       </div>
 
-      {questionsWithData.some((q) => q.isLoading) && (
+      {/* Load more trigger - invisible element for intersection observer */}
+      {allAnsweredQuestions.length > displayedQuestionsCount && (
+        <div className="space-y-4">
+          <div
+            ref={loadMoreRef}
+            className="h-10 flex items-center justify-center"
+          >
+            {isLoadingMore && (
+              <div className="text-center text-sm text-muted-foreground">
+                Loading more questions...
+              </div>
+            )}
+          </div>
+
+          {/* Manual load more button as fallback */}
+          {!isLoadingMore && (
+            <div className="flex justify-center">
+              <Button
+                variant="outline"
+                onClick={loadMoreQuestions}
+                disabled={isLoadingMore}
+                className="px-6 py-2"
+              >
+                Load More Questions (
+                {allAnsweredQuestions.length - displayedQuestionsCount}{" "}
+                remaining)
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {questionsWithData.some((q) => q.isLoading) && !isLoadingMore && (
         <div className="text-center text-sm text-muted-foreground">
-          Loading more questions...
+          Loading questions...
         </div>
       )}
     </div>

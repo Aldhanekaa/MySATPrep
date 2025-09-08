@@ -1,6 +1,11 @@
-import { Search, ArrowLeft } from "lucide-react";
+"use client";
+import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { GradientBars } from "./ui/bg-bars";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { toast } from "sonner";
 
 interface NotFoundProps {
   title?: string;
@@ -22,24 +27,93 @@ export function NotFound({
   title = "Page not found",
   description = "Lost, this page is. In another system, it may be.",
 }: NotFoundProps) {
+  const [questionId, setQuestionId] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
+
+  const handleSearch = () => {
+    if (questionId.trim()) {
+      setIsLoading(true);
+      const toastId = toast.loading("Searching for question...", {
+        id: "question-search",
+      });
+
+      // Navigate to the question page
+      router.push(`/question/${questionId.trim()}`);
+
+      // Dismiss the toast after a short delay
+      setTimeout(() => {
+        toast.dismiss(toastId);
+        setIsLoading(false);
+      }, 1500);
+    } else {
+      toast.error("Please enter a question ID");
+    }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      handleSearch();
+    }
+  };
+
   return (
-    <div className="relative text-center z-[1] pt-52">
-      <h1 className="mt-4 text-balance text-5xl font-semibold tracking-tight text-primary sm:text-7xl">
-        {title}
-      </h1>
-      <p className="mt-6 text-pretty text-lg font-medium text-muted-foreground sm:text-xl/8">
-        {description}
-      </p>
-      <div className="mt-10 flex flex-col sm:flex-row gap-y-3 sm:space-x-2 mx-auto sm:max-w-sm">
-        <div className="relative w-full">
-          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Search" className="pl-8" />
+    <>
+      {/* Progress Bar */}
+      {isLoading && (
+        <div className="fixed top-0 left-0 w-full h-1 bg-gray-200 z-50">
+          <div className="h-full bg-blue-500 animate-pulse transition-all duration-300 progress-bar"></div>
         </div>
-        <Button variant="outline">Search</Button>
-      </div>
-      <div className="mt-10 flex flex-col sm:flex-row sm:items-center sm:justify-center gap-y-3 gap-x-6">
-        <Button variant="secondary" asChild className="group">
-          <a href="#">
+      )}
+      <style jsx>{`
+        .progress-bar {
+          width: 0%;
+          animation: progressAnimation 2s ease-in-out infinite;
+        }
+        @keyframes progressAnimation {
+          0% {
+            width: 0%;
+          }
+          50% {
+            width: 70%;
+          }
+          100% {
+            width: 100%;
+          }
+        }
+      `}</style>
+      <div className="relative text-center z-20 pt-52">
+        <h1 className="mt-4 text-balance text-5xl font-semibold tracking-tight text-primary sm:text-7xl">
+          {title}
+        </h1>
+        <p className="mt-6 text-pretty text-lg font-medium text-muted-foreground sm:text-xl/8">
+          {description}
+        </p>
+        <div className="mt-10 flex flex-col sm:flex-row gap-y-3 sm:space-x-2 mx-auto sm:max-w-sm">
+          <div className="relative w-full">
+            <Input
+              placeholder="Enter Question ID"
+              value={questionId}
+              onChange={(e) => setQuestionId(e.target.value)}
+              onKeyPress={handleKeyPress}
+              className="pl-4 bg-white border-2 border-blue-300 border-b-4 border-b-blue-500 rounded-xl h-12 text-slate-700 placeholder:text-slate-500 shadow-none focus-visible:border-blue-400 focus-visible:border-b-blue-600 focus-visible:ring-0 hover:border-blue-400 hover:border-b-blue-600 transition-colors"
+            />
+          </div>
+          <Button
+            onClick={handleSearch}
+            disabled={isLoading}
+            variant="outline"
+            className="bg-blue-500 hover:bg-blue-600 text-white border-2 border-blue-400 border-b-4 border-b-blue-700 rounded-xl h-12 px-6 shadow-none active:border-b-2 active:translate-y-0.5 transition-all duration-75 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isLoading ? "Searching..." : "Search"}
+          </Button>
+        </div>
+        <div className="mt-10 flex flex-col sm:flex-row sm:items-center sm:justify-center gap-y-3 gap-x-6">
+          <Button
+            variant="secondary"
+            onClick={() => window.history.back()}
+            className="group bg-slate-200 hover:bg-slate-300 text-slate-700 border-2 border-slate-300 border-b-4 border-b-slate-400 rounded-xl h-12 shadow-none active:border-b-2 active:translate-y-0.5 transition-all duration-75"
+          >
             <ArrowLeft
               className="me-2 ms-0 opacity-60 transition-transform group-hover:-translate-x-0.5"
               size={16}
@@ -47,24 +121,30 @@ export function NotFound({
               aria-hidden="true"
             />
             Go back
-          </a>
-        </Button>
-        <Button className="-order-1 sm:order-none" asChild>
-          <a href="#">Take me home</a>
-        </Button>
+          </Button>
+          <Button
+            className="-order-1 sm:order-none bg-blue-500 hover:bg-blue-600 text-white border-2 border-blue-400 border-b-4 border-b-blue-700 rounded-xl h-12 shadow-none active:border-b-2 active:translate-y-0.5 transition-all duration-75"
+            onClick={() => router.push("/")}
+          >
+            Take me home
+          </Button>
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 
 export default function QuestionNotFound() {
   return (
     <div className="relative flex flex-col w-full justify-center min-h-svh bg-background p-6 md:p-10">
+      <GradientBars
+        colors={["lab(54.1736% 13.3369 -74.6839)", "transparent"]}
+      />
       <div className="relative max-w-5xl mx-auto w-full">
-        <Illustration className="absolute inset-0 w-full h-[50vh] opacity-[0.04] dark:opacity-[0.03] text-foreground" />
+        <Illustration className="absolute inset-0 z-10 w-full h-[50vh] opacity-[0.04] dark:opacity-[0.03] text-foreground" />
         <NotFound
-          title="Page not found"
-          description="Lost, this page is. In another system, it may be."
+          title="Question not found"
+          description="Uh oh, we are unable to find the question you are looking for."
         />
       </div>
     </div>

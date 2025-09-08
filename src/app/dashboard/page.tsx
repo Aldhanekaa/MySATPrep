@@ -7,13 +7,16 @@ import {
   WorkspaceTrigger,
   WorkspaceContent,
 } from "@/components/ui/workspaces";
-import { Home, BookMarked, TrendingUp, Clock } from "lucide-react";
+import { Home, BookMarked, TrendingUp, Clock, CheckCircle } from "lucide-react";
 import { Assessments } from "@/static-data/assessment";
 import { useLocalStorage } from "@/lib/useLocalStorage";
+import { SavedQuestions } from "@/types/savedQuestions";
+import { PracticeStatistics } from "@/types/statistics";
 import { Badge } from "@/components/ui/badge";
 import {
   HomeTab,
   SavedTab,
+  AnsweredTab,
   TrackerTab,
   SessionsTab,
 } from "@/components/dashboard";
@@ -59,38 +62,11 @@ interface TabItem {
   badge?: number;
 }
 
-const TAB_ITEMS: TabItem[] = [
-  {
-    value: "home",
-    label: "Home",
-    icon: Home,
-    tooltip: "Home",
-  },
-  {
-    value: "saved",
-    label: "Saved",
-    icon: BookMarked,
-    tooltip: "Saved Questions",
-    badge: 4,
-  },
-  {
-    value: "tracker",
-    label: "Tracker",
-    icon: TrendingUp,
-    tooltip: "Progress Tracker",
-  },
-  {
-    value: "sessions",
-    label: "Sessions",
-    icon: Clock,
-    tooltip: "Practice Sessions",
-  },
-];
-
 // Shared tab content components
 const TabContentComponents = {
   home: HomeTab,
   saved: SavedTab,
+  answered: AnsweredTab,
   tracker: TrackerTab,
   sessions: SessionsTab,
 };
@@ -100,6 +76,94 @@ export default function DashboardPage() {
   const [activeAssessmentId, setActiveAssessmentId] = useLocalStorage(
     "preferred-assessment-id",
     assessmentWorkspaces[0]?.id || "99"
+  );
+
+  // Load saved questions to calculate badge count
+  const [savedQuestions] = useLocalStorage<SavedQuestions>(
+    "savedQuestions",
+    {}
+  );
+
+  // Load practice statistics to calculate answered questions badge count
+  const [practiceStatistics] = useLocalStorage<PracticeStatistics>(
+    "practiceStatistics",
+    {}
+  );
+
+  // Get the assessment key from selectedAssessment
+  const getAssessmentKey = React.useCallback(
+    (assessment?: AssessmentWorkspace): string => {
+      if (!assessment) return "SAT"; // Default to SAT
+
+      // Map assessment names to keys used in localStorage
+      const assessmentMap: Record<string, string> = {
+        SAT: "SAT",
+        "PSAT/NMSQT": "P10",
+        "PSAT 8/9": "P89",
+      };
+
+      return assessmentMap[assessment.name] || "SAT";
+    },
+    []
+  );
+
+  const selectedAssessment = React.useMemo(() => {
+    return assessmentWorkspaces.find((ws) => ws.id === activeAssessmentId);
+  }, [activeAssessmentId]);
+
+  // Calculate saved questions count for current assessment
+  const savedQuestionsCount = React.useMemo(() => {
+    const assessmentKey = getAssessmentKey(selectedAssessment);
+    const assessmentSavedQuestions = savedQuestions[assessmentKey] || [];
+    return assessmentSavedQuestions.length;
+  }, [savedQuestions, selectedAssessment, getAssessmentKey]);
+
+  // Calculate answered questions count for current assessment
+  const answeredQuestionsCount = React.useMemo(() => {
+    const assessmentKey = getAssessmentKey(selectedAssessment);
+    const assessmentStats = practiceStatistics[assessmentKey];
+    const answeredQuestionsDetailed =
+      assessmentStats?.answeredQuestionsDetailed || [];
+    return answeredQuestionsDetailed.length;
+  }, [practiceStatistics, selectedAssessment, getAssessmentKey]);
+
+  // Dynamic tab items with calculated badge count
+  const TAB_ITEMS: TabItem[] = React.useMemo(
+    () => [
+      {
+        value: "home",
+        label: "Home",
+        icon: Home,
+        tooltip: "Home",
+      },
+      {
+        value: "saved",
+        label: "Saved",
+        icon: BookMarked,
+        tooltip: "Saved Questions",
+        badge: savedQuestionsCount > 0 ? savedQuestionsCount : undefined,
+      },
+      {
+        value: "answered",
+        label: "Answered",
+        icon: CheckCircle,
+        tooltip: "Answered Questions",
+        badge: answeredQuestionsCount > 0 ? answeredQuestionsCount : undefined,
+      },
+      {
+        value: "tracker",
+        label: "Tracker",
+        icon: TrendingUp,
+        tooltip: "Progress Tracker",
+      },
+      {
+        value: "sessions",
+        label: "Sessions",
+        icon: Clock,
+        tooltip: "Practice Sessions",
+      },
+    ],
+    [savedQuestionsCount, answeredQuestionsCount]
   );
 
   // Get time-based greeting
@@ -119,10 +183,6 @@ export default function DashboardPage() {
       workspace.assessmentId
     );
   };
-
-  const selectedAssessment = React.useMemo(() => {
-    return assessmentWorkspaces.find((ws) => ws.id === activeAssessmentId);
-  }, [activeAssessmentId]);
 
   return (
     <React.Fragment>
@@ -157,7 +217,7 @@ export default function DashboardPage() {
           {/* Mobile Tabs - shown only on mobile */}
           <div className="lg:hidden md:pl-13">
             <Tabs defaultValue="home" className="text-sm text-muted-foreground">
-              <TabsList className="grid w-full grid-cols-4">
+              <TabsList className="grid w-full grid-cols-5">
                 {TAB_ITEMS.map((tab) => {
                   const IconComponent = tab.icon;
                   return (

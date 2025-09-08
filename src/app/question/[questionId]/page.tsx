@@ -1,4 +1,5 @@
 import { SiteHeader } from "@/app/navbar";
+import QuestionNotFound from "@/components/question-not-found";
 import QuestionProblemCard from "@/components/question-problem-card";
 import { Label } from "@/components/ui/label";
 import { QuestionById_Response } from "@/types";
@@ -42,7 +43,12 @@ export default async function Page({
   );
 
   if (!result.data) {
-    return <div>not found</div>;
+    return (
+      <React.Fragment>
+        <SiteHeader />
+        <QuestionNotFound />
+      </React.Fragment>
+    );
   }
 
   const questionData = result.data;
@@ -54,7 +60,7 @@ export default async function Page({
       <SiteHeader />
       <main className="w-full flex items-center flex-col min-h-[85vh] py-16 lg:py-32 px-3 md:px-10">
         <section className="space-y-4 max-w-screen md:max-w-5xl mt-8">
-          <QuestionProblemCard question={questionData} />
+          <QuestionProblemCard question={questionData} hideViewQuestionButton />
         </section>
       </main>
     </React.Fragment>
