@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import React from "react";
 import { SiteHeader } from "./navbar";
+import Link from "next/link";
 
 export default function NotFoundPage() {
   return (
@@ -28,12 +29,14 @@ export default function NotFoundPage() {
                     The page you are looking for is not available!
                   </p>
 
-                  <Button
-                    variant="default"
-                    className="cursor-pointer my-5 bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white font-bold py-3 px-6 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 active:translate-y-0 transition-all duration-150 border-b-4 border-blue-700 hover:border-blue-800 active:border-blue-700"
-                  >
-                    Go to Home
-                  </Button>
+                  <Link href="/">
+                    <Button
+                      variant="default"
+                      className="cursor-pointer my-5 bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white font-bold py-3 px-6 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 active:translate-y-0 transition-all duration-150 border-b-4 border-blue-700 hover:border-blue-800 active:border-blue-700"
+                    >
+                      Go to Home
+                    </Button>
+                  </Link>
                 </div>
               </div>
             </div>

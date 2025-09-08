@@ -3,7 +3,7 @@ import React from "react";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { Menu, X } from "lucide-react";
+import { Menu, X, Search } from "lucide-react";
 import Link from "next/link";
 
 const menuItems = [
@@ -109,12 +109,13 @@ export const SiteHeader = () => {
                     <span>Sign Up</span>
                   </Link>
                 </Button> */}
+
                 <Button
                   asChild
                   size="sm"
                   className={cn(
-                    `bg-blue-500 hover:bg-blue-700 ${
-                      isScrolled && "lg:hidden "
+                    ` bg-blue-500 hover:bg-blue-700 ${
+                      isScrolled ? "lg:inline-flex" : "inline-flex"
                     }`
                   )}
                 >
@@ -125,14 +126,15 @@ export const SiteHeader = () => {
                 <Button
                   asChild
                   size="sm"
+                  variant="outline"
                   className={cn(
-                    ` bg-blue-500 hover:bg-blue-700 ${
-                      isScrolled ? "lg:inline-flex" : "hidden"
+                    `border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-white ${
+                      isScrolled ? "lg:inline-flex" : "inline-flex"
                     }`
                   )}
                 >
-                  <Link href="/practice">
-                    <span>Practice Rush</span>
+                  <Link href="/question">
+                    <Search className="w-4 h-4" />
                   </Link>
                 </Button>
               </div>
