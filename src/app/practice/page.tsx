@@ -100,7 +100,7 @@ function getSubjectFromDomains(domainIds: string[]): string | null {
   return null;
 }
 
-export default function Practice() {
+function Practice() {
   const searchParams = useSearchParams();
   const [onboardingComplete, setOnboardingComplete] = useState<boolean>(false);
   const [practiceSelections, setPracticeSelections] =
@@ -728,7 +728,7 @@ export default function Practice() {
   };
 
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <React.Fragment>
       <SiteHeader />
 
       {/* Handle session restoration */}
@@ -808,6 +808,14 @@ export default function Practice() {
           restoredSessionData={restoredSessionData || undefined}
         />
       ) : null}
+    </React.Fragment>
+  );
+}
+
+export default function PracticePage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <Practice />
     </Suspense>
   );
 }

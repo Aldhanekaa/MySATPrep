@@ -1,6 +1,8 @@
 import { SiteHeader } from "@/app/navbar";
 import QuestionProblemCard from "@/components/question-problem-card";
+import { Label } from "@/components/ui/label";
 import { QuestionById_Response } from "@/types";
+import { MathJax } from "better-react-mathjax";
 import React from "react";
 
 async function fetchQuestionById(
@@ -50,7 +52,11 @@ export default async function Page({
   return (
     <React.Fragment>
       <SiteHeader />
-      <QuestionProblemCard question={questionData} />
+      <main className="w-full flex items-center flex-col min-h-[85vh] py-32 px-10">
+        <section className="space-y-4 max-w-screen md:max-w-5xl mt-8">
+          <QuestionProblemCard question={questionData} />
+        </section>
+      </main>
     </React.Fragment>
   );
 }

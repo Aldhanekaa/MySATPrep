@@ -41,6 +41,7 @@ export interface AnsweredQuestion {
   isCorrect: boolean;
   timeSpent: number; // time in milliseconds
   timestamp: string; // ISO timestamp when answered
+  selectedAnswer?: string; // User's selected answer (A, B, C, D, etc.)
   plainQuestion?: PlainQuestionType; // Full question metadata
 }
 

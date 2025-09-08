@@ -2750,7 +2750,8 @@ export default function PracticeRushMultistep({
               currentQuestion.plainQuestion.difficulty as "E" | "M" | "H",
               correct,
               timeElapsed,
-              currentQuestion.plainQuestion // Include plainQuestion data
+              currentQuestion.plainQuestion, // Include plainQuestion data
+              state.selectedAnswer // Include the selected answer
             );
 
             // Update user profile and XP based on answer correctness
@@ -3036,29 +3037,29 @@ export default function PracticeRushMultistep({
                         <h6 className="text-xl">
                           {currentQuestion.plainQuestion.primary_class_cd_desc}{" "}
                           - {currentQuestion.plainQuestion.skill_desc}
+                          {state.isSavingSession && (
+                            <span className="ml-2 text-blue-600 text-xs">
+                              • Saving...
+                            </span>
+                          )}
+                          {state.questionAnswers[
+                            currentQuestion.plainQuestion.questionId
+                          ] && (
+                            <span className="ml-2 text-orange-600 text-xs font-semibold">
+                              • REVIEWING
+                            </span>
+                          )}
                         </h6>
                         {state.questionsData && (
                           <p className="text-sm text-gray-600 mt-1">
-                            Question {state.currentQuestionStep + 1} of{" "}
+                            {/* Question {state.currentQuestionStep + 1} of{" "}
                             {state.questions?.length || 0} •{" "}
                             {Math.max(
                               0,
                               state.questionsData.length -
                                 state.questionsLoadedCount
                             )}{" "}
-                            questions remaining
-                            {state.isSavingSession && (
-                              <span className="ml-2 text-blue-600 text-xs">
-                                • Saving...
-                              </span>
-                            )}
-                            {state.questionAnswers[
-                              currentQuestion.plainQuestion.questionId
-                            ] && (
-                              <span className="ml-2 text-orange-600 text-xs font-semibold">
-                                • REVIEWING
-                              </span>
-                            )}
+                            questions remaining */}
                           </p>
                         )}
                       </div>
@@ -3409,7 +3410,7 @@ export default function PracticeRushMultistep({
                     {currentQuestion.stimulus && (
                       <div
                         id="stimulus"
-                        className="text-xl text-justify"
+                        className="text-xl text-justify answer-option"
                         dangerouslySetInnerHTML={{
                           __html: currentQuestion.stimulus
                             ? currentQuestion.stimulus
@@ -3423,7 +3424,7 @@ export default function PracticeRushMultistep({
                         <MathJax>
                           <div
                             id="question_stem"
-                            className="text-xl"
+                            className="text-xl answer-option"
                             dangerouslySetInnerHTML={{
                               __html: currentQuestion.stem,
                             }}

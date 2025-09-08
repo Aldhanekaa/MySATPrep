@@ -140,7 +140,8 @@ export function addAnsweredQuestion(
   difficulty: "E" | "M" | "H",
   isCorrect: boolean,
   timeSpent: number,
-  plainQuestion?: PlainQuestionType
+  plainQuestion?: PlainQuestionType,
+  selectedAnswer?: string
 ): void {
   console.log("Adding detailed answered question:", questionId);
   const statistics = getPracticeStatistics();
@@ -168,6 +169,7 @@ export function addAnsweredQuestion(
     timeSpent,
     timestamp: new Date().toISOString(),
     plainQuestion,
+    selectedAnswer, // Include the selected answer
   };
 
   if (existingIndex !== -1) {
