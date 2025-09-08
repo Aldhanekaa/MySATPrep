@@ -102,6 +102,14 @@ export default function DashboardPage() {
     assessmentWorkspaces[0]?.id || "99"
   );
 
+  // Get time-based greeting
+  const getTimeBasedGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Good Morning";
+    if (hour < 17) return "Good Afternoon";
+    return "Good Evening";
+  };
+
   const handleAssessmentChange = (workspace: AssessmentWorkspace) => {
     setActiveAssessmentId(workspace.id);
     console.log(
@@ -119,33 +127,33 @@ export default function DashboardPage() {
   return (
     <React.Fragment>
       <SiteHeader />
-      <div className="w-full flex flex-col min-h-screen pt-32 pb-60 items-center">
+      <div className="w-full flex flex-col min-h-screen pb-60 items-center">
+        <section className="bg-accent w-full pt-32 mb-10 pb-3">
+          <section className="space-y-4 max-w-7xl w-full mx-auto px-3 ">
+            <div className="  flex flex-col gap-4 md:flex-row justify-between items-start md:pl-13 space-y-6">
+              <div className="space-y-2">
+                <h1 className="text-2xl font-bold">{getTimeBasedGreeting()}</h1>
+                <p className="text-muted-foreground">
+                  Select an assessment type to get started with practice
+                  questions.
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                <label className="text-sm font-medium">Assessment Type</label>
+                <Workspaces
+                  workspaces={assessmentWorkspaces}
+                  selectedWorkspaceId={activeAssessmentId}
+                  onWorkspaceChange={handleAssessmentChange}
+                >
+                  <WorkspaceTrigger className="min-w-72" />
+                  <WorkspaceContent title="Assessment Types"></WorkspaceContent>
+                </Workspaces>
+              </div>
+            </div>
+          </section>
+        </section>
         <main className="space-y-4 max-w-7xl w-full mx-auto px-3">
-          <div className="flex flex-col gap-4 md:flex-row justify-between items-start md:pl-13 space-y-6">
-            <div className="space-y-2">
-              <h1 className="text-2xl font-bold">
-                Good Morning,
-                <br />
-              </h1>
-              <p className="text-muted-foreground">
-                Select an assessment type to get started with practice
-                questions.
-              </p>
-            </div>
-
-            <div className="space-y-4">
-              <label className="text-sm font-medium">Assessment Type</label>
-              <Workspaces
-                workspaces={assessmentWorkspaces}
-                selectedWorkspaceId={activeAssessmentId}
-                onWorkspaceChange={handleAssessmentChange}
-              >
-                <WorkspaceTrigger className="min-w-72" />
-                <WorkspaceContent title="Assessment Types"></WorkspaceContent>
-              </Workspaces>
-            </div>
-          </div>
-
           {/* Mobile Tabs - shown only on mobile */}
           <div className="lg:hidden md:pl-13">
             <Tabs defaultValue="home" className="text-sm text-muted-foreground">
@@ -183,7 +191,7 @@ export default function DashboardPage() {
                     value={tab.value}
                     className="mt-4"
                   >
-                    <div className="rounded-lg border bg-card p-6">
+                    <div className="rounded-lg bg-card">
                       <ContentComponent
                         selectedAssessment={selectedAssessment}
                       />
@@ -247,7 +255,7 @@ export default function DashboardPage() {
                   );
                 })}
               </VerticalTabsList>
-              <div className="grow rounded-lg border border-border text-start min-h-[400px]">
+              <div className="grow rounded-lg text-start min-h-[400px]">
                 {TAB_ITEMS.map((tab) => {
                   const ContentComponent =
                     TabContentComponents[
@@ -255,7 +263,7 @@ export default function DashboardPage() {
                     ];
                   return (
                     <VerticalTabsContent key={tab.value} value={tab.value}>
-                      <div className="p-6 space-y-4 h-full">
+                      <div className=" space-y-4 h-full">
                         <ContentComponent
                           selectedAssessment={selectedAssessment}
                         />

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { SiteHeader } from "../navbar";
 import PracticeOnboarding from "@/components/practice-onboarding";
@@ -728,7 +728,7 @@ export default function Practice() {
   };
 
   return (
-    <React.Fragment>
+    <Suspense fallback={<div>Loading...</div>}>
       <SiteHeader />
 
       {/* Handle session restoration */}
@@ -808,6 +808,6 @@ export default function Practice() {
           restoredSessionData={restoredSessionData || undefined}
         />
       ) : null}
-    </React.Fragment>
+    </Suspense>
   );
 }
