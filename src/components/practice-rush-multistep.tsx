@@ -13,6 +13,14 @@ import {
   API_Response_Question_List,
   QuestionState,
 } from "@/types/question";
+import {
+  PracticeSelections,
+  PracticeSession,
+  QuestionAnswers,
+  QuestionTimes,
+  saveSessionToStorage,
+  SessionStatus,
+} from "@/types/session";
 
 import { MathJax, MathJaxContext } from "better-react-mathjax";
 import { Pill, PillIndicator } from "@/components/ui/pill";
@@ -22,6 +30,7 @@ import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import {
   CheckCircle,
+  Clock,
   GripHorizontalIcon,
   PyramidIcon,
   Strikethrough,
@@ -49,6 +58,74 @@ const CONGRATULATORY_MESSAGES = [
   "You're on fire!",
   "Keep it up!",
 ];
+
+// Duolingo-styled Timer Component
+interface DuolingoTimerProps {
+  startTime: number;
+  isActive: boolean;
+  isVisible: boolean;
+  onToggleVisibility: () => void;
+}
+
+function DuolingoTimer({
+  startTime,
+  isActive,
+  isVisible,
+  onToggleVisibility,
+}: DuolingoTimerProps) {
+  const [elapsedTime, setElapsedTime] = React.useState(0);
+
+  React.useEffect(() => {
+    let interval: NodeJS.Timeout;
+
+    if (isActive) {
+      interval = setInterval(() => {
+        setElapsedTime(Date.now() - startTime);
+      }, 100); // Update every 100ms for smooth animation
+    }
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isActive, startTime]);
+
+  const formatTime = (ms: number) => {
+    const totalSeconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+  };
+
+  const getTimerColor = (ms: number) => {
+    const totalSeconds = Math.floor(ms / 1000);
+    if (totalSeconds < 30) return "text-green-600";
+    if (totalSeconds < 60) return "text-yellow-600";
+    if (totalSeconds < 120) return "text-orange-600";
+    return "text-red-600";
+  };
+
+  return (
+    <div className="flex flex-col items-center gap-2">
+      <div
+        className={`${
+          isVisible ? "block" : "hidden"
+        } flex items-center gap-2 bg-white border-2 border-gray-300 rounded-2xl px-4 py-2 shadow-sm`}
+      >
+        <Clock className={`h-5 w-5 ${getTimerColor(elapsedTime)}`} />
+        <span className={`font-bold text-lg ${getTimerColor(elapsedTime)}`}>
+          {formatTime(elapsedTime)}
+        </span>
+      </div>
+
+      <button
+        onClick={onToggleVisibility}
+        className="px-8 text-xs text-gray-500 hover:text-gray-700 underline cursor-pointer transition-colors duration-200"
+      >
+        {isVisible ? "Hide" : "Show"}
+      </button>
+    </div>
+  );
+}
 
 // Success Feedback Component
 interface SuccessFeedbackProps {
@@ -138,6 +215,7 @@ interface DuolingoInputProps {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
+  disabled?: boolean;
 }
 
 // Optimized Duolingo-styled Input Component
@@ -145,6 +223,7 @@ const DuolingoInput = React.memo(function DuolingoInput({
   value,
   onChange,
   placeholder = "Type your answer here...",
+  disabled = false,
 }: DuolingoInputProps) {
   return (
     <div className="w-full">
@@ -152,29 +231,15 @@ const DuolingoInput = React.memo(function DuolingoInput({
         <input
           type="text"
           value={value || ""}
-          onChange={(e) => onChange(e.target.value)}
+          onChange={(e) => !disabled && onChange(e.target.value)}
           placeholder={placeholder}
-          className="w-full px-4 py-4 text-lg font-medium border-2 border-b-4 border-gray-300 rounded-2xl focus:outline-none focus:border-blue-500 focus:border-b-blue-500 focus:ring-0 transition-all duration-200 bg-white shadow-sm hover:shadow-md focus:shadow-lg"
+          disabled={disabled}
+          className={`w-full px-4 py-4 text-lg font-medium border-2 border-b-4 rounded-2xl focus:outline-none transition-all duration-200 shadow-sm ${
+            disabled
+              ? "border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed"
+              : "border-gray-300 focus:border-blue-500 focus:border-b-blue-500 focus:ring-0 bg-white hover:shadow-md focus:shadow-lg"
+          }`}
         />
-        {value && (
-          <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-            <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
-              <svg
-                className="w-4 h-4 text-white"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M5 13l4 4L19 7"
-                />
-              </svg>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
@@ -682,7 +747,8 @@ interface AppState {
   questionsData: API_Response_Question_List | null;
   questions: QuestionState[] | null;
   currentQuestionStep: number;
-  questionAnswers: { [questionId: string]: string | null };
+  questionAnswers: QuestionAnswers;
+  questionTimes: QuestionTimes;
   disabledOptions: { [key: string]: boolean };
   selectedAnswer: string | null;
   isReferencePopupOpen: boolean;
@@ -690,6 +756,9 @@ interface AppState {
   isAnswerCorrect: boolean;
   currentStep: number;
   isExitConfirmationOpen: boolean;
+  questionStartTime: number;
+  isTimerActive: boolean;
+  isTimerVisible: boolean;
 }
 
 type AppAction =
@@ -707,16 +776,21 @@ type AppAction =
         correct: boolean;
         questionId: string;
         answer: string;
+        timeElapsed: number;
       };
     }
   | { type: "TOGGLE_REFERENCE_POPUP" }
-  | { type: "TOGGLE_EXIT_CONFIRMATION" };
+  | { type: "TOGGLE_EXIT_CONFIRMATION" }
+  | { type: "START_TIMER" }
+  | { type: "STOP_TIMER" }
+  | { type: "TOGGLE_TIMER_VISIBILITY" };
 
 const initialState: AppState = {
   questionsData: null,
   questions: null,
   currentQuestionStep: 0,
   questionAnswers: {},
+  questionTimes: {},
   disabledOptions: {},
   selectedAnswer: null,
   isReferencePopupOpen: false,
@@ -724,6 +798,9 @@ const initialState: AppState = {
   isAnswerCorrect: false,
   currentStep: 1,
   isExitConfirmationOpen: false,
+  questionStartTime: Date.now(),
+  isTimerActive: false,
+  isTimerVisible: true,
 };
 
 function appReducer(state: AppState, action: AppAction): AppState {
@@ -742,6 +819,8 @@ function appReducer(state: AppState, action: AppAction): AppState {
         disabledOptions: {},
         isAnswerChecked: false,
         isAnswerCorrect: false,
+        questionStartTime: Date.now(),
+        isTimerActive: true,
       };
     case "SET_SELECTED_ANSWER":
       return { ...state, selectedAnswer: action.payload };
@@ -760,6 +839,8 @@ function appReducer(state: AppState, action: AppAction): AppState {
         disabledOptions: {},
         isAnswerChecked: false,
         isAnswerCorrect: false,
+        questionStartTime: Date.now(),
+        isTimerActive: true,
       };
     case "SET_ANSWER_CHECKED":
       return {
@@ -770,6 +851,10 @@ function appReducer(state: AppState, action: AppAction): AppState {
           ...state.questionAnswers,
           [action.payload.questionId]: action.payload.answer,
         },
+        questionTimes: {
+          ...state.questionTimes,
+          [action.payload.questionId]: action.payload.timeElapsed,
+        },
       };
     case "TOGGLE_REFERENCE_POPUP":
       return { ...state, isReferencePopupOpen: !state.isReferencePopupOpen };
@@ -778,28 +863,29 @@ function appReducer(state: AppState, action: AppAction): AppState {
         ...state,
         isExitConfirmationOpen: !state.isExitConfirmationOpen,
       };
+    case "START_TIMER":
+      return {
+        ...state,
+        questionStartTime: Date.now(),
+        isTimerActive: true,
+      };
+    case "STOP_TIMER":
+      return {
+        ...state,
+        isTimerActive: false,
+      };
+    case "TOGGLE_TIMER_VISIBILITY":
+      return {
+        ...state,
+        isTimerVisible: !state.isTimerVisible,
+      };
     default:
       return state;
   }
 }
 
 interface PracticeRushMultistepProps {
-  practiceSelections: {
-    practiceType: string;
-    assessment: string;
-    subject: string;
-    domains: Array<{
-      id: string;
-      text: string;
-      primaryClassCd: string;
-    }>;
-    skills: Array<{
-      id: string;
-      text: string;
-      skill_cd: string;
-    }>;
-    difficulties: string[];
-  };
+  practiceSelections: PracticeSelections;
 }
 
 export default function PracticeRushMultistep({
@@ -856,22 +942,7 @@ export default function PracticeRushMultistep({
     dispatch({ type: "RESET_QUESTION_STATE" });
   }, [state.currentQuestionStep]);
 
-  async function FetchQuestions(selections: {
-    practiceType: string;
-    assessment: string;
-    subject: string;
-    domains: Array<{
-      id: string;
-      text: string;
-      primaryClassCd: string;
-    }>;
-    skills: Array<{
-      id: string;
-      text: string;
-      skill_cd: string;
-    }>;
-    difficulties: string[];
-  }) {
+  async function FetchQuestions(selections: PracticeSelections) {
     const questionsResponse = await fetch(
       `/api/get-questions?assessment=${
         selections.assessment
@@ -932,6 +1003,7 @@ export default function PracticeRushMultistep({
 
       setTimeout(() => {
         dispatch({ type: "SET_QUESTIONS", payload: correctQuestions });
+        dispatch({ type: "START_TIMER" }); // Start timer when questions are loaded
       }, 1500);
     }
   }
@@ -942,10 +1014,21 @@ export default function PracticeRushMultistep({
         if (!state.selectedAnswer || !currentQuestion) return;
 
         if (!state.isAnswerChecked) {
-          // First click: Check the answer
-          const correct = currentQuestion.correct_answer.includes(
-            state.selectedAnswer
+          // console.log(
+          //   currentQuestion,
+          //   currentQuestion.correct_answer,
+          //   state.selectedAnswer,
+          //   state
+          // );
+
+          const correctAnswers = currentQuestion.correct_answer.map((e) =>
+            e.trim()
           );
+          // First click: Check the answer
+          const correct = correctAnswers.includes(state.selectedAnswer.trim());
+
+          // Calculate time elapsed for this question
+          const timeElapsed = Date.now() - state.questionStartTime;
 
           dispatch({
             type: "SET_ANSWER_CHECKED",
@@ -954,8 +1037,12 @@ export default function PracticeRushMultistep({
               correct,
               questionId,
               answer: state.selectedAnswer,
+              timeElapsed,
             },
           });
+
+          // Stop the timer when answer is checked
+          dispatch({ type: "STOP_TIMER" });
 
           // Note: The feedback overlay will handle the continue action
           // Don't advance to next question here - let overlay handle it
@@ -982,6 +1069,7 @@ export default function PracticeRushMultistep({
       state.isAnswerChecked,
       state.questions,
       state.currentQuestionStep,
+      state.questionStartTime,
     ]
   );
 
@@ -992,33 +1080,44 @@ export default function PracticeRushMultistep({
 
   function confirmExit() {
     // Save user's progress to local storage
-    const practiceSession = {
+    const practiceSession: PracticeSession = {
       practiceSelections,
       currentQuestionStep: state.currentQuestionStep,
       questionAnswers: state.questionAnswers,
+      questionTimes: state.questionTimes, // Time taken per question in milliseconds
       totalQuestions: state.questions?.length || 0,
       answeredQuestions: Object.keys(state.questionAnswers),
       timestamp: new Date().toISOString(),
       sessionId: `practice-${Date.now()}`, // Unique session ID
+      status: SessionStatus.ABANDONED, // User is exiting before completion
+      // Additional analytics
+      averageTimePerQuestion:
+        Object.keys(state.questionTimes).length > 0
+          ? Object.values(state.questionTimes).reduce(
+              (sum, time) => sum + time,
+              0
+            ) / Object.values(state.questionTimes).length
+          : 0,
+      totalTimeSpent: Object.values(state.questionTimes).reduce(
+        (sum, time) => sum + time,
+        0
+      ),
     };
 
     try {
-      // Save current session
-      localStorage.setItem(
-        "currentPracticeSession",
-        JSON.stringify(practiceSession)
-      );
-
-      // Also save to practice history for later review
-      const existingHistory = localStorage.getItem("practiceHistory");
-      const history = existingHistory ? JSON.parse(existingHistory) : [];
-      history.push(practiceSession);
-
-      // Keep only last 10 sessions to avoid localStorage bloat
-      const recentHistory = history.slice(-10);
-      localStorage.setItem("practiceHistory", JSON.stringify(recentHistory));
+      // Save session using utility function
+      saveSessionToStorage(practiceSession);
 
       console.log("Practice session saved successfully");
+      console.log(
+        "Question Times (in seconds):",
+        Object.fromEntries(
+          Object.entries(state.questionTimes).map(([id, time]) => [
+            id,
+            Math.round(time / 1000),
+          ])
+        )
+      );
     } catch (error) {
       console.error("Failed to save practice session:", error);
     }
@@ -1030,6 +1129,7 @@ export default function PracticeRushMultistep({
     }
   }
 
+  // console.log(currentQuestion);
   return (
     <MathJaxContext version={3} config={config}>
       <div className="max-w-11/12 mx-auto px-4 sm:px-6 lg:px-8">
@@ -1049,34 +1149,46 @@ export default function PracticeRushMultistep({
             <div className="min-h-screen items-center justify-center pt-32 pb-10">
               <div className="flex flex-row justify-between mb-10">
                 <div>
-                  <div className="flex gap-2 items-center">
-                    <h5 className="font-black text-2xl">
-                      Question ID {currentQuestion.plainQuestion.questionId}
-                    </h5>
+                  <div className="flex gap-4 items-center">
+                    <DuolingoTimer
+                      startTime={state.questionStartTime}
+                      isActive={state.isTimerActive}
+                      isVisible={state.isTimerVisible}
+                      onToggleVisibility={() =>
+                        dispatch({ type: "TOGGLE_TIMER_VISIBILITY" })
+                      }
+                    />
+                    <div className="h-full flex gap-2 justify-center items-center">
+                      <div>
+                        <h5 className="font-black text-2xl">
+                          Question ID {currentQuestion.plainQuestion.questionId}
+                        </h5>
+                        <h6 className="text-xl">
+                          {currentQuestion.plainQuestion.primary_class_cd_desc}{" "}
+                          - {currentQuestion.plainQuestion.skill_desc}
+                        </h6>
+                      </div>
 
-                    <Pill className="text-md font-semibold">
-                      {currentQuestion.plainQuestion.difficulty == "E" ? (
-                        <React.Fragment>
-                          <PillIndicator variant="success" pulse />
-                          Easy
-                        </React.Fragment>
-                      ) : currentQuestion.plainQuestion.difficulty == "M" ? (
-                        <React.Fragment>
-                          <PillIndicator variant="warning" pulse />
-                          Medium
-                        </React.Fragment>
-                      ) : (
-                        <React.Fragment>
-                          <PillIndicator variant="error" pulse />
-                          Hard
-                        </React.Fragment>
-                      )}
-                    </Pill>
+                      <Pill className="text-md font-semibold">
+                        {currentQuestion.plainQuestion.difficulty == "E" ? (
+                          <React.Fragment>
+                            <PillIndicator variant="success" pulse />
+                            Easy
+                          </React.Fragment>
+                        ) : currentQuestion.plainQuestion.difficulty == "M" ? (
+                          <React.Fragment>
+                            <PillIndicator variant="warning" pulse />
+                            Medium
+                          </React.Fragment>
+                        ) : (
+                          <React.Fragment>
+                            <PillIndicator variant="error" pulse />
+                            Hard
+                          </React.Fragment>
+                        )}
+                      </Pill>
+                    </div>
                   </div>
-                  <h6 className="text-xl">
-                    {currentQuestion.plainQuestion.primary_class_cd_desc} -{" "}
-                    {currentQuestion.plainQuestion.skill_desc}
-                  </h6>
                 </div>
                 <div className="flex gap-2">
                   <Button
@@ -1163,6 +1275,7 @@ export default function PracticeRushMultistep({
                             payload: value,
                           })
                         }
+                        disabled={state.isAnswerChecked}
                       />
                     )}
 
@@ -1194,8 +1307,30 @@ export default function PracticeRushMultistep({
 
                     {state.isAnswerChecked && state.selectedAnswer && (
                       <React.Fragment>
+                        <Label className="text-lg font-semibold">
+                          Your Answer:{" "}
+                          <span
+                            className={`${
+                              state.isAnswerCorrect
+                                ? "text-green-600"
+                                : "text-red-600"
+                            }`}
+                          >
+                            {state.selectedAnswer}
+                          </span>
+                        </Label>
+                        <Label className="text-lg font-semibold">
+                          Correct Answer:{" "}
+                          <span className={"text-green-600"}>
+                            {currentQuestion.correct_answer.join(", ")}
+                          </span>
+                        </Label>
+
                         <div>
-                          <MathJax>
+                          <MathJax
+                            id="question_explanation"
+                            className=" text-justify"
+                          >
                             <span
                               className="text-xl"
                               dangerouslySetInnerHTML={{
@@ -1271,6 +1406,7 @@ export default function PracticeRushMultistep({
                               payload: value,
                             })
                           }
+                          disabled={state.isAnswerChecked}
                         />
                       )}
                       <div className="py-1">

@@ -120,3 +120,11 @@
     @apply bg-background text-foreground;
   }
 }
+
+#question_explanation span img {
+  display: inline-block;
+}
+
+#question_explanation > span p {
+  margin: 1rem 0;
+}

@@ -4,42 +4,14 @@ import React, { useState } from "react";
 import { SiteHeader } from "../navbar";
 import PracticeOnboarding from "@/components/practice-onboarding";
 import PracticeRushMultistep from "@/components/practice-rush-multistep";
+import { PracticeSelections } from "@/types/session";
 
 export default function Practice() {
   const [onboardingComplete, setOnboardingComplete] = useState<boolean>(false);
-  const [practiceSelections, setPracticeSelections] = useState<{
-    practiceType: string;
-    assessment: string;
-    subject: string;
-    domains: Array<{
-      id: string;
-      text: string;
-      primaryClassCd: string;
-    }>;
-    skills: Array<{
-      id: string;
-      text: string;
-      skill_cd: string;
-    }>;
-    difficulties: string[];
-  } | null>(null);
+  const [practiceSelections, setPracticeSelections] =
+    useState<PracticeSelections | null>(null);
 
-  const handleOnboardingComplete = (selections: {
-    practiceType: string;
-    assessment: string;
-    subject: string;
-    domains: Array<{
-      id: string;
-      text: string;
-      primaryClassCd: string;
-    }>;
-    skills: Array<{
-      id: string;
-      text: string;
-      skill_cd: string;
-    }>;
-    difficulties: string[];
-  }) => {
+  const handleOnboardingComplete = (selections: PracticeSelections) => {
     setPracticeSelections(selections);
     setOnboardingComplete(true);
   };

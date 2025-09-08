@@ -9,24 +9,11 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { domains } from "@/static-data/domains";
+import { PracticeSelections } from "@/types/session";
+import { QuestionDifficulty } from "@/types/question";
 
 interface PracticeOnboardingProps {
-  onComplete: (selections: {
-    practiceType: string;
-    assessment: string;
-    subject: string;
-    domains: Array<{
-      id: string;
-      text: string;
-      primaryClassCd: string;
-    }>;
-    skills: Array<{
-      id: string;
-      text: string;
-      skill_cd: string;
-    }>;
-    difficulties: string[];
-  }) => void;
+  onComplete: (selections: PracticeSelections) => void;
 }
 
 export default function PracticeOnboarding({
@@ -39,9 +26,9 @@ export default function PracticeOnboarding({
   const [selectedSubject, setSelectedSubject] = useState<string>("");
   const [selectedDomains, setSelectedDomains] = useState<string[]>([]);
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
-  const [selectedDifficulties, setSelectedDifficulties] = useState<string[]>(
-    []
-  );
+  const [selectedDifficulties, setSelectedDifficulties] = useState<
+    QuestionDifficulty[]
+  >([]);
 
   // Scroll to top when step changes
   useEffect(() => {
@@ -649,11 +636,13 @@ export default function PracticeOnboarding({
                       Select Difficulty Levels
                     </h2>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      {[
-                        { value: "E", label: "Easy" },
-                        { value: "M", label: "Medium" },
-                        { value: "H", label: "Hard" },
-                      ].map((difficulty) => (
+                      {(
+                        [
+                          { value: "E" as QuestionDifficulty, label: "Easy" },
+                          { value: "M" as QuestionDifficulty, label: "Medium" },
+                          { value: "H" as QuestionDifficulty, label: "Hard" },
+                        ] as const
+                      ).map((difficulty) => (
                         <div
                           key={`${id}-difficulty-${difficulty.value}`}
                           className="relative flex flex-col items-start gap-4 rounded-lg border border-input p-3 shadow-sm shadow-black/5 has-[[data-state=checked]]:border-ring"
