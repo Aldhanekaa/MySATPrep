@@ -134,6 +134,28 @@ function DraggableReferencePopup({
       const windowWidth = window.innerWidth;
       const windowHeight = window.innerHeight;
 
+      // Responsive default sizes for Reference popup
+      let defaultWidth = 600;
+      let defaultHeight = 400;
+
+      if (windowWidth < 640) {
+        // Mobile (sm breakpoint)
+        defaultWidth = Math.min(windowWidth - 40, 350);
+        defaultHeight = Math.min(windowHeight - 100, 300);
+      } else if (windowWidth < 1024) {
+        // Tablet (lg breakpoint)
+        defaultWidth = Math.min(windowWidth - 80, 500);
+        defaultHeight = Math.min(windowHeight - 120, 350);
+      }
+
+      // Update size if it's the initial default size
+      if (popupState.size.width === 600 && popupState.size.height === 400) {
+        dispatchPopup({
+          type: "SET_SIZE",
+          payload: { width: defaultWidth, height: defaultHeight },
+        });
+      }
+
       const maxX = windowWidth - popupState.size.width;
       const maxY = windowHeight - popupState.size.height;
 
@@ -197,7 +219,24 @@ function DraggableReferencePopup({
       }
     };
 
+    const handleTouchMove = (e: TouchEvent) => {
+      if (popupState.isDragging && e.touches.length === 1) {
+        e.preventDefault(); // Prevent scrolling
+        const touch = e.touches[0];
+        const newPosition = {
+          x: touch.clientX - popupState.dragStart.x,
+          y: touch.clientY - popupState.dragStart.y,
+        };
+        dispatchPopup({ type: "SET_POSITION", payload: newPosition });
+      }
+    };
+
     const handleMouseUp = () => {
+      dispatchPopup({ type: "STOP_DRAGGING" });
+      dispatchPopup({ type: "STOP_RESIZING" });
+    };
+
+    const handleTouchEnd = () => {
       dispatchPopup({ type: "STOP_DRAGGING" });
       dispatchPopup({ type: "STOP_RESIZING" });
     };
@@ -205,11 +244,17 @@ function DraggableReferencePopup({
     if (popupState.isDragging || popupState.isResizing) {
       document.addEventListener("mousemove", handleMouseMove);
       document.addEventListener("mouseup", handleMouseUp);
+      document.addEventListener("touchmove", handleTouchMove, {
+        passive: false,
+      });
+      document.addEventListener("touchend", handleTouchEnd);
     }
 
     return () => {
       document.removeEventListener("mousemove", handleMouseMove);
       document.removeEventListener("mouseup", handleMouseUp);
+      document.removeEventListener("touchmove", handleTouchMove);
+      document.removeEventListener("touchend", handleTouchEnd);
     };
   }, [popupState]);
 
@@ -258,6 +303,18 @@ function DraggableReferencePopup({
       <div
         className="bg-black border-b border-black text-white cursor-move flex justify-between items-center"
         onMouseDown={handleMouseDown}
+        onTouchStart={(e) => {
+          if (e.touches.length === 1) {
+            const touch = e.touches[0];
+            dispatchPopup({
+              type: "START_DRAGGING",
+              payload: {
+                x: touch.clientX - popupState.position.x,
+                y: touch.clientY - popupState.position.y,
+              },
+            });
+          }
+        }}
       >
         <Button
           variant="ghost"
@@ -340,6 +397,28 @@ function DraggableDesmosPopup({ isOpen, onClose }: DraggableDesmosPopupProps) {
       const windowWidth = window.innerWidth;
       const windowHeight = window.innerHeight;
 
+      // Responsive default sizes for Desmos popup
+      let defaultWidth = 800;
+      let defaultHeight = 600;
+
+      if (windowWidth < 640) {
+        // Mobile (sm breakpoint)
+        defaultWidth = Math.min(windowWidth - 20, 380);
+        defaultHeight = Math.min(windowHeight - 80, 400);
+      } else if (windowWidth < 1024) {
+        // Tablet (lg breakpoint)
+        defaultWidth = Math.min(windowWidth - 60, 600);
+        defaultHeight = Math.min(windowHeight - 100, 500);
+      }
+
+      // Update size if it's the initial default size
+      if (popupState.size.width === 800 && popupState.size.height === 600) {
+        dispatchPopup({
+          type: "SET_SIZE",
+          payload: { width: defaultWidth, height: defaultHeight },
+        });
+      }
+
       const maxX = windowWidth - popupState.size.width;
       const maxY = windowHeight - popupState.size.height;
 
@@ -403,7 +482,24 @@ function DraggableDesmosPopup({ isOpen, onClose }: DraggableDesmosPopupProps) {
       }
     };
 
+    const handleTouchMove = (e: TouchEvent) => {
+      if (popupState.isDragging && e.touches.length === 1) {
+        e.preventDefault(); // Prevent scrolling
+        const touch = e.touches[0];
+        const newPosition = {
+          x: touch.clientX - popupState.dragStart.x,
+          y: touch.clientY - popupState.dragStart.y,
+        };
+        dispatchPopup({ type: "SET_POSITION", payload: newPosition });
+      }
+    };
+
     const handleMouseUp = () => {
+      dispatchPopup({ type: "STOP_DRAGGING" });
+      dispatchPopup({ type: "STOP_RESIZING" });
+    };
+
+    const handleTouchEnd = () => {
       dispatchPopup({ type: "STOP_DRAGGING" });
       dispatchPopup({ type: "STOP_RESIZING" });
     };
@@ -411,11 +507,17 @@ function DraggableDesmosPopup({ isOpen, onClose }: DraggableDesmosPopupProps) {
     if (popupState.isDragging || popupState.isResizing) {
       document.addEventListener("mousemove", handleMouseMove);
       document.addEventListener("mouseup", handleMouseUp);
+      document.addEventListener("touchmove", handleTouchMove, {
+        passive: false,
+      });
+      document.addEventListener("touchend", handleTouchEnd);
     }
 
     return () => {
       document.removeEventListener("mousemove", handleMouseMove);
       document.removeEventListener("mouseup", handleMouseUp);
+      document.removeEventListener("touchmove", handleTouchMove);
+      document.removeEventListener("touchend", handleTouchEnd);
     };
   }, [popupState]);
 
@@ -464,6 +566,18 @@ function DraggableDesmosPopup({ isOpen, onClose }: DraggableDesmosPopupProps) {
       <div
         className="bg-black border-b border-black text-white cursor-move flex justify-between items-center"
         onMouseDown={handleMouseDown}
+        onTouchStart={(e) => {
+          if (e.touches.length === 1) {
+            const touch = e.touches[0];
+            dispatchPopup({
+              type: "START_DRAGGING",
+              payload: {
+                x: touch.clientX - popupState.position.x,
+                y: touch.clientY - popupState.position.y,
+              },
+            });
+          }
+        }}
       >
         <Button
           variant="ghost"
@@ -782,6 +896,16 @@ export default function QuestionProblemCard({
   return (
     <React.Fragment>
       <MathJaxContext>
+        {/* Subject and Skill Headers */}
+        <div className="mb-4 space-y-2">
+          <h3 className="text-lg font-bold text-gray-800">
+            {question.question.primary_class_cd_desc}
+          </h3>
+          <h3 className="text-base font-semibold text-gray-600">
+            {question.question.skill_desc}
+          </h3>
+        </div>
+
         <Card
           variant="accent"
           className={cn(
@@ -792,15 +916,15 @@ export default function QuestionProblemCard({
           <CardHeader>
             <CardHeading className="w-full">
               <CardTitle>
-                <div className="flex w-full items-center gap-1 justify-between">
-                  <div className="flex text-xl items-center gap-1">
+                <div className="grid grid-cols-12 w-full items-center gap-1 py-4 md:py-1 justify-between">
+                  <div className="col-span-12 md:col-span-5 flex text-xl items-center gap-1">
                     <span className=" font-bold">Question</span>{" "}
                     {question.question.questionId}
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="col-span-12 md:col-span-7 flex flex-wrap items-center justify-center md:justify-end gap-2">
                     <Button
                       variant="default"
-                      className="flex group cursor-pointer items-center gap-2 font-bold py-3 px-6 rounded-2xl border-b-4 shadow-md hover:shadow-lg transform transition-all duration-200 active:translate-y-0.5 active:border-b-2 bg-white hover:bg-gray-50 text-gray-700 border-gray-300 hover:border-gray-400"
+                      className="flex group cursor-pointer items-center gap-1 md:gap-2 font-bold py-2 md:py-3 px-3 md:px-6 rounded-xl md:rounded-2xl border-b-4 shadow-md hover:shadow-lg transform transition-all duration-200 active:translate-y-0.5 active:border-b-2 bg-white hover:bg-gray-50 text-gray-700 border-gray-300 hover:border-gray-400 text-xs md:text-sm"
                       onClick={() => {
                         playSound("button-pressed.wav");
                         setIsReferencePopupOpen(
@@ -808,12 +932,14 @@ export default function QuestionProblemCard({
                         );
                       }}
                     >
-                      <PyramidIcon className="w-4 h-4 group-hover:rotate-12 duration-300" />
-                      <span className="text-sm font-medium">Reference</span>
+                      <PyramidIcon className="w-3 h-3 md:w-4 md:h-4 group-hover:rotate-12 duration-300" />
+                      <span className="font-medium hidden sm:inline">
+                        Reference
+                      </span>
                     </Button>
                     <Button
                       variant="default"
-                      className="flex group cursor-pointer items-center gap-2 font-bold py-3 px-6 rounded-2xl border-b-4 shadow-md hover:shadow-lg transform transition-all duration-200 active:translate-y-0.5 active:border-b-2 bg-blue-500 hover:bg-blue-600 text-white border-blue-700 hover:border-blue-800"
+                      className="flex group cursor-pointer items-center gap-1 md:gap-2 font-bold py-2 md:py-3 px-3 md:px-6 rounded-xl md:rounded-2xl border-b-4 shadow-md hover:shadow-lg transform transition-all duration-200 active:translate-y-0.5 active:border-b-2 bg-blue-500 hover:bg-blue-600 text-white border-blue-700 hover:border-blue-800 text-xs md:text-sm"
                       onClick={() => {
                         playSound("button-pressed.wav");
                         setIsDesmosPopupOpen(
@@ -821,12 +947,14 @@ export default function QuestionProblemCard({
                         );
                       }}
                     >
-                      <Calculator className="w-4 h-4 group-hover:rotate-12 duration-300" />
-                      <span className="text-sm font-medium">Calculator</span>
+                      <Calculator className="w-3 h-3 md:w-4 md:h-4 group-hover:rotate-12 duration-300" />
+                      <span className="font-medium hidden sm:inline">
+                        Calculator
+                      </span>
                     </Button>
                     <Button
                       variant="default"
-                      className={`flex cursor-pointer items-center gap-2 font-bold py-3 px-6 rounded-2xl border-b-4 shadow-md hover:shadow-lg transform transition-all duration-200 active:translate-y-0.5 active:border-b-2 ${
+                      className={`flex cursor-pointer items-center gap-1 md:gap-2 font-bold py-2 md:py-3 px-3 md:px-6 rounded-xl md:rounded-2xl border-b-4 shadow-md hover:shadow-lg transform transition-all duration-200 active:translate-y-0.5 active:border-b-2 text-xs md:text-sm ${
                         isQuestionSaved
                           ? "bg-yellow-500 hover:bg-yellow-600 text-white border-yellow-700 hover:border-yellow-800"
                           : "bg-yellow-500 hover:bg-yellow-600 text-white border-yellow-700 hover:border-yellow-800"
@@ -883,23 +1011,23 @@ export default function QuestionProblemCard({
                       }}
                     >
                       <BookmarkIcon
-                        className={`w-4 h-4 duration-300 group-hover:rotate-12 ${
+                        className={`w-3 h-3 md:w-4 md:h-4 duration-300 group-hover:rotate-12 ${
                           isQuestionSaved ? "fill-current" : ""
                         }`}
                       />
-                      <span className="text-sm font-medium">
+                      <span className="font-medium hidden sm:inline">
                         {isQuestionSaved ? "Saved" : "Save"}
                       </span>
                     </Button>
                     <Button
                       variant="default"
-                      className="flex cursor-pointer items-center gap-2 font-bold py-3 px-6 rounded-2xl border-b-4 shadow-md hover:shadow-lg transform transition-all duration-200 active:translate-y-0.5 active:border-b-2 bg-neutral-500 hover:bg-neutral-600 text-white border-neutral-700 hover:border-neutral-800"
+                      className="flex cursor-pointer items-center gap-1 md:gap-2 font-bold py-2 md:py-3 px-3 md:px-6 rounded-xl md:rounded-2xl border-b-4 shadow-md hover:shadow-lg transform transition-all duration-200 active:translate-y-0.5 active:border-b-2 bg-neutral-500 hover:bg-neutral-600 text-white border-neutral-700 hover:border-neutral-800 text-xs md:text-sm"
                       onClick={() => {
                         playSound("button-pressed.wav");
                         setIsShareModalOpen(true);
                       }}
                     >
-                      <SendIcon className="w-4 h-4 duration-300 group-hover:rotate-12" />
+                      <SendIcon className="w-3 h-3 md:w-4 md:h-4 duration-300 group-hover:rotate-12" />
                     </Button>
                   </div>
                 </div>

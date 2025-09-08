@@ -52,7 +52,7 @@ export default async function Page({
   return (
     <React.Fragment>
       <SiteHeader />
-      <main className="w-full flex items-center flex-col min-h-[85vh] py-32 px-10">
+      <main className="w-full flex items-center flex-col min-h-[85vh] py-16 lg:py-32 px-3 md:px-10">
         <section className="space-y-4 max-w-screen md:max-w-5xl mt-8">
           <QuestionProblemCard question={questionData} />
         </section>
