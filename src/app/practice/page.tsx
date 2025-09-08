@@ -5,6 +5,7 @@ import { SiteHeader } from "../navbar";
 import PracticeOnboarding from "@/components/practice-onboarding";
 import PracticeRushMultistep from "@/components/practice-rush-multistep";
 import { PracticeSelections } from "@/types/session";
+import { playSound } from "@/lib/playSound";
 
 export default function Practice() {
   const [onboardingComplete, setOnboardingComplete] = useState<boolean>(false);
@@ -14,6 +15,7 @@ export default function Practice() {
   const handleOnboardingComplete = (selections: PracticeSelections) => {
     setPracticeSelections(selections);
     setOnboardingComplete(true);
+    playSound("loading.wav");
   };
 
   return (

@@ -18,20 +18,24 @@ import {
   PracticeSession,
   QuestionAnswers,
   QuestionTimes,
-  saveSessionToStorage,
   SessionStatus,
 } from "@/types/session";
+import { AssessmentType } from "@/types/statistics";
+import { addQuestionStatistic } from "@/lib/practiceRushStatistics";
 
-import { MathJax, MathJaxContext } from "better-react-mathjax";
+import { MathJax } from "better-react-mathjax";
 import { Pill, PillIndicator } from "@/components/ui/pill";
 import { RadioGroup } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
+  ArrowLeftIcon,
+  ArrowRightIcon,
   CheckCircle,
   Clock,
-  GripHorizontalIcon,
+  GripHorizontal,
   PyramidIcon,
   Strikethrough,
   X,
@@ -39,6 +43,36 @@ import {
 import Image from "next/image";
 
 import ReferenceSheet from "@/src/sat-math-refrence-sheet.webp";
+import { Confetti, ConfettiRef } from "./ui/confetti";
+import { playSound } from "@/lib/playSound";
+
+// Duolingo-styled Loading Spinner Component
+interface DuolingoLoadingSpinnerProps {
+  progress?: number;
+  total?: number;
+}
+
+function DuolingoLoadingSpinner({
+  progress,
+  total,
+}: DuolingoLoadingSpinnerProps) {
+  const showProgress = progress !== undefined && total !== undefined;
+
+  return (
+    <div className="flex items-center justify-center gap-3">
+      <div className="flex space-x-1">
+        <div className="w-2 h-2 bg-white rounded-full animate-bounce [animation-delay:-0.3s] [animation-duration:0.6s]"></div>
+        <div className="w-2 h-2 bg-white rounded-full animate-bounce [animation-delay:-0.15s] [animation-duration:0.6s]"></div>
+        <div className="w-2 h-2 bg-white rounded-full animate-bounce [animation-duration:0.6s]"></div>
+      </div>
+      <span className="text-white font-bold text-lg">
+        {showProgress
+          ? `Loading batch... (${progress}/${total})`
+          : "Loading next batch..."}
+      </span>
+    </div>
+  );
+}
 
 // Congratulatory messages array (outside component to avoid dependency issues)
 const CONGRATULATORY_MESSAGES = [
@@ -65,6 +99,8 @@ interface DuolingoTimerProps {
   isActive: boolean;
   isVisible: boolean;
   onToggleVisibility: () => void;
+  fixedTime?: number; // For showing completed question times in review mode
+  savedElapsedTime?: number; // For continuing in-progress questions
 }
 
 function DuolingoTimer({
@@ -72,6 +108,8 @@ function DuolingoTimer({
   isActive,
   isVisible,
   onToggleVisibility,
+  fixedTime,
+  savedElapsedTime = 0,
 }: DuolingoTimerProps) {
   const [elapsedTime, setElapsedTime] = React.useState(0);
 
@@ -80,14 +118,17 @@ function DuolingoTimer({
 
     if (isActive) {
       interval = setInterval(() => {
-        setElapsedTime(Date.now() - startTime);
+        setElapsedTime(Date.now() - startTime + savedElapsedTime);
       }, 100); // Update every 100ms for smooth animation
     }
 
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isActive, startTime]);
+  }, [isActive, startTime, savedElapsedTime]);
+
+  // Use fixedTime if provided (for review mode), otherwise use elapsedTime
+  const displayTime = fixedTime !== undefined ? fixedTime : elapsedTime;
 
   const formatTime = (ms: number) => {
     const totalSeconds = Math.floor(ms / 1000);
@@ -111,10 +152,13 @@ function DuolingoTimer({
           isVisible ? "block" : "hidden"
         } flex items-center gap-2 bg-white border-2 border-gray-300 rounded-2xl px-4 py-2 shadow-sm`}
       >
-        <Clock className={`h-5 w-5 ${getTimerColor(elapsedTime)}`} />
-        <span className={`font-bold text-lg ${getTimerColor(elapsedTime)}`}>
-          {formatTime(elapsedTime)}
+        <Clock className={`h-5 w-5 ${getTimerColor(displayTime)}`} />
+        <span className={`font-bold text-lg ${getTimerColor(displayTime)}`}>
+          {formatTime(displayTime)}
         </span>
+        {fixedTime !== undefined && (
+          <span className="text-xs text-gray-500 ml-1">(completed)</span>
+        )}
       </div>
 
       <button
@@ -134,13 +178,46 @@ interface SuccessFeedbackProps {
 }
 
 function SuccessFeedback({ isVisible, onContinue }: SuccessFeedbackProps) {
+  const [dontShowAgain, setDontShowAgain] = React.useState(false);
+  const [hideSuccessFeedback, setHideSuccessFeedback] = React.useState(false);
+
+  // Load localStorage preference on component mount
+  React.useEffect(() => {
+    try {
+      const savedPreference = localStorage.getItem("hideSuccessFeedback");
+      setHideSuccessFeedback(savedPreference === "true");
+    } catch (error) {
+      console.error("Failed to load preference:", error);
+    }
+  }, []);
+
+  // Auto-continue if user has opted out
+  // React.useEffect(() => {
+  //   if (isVisible && hideSuccessFeedback) {
+  //     const timeoutId = setTimeout(() => onContinue(), 1000);
+  //     return () => clearTimeout(timeoutId);
+  //   }
+  // }, [isVisible, hideSuccessFeedback, onContinue]);
+
   const randomMessage = useMemo(() => {
     return CONGRATULATORY_MESSAGES[
       Math.floor(Math.random() * CONGRATULATORY_MESSAGES.length)
     ];
   }, []);
 
-  if (!isVisible) return null;
+  const handleContinue = () => {
+    if (dontShowAgain) {
+      try {
+        localStorage.setItem("hideSuccessFeedback", "true");
+        setHideSuccessFeedback(true);
+      } catch (error) {
+        console.error("Failed to save preference:", error);
+      }
+    }
+    onContinue();
+  };
+
+  if (!isVisible || hideSuccessFeedback) return null;
 
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/20">
@@ -152,8 +229,34 @@ function SuccessFeedback({ isVisible, onContinue }: SuccessFeedbackProps) {
               {randomMessage}
             </h2>
           </div>
+
+          {/* Checkbox for "Don't show again" */}
+          <div className="flex items-center justify-center gap-3 mb-4">
+            <Checkbox
+              id="dontShowAgain"
+              checked={dontShowAgain}
+              onCheckedChange={(checked: boolean) => {
+                const isChecked = checked === true;
+                setDontShowAgain(isChecked);
+                // Play appropriate checkbox sound
+                if (isChecked) {
+                  playSound("tap-checkbox-checked.wav");
+                } else {
+                  playSound("tap-checkbox-unchecked.wav");
+                }
+              }}
+              className="border-green-300 data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600"
+            />
+            <label
+              htmlFor="dontShowAgain"
+              className="text-sm text-green-700 cursor-pointer select-none"
+            >
+              Don&apos;t show this again
+            </label>
+          </div>
+
           <button
-            onClick={onContinue}
+            onClick={handleContinue}
             className="cursor-pointer w-full bg-green-600 hover:bg-green-700 text-white font-bold text-xl py-4 px-8 rounded-2xl border-b-4 border-green-800 hover:border-green-900 shadow-lg hover:shadow-xl transform transition-all duration-200 active:translate-y-0.5 active:border-b-2"
           >
             CONTINUE
@@ -176,6 +279,24 @@ function ExitConfirmation({
   onConfirm,
   onCancel,
 }: ExitConfirmationProps) {
+  // Play sound when popup opens
+  React.useEffect(() => {
+    if (isVisible) {
+      playSound("popup-confirm-up.wav");
+    }
+  }, [isVisible]);
+
+  // Enhanced handlers that play sound on close
+  const handleCancel = () => {
+    playSound("popup-confirm-down.wav");
+    onCancel();
+  };
+
+  const handleConfirm = () => {
+    playSound("popup-confirm-down.wav");
+    onConfirm();
+  };
+
   if (!isVisible) return null;
 
   return (
@@ -192,13 +313,13 @@ function ExitConfirmation({
           </p>
           <div className="flex gap-4">
             <button
-              onClick={onCancel}
+              onClick={handleCancel}
               className="cursor-pointer flex-1 bg-blue-500 hover:bg-blue-600 text-white font-bold text-lg py-4 px-6 rounded-2xl border-b-4 border-blue-600 hover:border-blue-700 shadow-lg hover:shadow-xl transform transition-all duration-200 active:translate-y-0.5 active:border-b-2"
             >
               STAY
             </button>
             <button
-              onClick={onConfirm}
+              onClick={handleConfirm}
               className="cursor-pointer flex-1 bg-red-600 hover:bg-red-700 text-white font-bold text-lg py-4 px-6 rounded-2xl border-b-4 border-red-800 hover:border-red-900 shadow-lg hover:shadow-xl transform transition-all duration-200 active:translate-y-0.5 active:border-b-2"
             >
               EXIT
@@ -216,6 +337,7 @@ interface DuolingoInputProps {
   onChange: (value: string) => void;
   placeholder?: string;
   disabled?: boolean;
+  onSubmit?: () => void;
 }
 
 // Optimized Duolingo-styled Input Component
@@ -224,7 +346,15 @@ const DuolingoInput = React.memo(function DuolingoInput({
   onChange,
   placeholder = "Type your answer here...",
   disabled = false,
+  onSubmit,
 }: DuolingoInputProps) {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && !disabled && onSubmit && value?.trim()) {
+      e.preventDefault();
+      onSubmit();
+    }
+  };
+
   return (
     <div className="w-full">
       <div className="relative">
@@ -232,6 +362,8 @@ const DuolingoInput = React.memo(function DuolingoInput({
           type="text"
           value={value || ""}
           onChange={(e) => !disabled && onChange(e.target.value)}
+          onKeyDown={handleKeyDown}
+          onFocus={() => !disabled && playSound("button-pressed.wav")}
           placeholder={placeholder}
           disabled={disabled}
           className={`w-full px-4 py-4 text-lg font-medium border-2 border-b-4 rounded-2xl focus:outline-none transition-all duration-200 shadow-sm ${
@@ -256,6 +388,7 @@ interface AnswerOptionsProps {
   showStrikethrough: boolean;
   correctAnswers?: string[];
   isAnswerChecked?: boolean;
+  isReviewMode?: boolean;
 }
 
 // Optimized Answer Options Component
@@ -269,31 +402,46 @@ const AnswerOptions = React.memo(function AnswerOptions({
   showStrikethrough,
   correctAnswers = [],
   isAnswerChecked = false,
+  isReviewMode = false,
 }: AnswerOptionsProps) {
   const optionEntries = useMemo(
     () => Object.entries(answerOptions),
     [answerOptions]
   );
 
+  // Note: isReviewMode indicates when displaying a previously answered question
+  // This can be used for additional review-specific logic if needed
+  React.useEffect(() => {
+    if (isReviewMode) {
+      // Additional review-specific setup can be added here
+    }
+  }, [isReviewMode]);
+
   return (
     <RadioGroup className="flex flex-col gap-3" defaultValue="1">
       {optionEntries.map(([key, value], index) => {
-        const isCorrectAnswer = isAnswerChecked && correctAnswers.includes(key);
+        const trimmedKey = key.trim();
+        const isCorrectAnswer =
+          isAnswerChecked && correctAnswers.includes(trimmedKey);
         const isSelectedWrongAnswer =
           isAnswerChecked &&
-          selectedAnswer === key &&
-          !correctAnswers.includes(key);
-        const isSelected = selectedAnswer === key;
+          selectedAnswer?.trim() === trimmedKey &&
+          !correctAnswers.includes(trimmedKey);
+        const isSelected = selectedAnswer?.trim() === trimmedKey;
 
         return (
-          <div key={`${key}-${questionId}`} className="flex items-center gap-2">
+          <div
+            key={`${key}-${questionId}`}
+            className="flex z-20 items-center gap-2 answer-option"
+          >
             <label
               onClick={() => {
                 if (
-                  selectedAnswer !== key &&
+                  selectedAnswer?.trim() !== trimmedKey &&
                   !disabledOptions[key] &&
                   !isAnswerChecked
                 ) {
+                  playSound("button-pressed.wav");
                   onAnswerSelect(key);
                 }
               }}
@@ -337,7 +485,11 @@ const AnswerOptions = React.memo(function AnswerOptions({
                   </div>
                 </div>
                 <Label className="col-span-8" htmlFor={`${key}-${questionId}`}>
-                  <MathJax className="inline-block">
+                  <MathJax
+                    className={`inline-block ${
+                      !isReviewMode && "cursor-pointer"
+                    }`}
+                  >
                     <span
                       className="text-xl inline-block"
                       dangerouslySetInnerHTML={{
@@ -356,7 +508,8 @@ const AnswerOptions = React.memo(function AnswerOptions({
                 variant={"ghost"}
                 className="h-full w-14 cursor-pointer"
                 onClick={() => {
-                  if (selectedAnswer !== key) {
+                  if (selectedAnswer?.trim() !== trimmedKey) {
+                    playSound("button-pressed.wav");
                     onToggleDisabled(key);
                   }
                 }}
@@ -685,9 +838,14 @@ function DraggableReferencePopup({
         >
           <X className="h-4 w-4" />
         </Button>
-        <div className="h-8 w-8 p-0 flex items-center justify-center">
-          <GripHorizontalIcon className="h-4 w-4" />
-        </div>
+
+        <Button
+          variant="ghost"
+          size="sm"
+          className=" h-8 w-8 p-0 cursor-move hover:bg-neutral-900 hover:text-white "
+        >
+          <GripHorizontal className="h-4 w-4 text-white b" />
+        </Button>
         <div></div>
       </div>
 
@@ -733,15 +891,6 @@ function DraggableReferencePopup({
   );
 }
 
-const config = {
-  /* in theory, the MathML input processor should be activated if we add
-  an "mml" block to the config OR if "input/mml" (NOT "input/mathml" as stated 
-  in the docs) is in the load array. However, this is not necessary as MathML is 
-  ALWAYS enabled in MathJax */
-  loader: { load: ["input/mml", "output/chtml"] },
-  mml: {},
-};
-
 // State management with useReducer for better performance
 interface AppState {
   questionsData: API_Response_Question_List | null;
@@ -749,6 +898,7 @@ interface AppState {
   currentQuestionStep: number;
   questionAnswers: QuestionAnswers;
   questionTimes: QuestionTimes;
+  inProgressQuestionTimes: { [questionId: string]: number }; // Track elapsed time for questions in progress
   disabledOptions: { [key: string]: boolean };
   selectedAnswer: string | null;
   isReferencePopupOpen: boolean;
@@ -757,8 +907,15 @@ interface AppState {
   currentStep: number;
   isExitConfirmationOpen: boolean;
   questionStartTime: number;
+  currentQuestionElapsedTime: number; // Track elapsed time for current question
   isTimerActive: boolean;
   isTimerVisible: boolean;
+  isLoadingNextBatch: boolean;
+  currentBatch: number;
+  questionsProcessedCount: number;
+  sessionId: string;
+  sessionStartTime: number;
+  isSavingSession: boolean;
 }
 
 type AppAction =
@@ -769,6 +926,7 @@ type AppAction =
   | { type: "SET_SELECTED_ANSWER"; payload: string | null }
   | { type: "SET_DISABLED_OPTION"; payload: { key: string; value: boolean } }
   | { type: "RESET_QUESTION_STATE" }
+  | { type: "SAVE_CURRENT_ELAPSED_TIME"; payload: number }
   | {
       type: "SET_ANSWER_CHECKED";
       payload: {
@@ -783,7 +941,18 @@ type AppAction =
   | { type: "TOGGLE_EXIT_CONFIRMATION" }
   | { type: "START_TIMER" }
   | { type: "STOP_TIMER" }
-  | { type: "TOGGLE_TIMER_VISIBILITY" };
+  | { type: "TOGGLE_TIMER_VISIBILITY" }
+  | { type: "START_LOADING_NEXT_BATCH" }
+  | { type: "FINISH_LOADING_NEXT_BATCH"; payload: QuestionState[] }
+  | { type: "SET_QUESTIONS_PROCESSED_COUNT"; payload: number }
+  | {
+      type: "INITIALIZE_SESSION";
+      payload: {
+        practiceSelections: PracticeSelections;
+        totalQuestions: number;
+      };
+    }
+  | { type: "SET_SAVING_SESSION"; payload: boolean };
 
 const initialState: AppState = {
   questionsData: null,
@@ -791,6 +960,7 @@ const initialState: AppState = {
   currentQuestionStep: 0,
   questionAnswers: {},
   questionTimes: {},
+  inProgressQuestionTimes: {},
   disabledOptions: {},
   selectedAnswer: null,
   isReferencePopupOpen: false,
@@ -799,8 +969,17 @@ const initialState: AppState = {
   currentStep: 1,
   isExitConfirmationOpen: false,
   questionStartTime: Date.now(),
+  currentQuestionElapsedTime: 0,
   isTimerActive: false,
   isTimerVisible: true,
+  isLoadingNextBatch: false,
+  currentBatch: 1,
+  questionsProcessedCount: 0,
+  sessionId: `practice-${Date.now()}-${Math.random()
+    .toString(36)
+    .substr(2, 9)}`,
+  sessionStartTime: Date.now(),
+  isSavingSession: false,
 };
 
 function appReducer(state: AppState, action: AppAction): AppState {
@@ -812,15 +991,55 @@ function appReducer(state: AppState, action: AppAction): AppState {
     case "SET_CURRENT_STEP":
       return { ...state, currentStep: action.payload };
     case "SET_CURRENT_QUESTION_STEP":
+      const newStep = action.payload;
+      const newQuestionId =
+        state.questions?.[newStep]?.plainQuestion.questionId || "";
+      const currentQuestionId =
+        state.questions?.[state.currentQuestionStep]?.plainQuestion
+          .questionId || "";
+      const previousAnswer = state.questionAnswers[newQuestionId];
+      const isReturningToPreviousQuestion = Boolean(previousAnswer);
+
+      // Save current elapsed time if we're navigating away from an active question
+      const currentElapsed =
+        state.isTimerActive &&
+        currentQuestionId &&
+        currentQuestionId !== newQuestionId
+          ? Date.now() -
+            state.questionStartTime +
+            state.currentQuestionElapsedTime
+          : 0;
+
+      const updatedInProgressTimes =
+        currentElapsed > 0
+          ? {
+              ...state.inProgressQuestionTimes,
+              [currentQuestionId]: currentElapsed,
+            }
+          : state.inProgressQuestionTimes;
+
+      // Check if we're returning to a question in progress
+      const isReturningToInProgress =
+        !isReturningToPreviousQuestion && updatedInProgressTimes[newQuestionId];
+      const savedElapsedTime = updatedInProgressTimes[newQuestionId] || 0;
+
       return {
         ...state,
-        currentQuestionStep: action.payload,
-        selectedAnswer: null,
+        currentQuestionStep: newStep,
+        selectedAnswer: isReturningToPreviousQuestion ? previousAnswer : null,
         disabledOptions: {},
-        isAnswerChecked: false,
-        isAnswerCorrect: false,
-        questionStartTime: Date.now(),
-        isTimerActive: true,
+        isAnswerChecked: isReturningToPreviousQuestion,
+        isAnswerCorrect: isReturningToPreviousQuestion
+          ? state.questions?.[newStep]?.correct_answer
+              .map((answer) => answer.trim())
+              .includes(previousAnswer?.trim() || "") || false
+          : false,
+        questionStartTime: Date.now(), // Always start from current time
+        currentQuestionElapsedTime: isReturningToInProgress
+          ? savedElapsedTime
+          : 0, // Store saved elapsed time
+        isTimerActive: !isReturningToPreviousQuestion,
+        inProgressQuestionTimes: updatedInProgressTimes,
       };
     case "SET_SELECTED_ANSWER":
       return { ...state, selectedAnswer: action.payload };
@@ -840,21 +1059,32 @@ function appReducer(state: AppState, action: AppAction): AppState {
         isAnswerChecked: false,
         isAnswerCorrect: false,
         questionStartTime: Date.now(),
+        currentQuestionElapsedTime: 0,
         isTimerActive: true,
       };
+    case "SAVE_CURRENT_ELAPSED_TIME":
+      return {
+        ...state,
+        currentQuestionElapsedTime: action.payload,
+      };
     case "SET_ANSWER_CHECKED":
+      const questionId = action.payload.questionId;
+      const updatedInProgress = { ...state.inProgressQuestionTimes };
+      delete updatedInProgress[questionId]; // Remove from in-progress tracking
+
       return {
         ...state,
         isAnswerChecked: action.payload.checked,
         isAnswerCorrect: action.payload.correct,
         questionAnswers: {
           ...state.questionAnswers,
-          [action.payload.questionId]: action.payload.answer,
+          [questionId]: action.payload.answer,
         },
         questionTimes: {
           ...state.questionTimes,
-          [action.payload.questionId]: action.payload.timeElapsed,
+          [questionId]: action.payload.timeElapsed,
         },
+        inProgressQuestionTimes: updatedInProgress,
       };
     case "TOGGLE_REFERENCE_POPUP":
       return { ...state, isReferencePopupOpen: !state.isReferencePopupOpen };
@@ -867,6 +1097,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
       return {
         ...state,
         questionStartTime: Date.now(),
+        currentQuestionElapsedTime: 0,
         isTimerActive: true,
       };
     case "STOP_TIMER":
@@ -878,6 +1109,46 @@ function appReducer(state: AppState, action: AppAction): AppState {
       return {
         ...state,
         isTimerVisible: !state.isTimerVisible,
+      };
+    case "START_LOADING_NEXT_BATCH":
+      return {
+        ...state,
+        isLoadingNextBatch: true,
+        currentStep: 3, // Show loading screen
+      };
+    case "FINISH_LOADING_NEXT_BATCH":
+      return {
+        ...state,
+        isLoadingNextBatch: false,
+        questions: action.payload,
+        currentQuestionStep: 0,
+        currentBatch: state.currentBatch + 1,
+        currentStep: 5, // Return to practice
+        selectedAnswer: null,
+        disabledOptions: {},
+        isAnswerChecked: false,
+        isAnswerCorrect: false,
+        questionStartTime: Date.now(),
+        currentQuestionElapsedTime: 0,
+        isTimerActive: true,
+      };
+    case "SET_QUESTIONS_PROCESSED_COUNT":
+      return {
+        ...state,
+        questionsProcessedCount: action.payload,
+      };
+    case "INITIALIZE_SESSION":
+      return {
+        ...state,
+        sessionId: `practice-${Date.now()}-${Math.random()
+          .toString(36)
+          .substr(2, 9)}`,
+        sessionStartTime: Date.now(),
+      };
+    case "SET_SAVING_SESSION":
+      return {
+        ...state,
+        isSavingSession: action.payload,
       };
     default:
       return state;
@@ -891,7 +1162,98 @@ interface PracticeRushMultistepProps {
 export default function PracticeRushMultistep({
   practiceSelections,
 }: PracticeRushMultistepProps) {
+  const confettiRef = useRef<ConfettiRef>(null);
+
   const [state, dispatch] = useReducer(appReducer, initialState);
+
+  // Track saving status with ref to avoid re-renders
+  const isSavingRef = useRef(false);
+
+  // Auto-save session data to localStorage
+  const saveCurrentSession = useCallback(() => {
+    if (!state.questions || state.questions.length === 0 || isSavingRef.current)
+      return;
+
+    isSavingRef.current = true;
+    dispatch({ type: "SET_SAVING_SESSION", payload: true });
+
+    const currentSession: PracticeSession = {
+      sessionId: state.sessionId,
+      timestamp: new Date(state.sessionStartTime).toISOString(),
+      status:
+        state.currentQuestionStep === 0
+          ? SessionStatus.IN_PROGRESS
+          : SessionStatus.IN_PROGRESS,
+      practiceSelections,
+      currentQuestionStep: state.currentQuestionStep,
+      questionAnswers: state.questionAnswers,
+      questionTimes: state.questionTimes,
+      totalQuestions: state.questions.length,
+      answeredQuestions: Object.keys(state.questionAnswers).filter(
+        (id) => state.questionAnswers[id] !== null
+      ),
+      averageTimePerQuestion:
+        Object.keys(state.questionTimes).length > 0
+          ? Object.values(state.questionTimes).reduce(
+              (sum, time) => sum + time,
+              0
+            ) / Object.keys(state.questionTimes).length
+          : 0,
+      totalTimeSpent: Object.values(state.questionTimes).reduce(
+        (sum, time) => sum + time,
+        0
+      ),
+    };
+
+    try {
+      // Save current session
+      localStorage.setItem(
+        "currentPracticeSession",
+        JSON.stringify(currentSession)
+      );
+
+      // Update practice sessions history
+      const existingSessions = localStorage.getItem("practiceHistory");
+      const sessions: PracticeSession[] = existingSessions
+        ? JSON.parse(existingSessions)
+        : [];
+
+      // Find if this session already exists in history
+      const existingIndex = sessions.findIndex(
+        (session) => session.sessionId === state.sessionId
+      );
+
+      if (existingIndex !== -1) {
+        // Update existing session
+        sessions[existingIndex] = currentSession;
+      } else {
+        // Add new session
+        sessions.push(currentSession);
+      }
+
+      // Keep only last 20 sessions
+      const recentSessions = sessions.slice(-20);
+      localStorage.setItem("practiceHistory", JSON.stringify(recentSessions));
+
+      // Show saving indicator briefly
+      setTimeout(() => {
+        isSavingRef.current = false;
+        dispatch({ type: "SET_SAVING_SESSION", payload: false });
+      }, 500);
+    } catch (error) {
+      console.error("Failed to save session:", error);
+      isSavingRef.current = false;
+      dispatch({ type: "SET_SAVING_SESSION", payload: false });
+    }
+  }, [
+    state.questions,
+    state.sessionId,
+    state.sessionStartTime,
+    state.currentQuestionStep,
+    state.questionAnswers,
+    state.questionTimes,
+    practiceSelections,
+  ]);
 
   const currentQuestion = useMemo(
     () => (state.questions ? state.questions[state.currentQuestionStep] : null),
@@ -913,7 +1275,9 @@ export default function PracticeRushMultistep({
       {
         id: "fetching-questions",
         title: "Fetching Each Question",
-        content: "Fetching Each Question 🔍",
+        content: state.isLoadingNextBatch
+          ? `Loading Next Batch... (${state.questionsProcessedCount}/22)`
+          : "Fetching Each Question 🔍",
       },
       {
         id: "verifying",
@@ -926,23 +1290,211 @@ export default function PracticeRushMultistep({
         content: "Launching Practice... 🚀",
       },
     ],
-    []
+    [state.isLoadingNextBatch, state.questionsProcessedCount]
   );
 
+  // Initialize session when practice starts
   useEffect(() => {
     if (practiceSelections) {
-      dispatch({ type: "SET_CURRENT_STEP", payload: 2 });
-      FetchQuestions(practiceSelections);
+      // Try to restore existing session for this practice type
+      try {
+        const existingSession = localStorage.getItem("currentPracticeSession");
+        if (existingSession) {
+          const session = JSON.parse(existingSession);
+          // Check if it's the same practice configuration
+          if (
+            JSON.stringify(session.practiceSelections) ===
+            JSON.stringify(practiceSelections)
+          ) {
+            console.log("Restored existing session:", session.sessionId);
+            // We could restore the session state here if needed
+            // For now, we'll start fresh but keep the same session ID
+            return;
+          }
+        }
+      } catch (error) {
+        console.error("Error restoring session:", error);
+      }
+
+      dispatch({
+        type: "INITIALIZE_SESSION",
+        payload: { practiceSelections, totalQuestions: 0 },
+      });
     }
   }, [practiceSelections]);
+
+  // Auto-save session every 30 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (!isSavingRef.current) {
+        saveCurrentSession();
+      }
+    }, 30000); // Save every 30 seconds
+
+    return () => clearInterval(interval);
+  }, [saveCurrentSession]);
+
+  // Save session when question is answered (debounced)
+  const questionAnswersCount = Object.keys(state.questionAnswers).length;
+  useEffect(() => {
+    if (questionAnswersCount > 0 && !isSavingRef.current) {
+      // Debounce to avoid too frequent saves
+      const timeoutId = setTimeout(() => {
+        saveCurrentSession();
+      }, 1000);
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [questionAnswersCount, saveCurrentSession]);
+
+  // Save session when user progresses to next question (debounced)
+  useEffect(() => {
+    if (state.currentQuestionStep > 0 && !isSavingRef.current) {
+      // Debounce to avoid too frequent saves
+      const timeoutId = setTimeout(() => {
+        saveCurrentSession();
+      }, 1000);
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [state.currentQuestionStep, saveCurrentSession]);
+
+  // Save session before page unload
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (!isSavingRef.current) {
+        // Use a synchronous save for page unload
+        if (state.questions && state.questions.length > 0) {
+          const currentSession: PracticeSession = {
+            sessionId: state.sessionId,
+            timestamp: new Date(state.sessionStartTime).toISOString(),
+            status: SessionStatus.IN_PROGRESS,
+            practiceSelections,
+            currentQuestionStep: state.currentQuestionStep,
+            questionAnswers: state.questionAnswers,
+            questionTimes: state.questionTimes,
+            totalQuestions: state.questions.length,
+            answeredQuestions: Object.keys(state.questionAnswers).filter(
+              (id) => state.questionAnswers[id] !== null
+            ),
+            averageTimePerQuestion:
+              Object.keys(state.questionTimes).length > 0
+                ? Object.values(state.questionTimes).reduce(
+                    (sum, time) => sum + time,
+                    0
+                  ) / Object.keys(state.questionTimes).length
+                : 0,
+            totalTimeSpent: Object.values(state.questionTimes).reduce(
+              (sum, time) => sum + time,
+              0
+            ),
+          };
+
+          try {
+            localStorage.setItem(
+              "currentPracticeSession",
+              JSON.stringify(currentSession)
+            );
+          } catch (error) {
+            console.error("Failed to save session on unload:", error);
+          }
+        }
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [
+    state.questions,
+    state.sessionId,
+    state.sessionStartTime,
+    state.currentQuestionStep,
+    state.questionAnswers,
+    state.questionTimes,
+    practiceSelections,
+  ]);
+
+  // Function to handle session completion
+  const completeSession = useCallback(() => {
+    const completedSession: PracticeSession = {
+      sessionId: state.sessionId,
+      timestamp: new Date(state.sessionStartTime).toISOString(),
+      status: SessionStatus.COMPLETED,
+      practiceSelections,
+      currentQuestionStep: state.currentQuestionStep,
+      questionAnswers: state.questionAnswers,
+      questionTimes: state.questionTimes,
+      totalQuestions: state.questions?.length || 0,
+      answeredQuestions: Object.keys(state.questionAnswers).filter(
+        (id) => state.questionAnswers[id] !== null
+      ),
+      averageTimePerQuestion:
+        Object.keys(state.questionTimes).length > 0
+          ? Object.values(state.questionTimes).reduce(
+              (sum, time) => sum + time,
+              0
+            ) / Object.keys(state.questionTimes).length
+          : 0,
+      totalTimeSpent: Object.values(state.questionTimes).reduce(
+        (sum, time) => sum + time,
+        0
+      ),
+    };
+
+    try {
+      // Save completed session to history
+      const existingSessions = localStorage.getItem("practiceHistory");
+      const sessions: PracticeSession[] = existingSessions
+        ? JSON.parse(existingSessions)
+        : [];
+
+      // Update or add the completed session
+      const existingIndex = sessions.findIndex(
+        (session) => session.sessionId === state.sessionId
+      );
+      if (existingIndex !== -1) {
+        sessions[existingIndex] = completedSession;
+      } else {
+        sessions.push(completedSession);
+      }
+
+      localStorage.setItem("practiceHistory", JSON.stringify(sessions));
+
+      // Clear current session since it's completed
+      localStorage.removeItem("currentPracticeSession");
+
+      console.log("Practice session completed and saved!", completedSession);
+      console.log("Session ID:", completedSession.sessionId);
+      console.log(
+        "Total questions answered:",
+        completedSession.answeredQuestions.length
+      );
+      console.log(
+        "Total time spent:",
+        Math.round(completedSession.totalTimeSpent / 1000),
+        "seconds"
+      );
+    } catch (error) {
+      console.error("Failed to save completed session:", error);
+    }
+  }, [
+    state.sessionId,
+    state.sessionStartTime,
+    state.currentQuestionStep,
+    state.questionAnswers,
+    state.questionTimes,
+    state.questions,
+    practiceSelections,
+  ]);
 
   // Scroll to top when question step changes
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
-    dispatch({ type: "RESET_QUESTION_STATE" });
+    // Don't reset question state - let SET_CURRENT_QUESTION_STEP handle the state properly
+    // dispatch({ type: "RESET_QUESTION_STATE" });
   }, [state.currentQuestionStep]);
 
-  async function FetchQuestions(selections: PracticeSelections) {
+  const FetchQuestions = useCallback(async (selections: PracticeSelections) => {
     const questionsResponse = await fetch(
       `/api/get-questions?assessment=${
         selections.assessment
@@ -964,21 +1516,22 @@ export default function PracticeRushMultistep({
 
       dispatch({ type: "SET_QUESTIONS_DATA", payload: questionsData });
 
-      const questionsToFetch = questionsData.splice(0, 22); // Fetch first 20 questions for demo
+      const questionsToFetch = questionsData.splice(0, 22); // Fetch first 22 questions for demo
       const questions: API_Response_Question[] = [];
       const correctQuestions: QuestionState[] = [];
 
       for (const question of questionsToFetch) {
-        const questionResponse: { data: API_Response_Question } = await fetch(
-          `/api/question/${question.ibn || question.external_id}`
-        )
-          .then((res) => res.json())
-          .catch((error) => {
-            console.error("Error fetching question:", error);
-            return null;
-          });
+        // console.log("Fetching question:", question);
+        const questionsData: API_Response_Question =
+          await fetchQuestionsbyIBN_ExternalId(
+            question.external_id
+              ? question.external_id
+              : question.ibn
+              ? question.ibn
+              : ""
+          );
 
-        if ("data" in questionResponse) questions.push(questionResponse.data);
+        if (questionsData) questions.push(questionsData);
       }
       dispatch({ type: "SET_CURRENT_STEP", payload: 4 });
 
@@ -1002,33 +1555,142 @@ export default function PracticeRushMultistep({
       dispatch({ type: "SET_CURRENT_STEP", payload: 5 });
 
       setTimeout(() => {
+        // if (correctQuestions && !state.questions)
+        //   playSound("start-session.wav");
+
         dispatch({ type: "SET_QUESTIONS", payload: correctQuestions });
+
+        dispatch({ type: "SET_CURRENT_STEP", payload: 5 });
+
         dispatch({ type: "START_TIMER" }); // Start timer when questions are loaded
       }, 1500);
     }
+  }, []);
+
+  useEffect(() => {
+    if (practiceSelections) {
+      dispatch({ type: "SET_CURRENT_STEP", payload: 2 });
+      FetchQuestions(practiceSelections);
+    }
+  }, [practiceSelections, FetchQuestions]);
+
+  async function fetchQuestionsbyIBN_ExternalId(id: string) {
+    const questionResponse: { data: API_Response_Question } = await fetch(
+      `/api/question/${id}`
+    )
+      .then((res) => res.json())
+      .catch((error) => {
+        console.error("Error fetching question:", error);
+        return null;
+      });
+
+    return questionResponse.data;
   }
+
+  const loadNextBatch = useCallback(async () => {
+    if (!state.questionsData || state.isLoadingNextBatch) {
+      console.log("No more questions available or already loading");
+      return;
+    }
+
+    // Check if there are more questions available
+    const startIndex = state.currentBatch * 22;
+    if (startIndex >= state.questionsData.length) {
+      console.log("No more questions available in the dataset");
+      return;
+    }
+
+    dispatch({ type: "START_LOADING_NEXT_BATCH" });
+
+    try {
+      // Get the next 22 questions from questionsData
+      const questionsToFetch = state.questionsData.slice(
+        startIndex,
+        startIndex + 22
+      );
+      const questions: API_Response_Question[] = [];
+      const correctQuestions: QuestionState[] = [];
+
+      // Fetch individual question details
+      for (let i = 0; i < questionsToFetch.length; i++) {
+        const question = questionsToFetch[i];
+
+        // Update progress
+        dispatch({
+          type: "SET_QUESTIONS_PROCESSED_COUNT",
+          payload: i + 1,
+        });
+
+        const questionData: API_Response_Question =
+          await fetchQuestionsbyIBN_ExternalId(
+            question.ibn
+              ? question.ibn
+              : question.external_id
+              ? question.external_id
+              : ""
+          );
+
+        if (questionData) questions.push(questionData);
+      }
+
+      // Process questions to ensure they have correct answers
+      for (let i = 0; i < questions.length; i++) {
+        const question = questions[i];
+
+        if (
+          question.correct_answer &&
+          Array.isArray(question.correct_answer) &&
+          question.correct_answer.length > 0
+        ) {
+          correctQuestions.push({
+            ...question,
+            correct_answer: question.correct_answer,
+            plainQuestion: questionsToFetch[i],
+          });
+        }
+      }
+
+      // Dispatch the new questions
+      dispatch({
+        type: "FINISH_LOADING_NEXT_BATCH",
+        payload: correctQuestions,
+      });
+    } catch (error) {
+      console.error("Error loading next batch:", error);
+      // Reset loading state on error
+      dispatch({ type: "SET_CURRENT_STEP", payload: 5 });
+    }
+  }, [state.questionsData, state.isLoadingNextBatch, state.currentBatch]);
 
   const handleAnsweringQuestion = useCallback(
     (questionId: string) => {
       return () => {
         if (!state.selectedAnswer || !currentQuestion) return;
 
-        if (!state.isAnswerChecked) {
-          // console.log(
-          //   currentQuestion,
-          //   currentQuestion.correct_answer,
-          //   state.selectedAnswer,
-          //   state
-          // );
+        // Check if this is a previously answered question being reviewed
+        const isPreviouslyAnswered = Boolean(state.questionAnswers[questionId]);
 
+        if (!state.isAnswerChecked && !isPreviouslyAnswered) {
+          // First time answering this question
           const correctAnswers = currentQuestion.correct_answer.map((e) =>
             e.trim()
           );
-          // First click: Check the answer
           const correct = correctAnswers.includes(state.selectedAnswer.trim());
 
+          // Play sound based on answer correctness
+          if (correct) {
+            playSound("correct-answer.wav");
+            confettiRef.current?.fire({});
+          } else {
+            playSound("incorrect-answer.wav");
+          }
+
           // Calculate time elapsed for this question
-          const timeElapsed = Date.now() - state.questionStartTime;
+          const currentSessionTime = Date.now() - state.questionStartTime;
+          const previousElapsedTime =
+            state.inProgressQuestionTimes[questionId] ||
+            state.currentQuestionElapsedTime;
+          const timeElapsed = currentSessionTime + previousElapsedTime;
 
           dispatch({
             type: "SET_ANSWER_CHECKED",
@@ -1041,13 +1703,40 @@ export default function PracticeRushMultistep({
             },
           });
 
+          // Save statistics to localStorage
+          try {
+            const assessmentType =
+              practiceSelections.assessment as AssessmentType;
+            addQuestionStatistic({
+              assessment: assessmentType,
+              primaryClassCd: currentQuestion.plainQuestion.primary_class_cd,
+              skillCd: currentQuestion.plainQuestion.skill_cd,
+              questionId: currentQuestion.plainQuestion.questionId,
+              external_id:
+                currentQuestion.plainQuestion.external_id || undefined,
+              ibn: currentQuestion.plainQuestion.ibn || undefined,
+              statistic: {
+                time: timeElapsed,
+                answer: state.selectedAnswer,
+                isCorrect: correct,
+                external_id:
+                  currentQuestion.plainQuestion.external_id || undefined,
+                ibn: currentQuestion.plainQuestion.ibn || undefined,
+              },
+            });
+          } catch (error) {
+            console.error("Error saving question statistic:", error);
+          }
+
           // Stop the timer when answer is checked
           dispatch({ type: "STOP_TIMER" });
 
           // Note: The feedback overlay will handle the continue action
           // Don't advance to next question here - let overlay handle it
         } else {
-          // Second click: Continue to next question (backup if overlay isn't used)
+          // Either this is a review of a previously answered question or continuing after checking
+          playSound("button-pressed.wav");
+
           // Move to next question if available
           if (
             state.questions &&
@@ -1058,7 +1747,16 @@ export default function PracticeRushMultistep({
               payload: state.currentQuestionStep + 1,
             });
           } else {
-            // This was the last question - practice session completed!
+            // This was the last question - check if we can load next batch
+            if (
+              state.questionsData &&
+              state.currentBatch * 22 < state.questionsData.length
+            ) {
+              loadNextBatch();
+            } else {
+              console.log("Practice session completed!");
+              completeSession();
+            }
           }
         }
       };
@@ -1070,6 +1768,14 @@ export default function PracticeRushMultistep({
       state.questions,
       state.currentQuestionStep,
       state.questionStartTime,
+      state.currentQuestionElapsedTime,
+      state.questionsData,
+      state.currentBatch,
+      state.questionAnswers,
+      state.inProgressQuestionTimes,
+      loadNextBatch,
+      completeSession,
+      practiceSelections,
     ]
   );
 
@@ -1079,18 +1785,19 @@ export default function PracticeRushMultistep({
   }
 
   function confirmExit() {
-    // Save user's progress to local storage
-    const practiceSession: PracticeSession = {
+    // Save user's progress to local storage with ABANDONED status
+    const abandonedSession: PracticeSession = {
+      sessionId: state.sessionId,
+      timestamp: new Date(state.sessionStartTime).toISOString(),
+      status: SessionStatus.ABANDONED,
       practiceSelections,
       currentQuestionStep: state.currentQuestionStep,
       questionAnswers: state.questionAnswers,
-      questionTimes: state.questionTimes, // Time taken per question in milliseconds
+      questionTimes: state.questionTimes,
       totalQuestions: state.questions?.length || 0,
-      answeredQuestions: Object.keys(state.questionAnswers),
-      timestamp: new Date().toISOString(),
-      sessionId: `practice-${Date.now()}`, // Unique session ID
-      status: SessionStatus.ABANDONED, // User is exiting before completion
-      // Additional analytics
+      answeredQuestions: Object.keys(state.questionAnswers).filter(
+        (id) => state.questionAnswers[id] !== null
+      ),
       averageTimePerQuestion:
         Object.keys(state.questionTimes).length > 0
           ? Object.values(state.questionTimes).reduce(
@@ -1105,10 +1812,28 @@ export default function PracticeRushMultistep({
     };
 
     try {
-      // Save session using utility function
-      saveSessionToStorage(practiceSession);
+      // Save session using localStorage directly
+      const existingSessions = localStorage.getItem("practiceHistory");
+      const sessions: PracticeSession[] = existingSessions
+        ? JSON.parse(existingSessions)
+        : [];
 
-      console.log("Practice session saved successfully");
+      // Update or add the abandoned session
+      const existingIndex = sessions.findIndex(
+        (session) => session.sessionId === state.sessionId
+      );
+      if (existingIndex !== -1) {
+        sessions[existingIndex] = abandonedSession;
+      } else {
+        sessions.push(abandonedSession);
+      }
+
+      localStorage.setItem("practiceHistory", JSON.stringify(sessions));
+
+      // Clear current session since user is exiting
+      localStorage.removeItem("currentPracticeSession");
+
+      console.log("Practice session saved successfully as abandoned");
       console.log(
         "Question Times (in seconds):",
         Object.fromEntries(
@@ -1129,9 +1854,9 @@ export default function PracticeRushMultistep({
     }
   }
 
-  // console.log(currentQuestion);
+  console.log(currentQuestion);
   return (
-    <MathJaxContext version={3} config={config}>
+    <React.Fragment>
       <div className="max-w-11/12 mx-auto px-4 sm:px-6 lg:px-8">
         {!currentQuestion ? (
           <div className="h-screen flex flex-col items-center justify-center gap-8">
@@ -1154,9 +1879,20 @@ export default function PracticeRushMultistep({
                       startTime={state.questionStartTime}
                       isActive={state.isTimerActive}
                       isVisible={state.isTimerVisible}
-                      onToggleVisibility={() =>
-                        dispatch({ type: "TOGGLE_TIMER_VISIBILITY" })
+                      onToggleVisibility={() => {
+                        dispatch({ type: "TOGGLE_TIMER_VISIBILITY" });
+                        playSound("button-pressed.wav");
+                      }}
+                      fixedTime={
+                        state.questionAnswers[
+                          currentQuestion.plainQuestion.questionId
+                        ]
+                          ? state.questionTimes[
+                              currentQuestion.plainQuestion.questionId
+                            ]
+                          : undefined
                       }
+                      savedElapsedTime={state.currentQuestionElapsedTime}
                     />
                     <div className="h-full flex gap-2 justify-center items-center">
                       <div>
@@ -1167,6 +1903,31 @@ export default function PracticeRushMultistep({
                           {currentQuestion.plainQuestion.primary_class_cd_desc}{" "}
                           - {currentQuestion.plainQuestion.skill_desc}
                         </h6>
+                        {state.questionsData && (
+                          <p className="text-sm text-gray-600 mt-1">
+                            Batch {state.currentBatch} • Question{" "}
+                            {state.currentQuestionStep + 1} of{" "}
+                            {state.questions?.length || 0} •{" "}
+                            {Math.max(
+                              0,
+                              state.questionsData.length -
+                                state.currentBatch * 22
+                            )}{" "}
+                            questions remaining
+                            {state.isSavingSession && (
+                              <span className="ml-2 text-blue-600 text-xs">
+                                • Saving...
+                              </span>
+                            )}
+                            {state.questionAnswers[
+                              currentQuestion.plainQuestion.questionId
+                            ] && (
+                              <span className="ml-2 text-orange-600 text-xs font-semibold">
+                                • REVIEWING
+                              </span>
+                            )}
+                          </p>
+                        )}
                       </div>
 
                       <Pill className="text-md font-semibold">
@@ -1193,15 +1954,93 @@ export default function PracticeRushMultistep({
                 <div className="flex gap-2">
                   <Button
                     variant={"outline"}
-                    className="cursor-pointer active:translate-y-1"
-                    onClick={() => dispatch({ type: "TOGGLE_REFERENCE_POPUP" })}
+                    disabled={state.currentQuestionStep === 0}
+                    className={`group font-bold py-3 px-3 rounded-xl border-2 border-b-4 shadow-lg transform transition-all duration-200 ${
+                      state.currentQuestionStep === 0
+                        ? "bg-gray-300 text-gray-500 border-gray-400 cursor-not-allowed"
+                        : "cursor-pointer bg-blue-500 hover:bg-blue-600 text-white border-blue-700 hover:border-blue-800 hover:shadow-xl active:translate-y-0.5 active:border-b-2"
+                    }`}
+                    onClick={() => {
+                      if (state.currentQuestionStep > 0) {
+                        playSound("button-pressed.wav");
+                        dispatch({
+                          type: "SET_CURRENT_QUESTION_STEP",
+                          payload: state.currentQuestionStep - 1,
+                        });
+                      }
+                    }}
                   >
-                    <PyramidIcon />
+                    <ArrowLeftIcon
+                      className={`duration-300 ${
+                        state.currentQuestionStep === 0
+                          ? ""
+                          : "group-hover:rotate-12"
+                      }`}
+                    />
+                  </Button>
+                  <Button
+                    variant={"outline"}
+                    disabled={
+                      !state.questions ||
+                      state.currentQuestionStep >= state.questions.length - 1 ||
+                      !state.questionAnswers[
+                        currentQuestion?.plainQuestion.questionId || ""
+                      ]
+                    }
+                    className={`group font-bold py-3 px-3 rounded-xl border-2 border-b-4 shadow-lg transform transition-all duration-200 ${
+                      !state.questions ||
+                      state.currentQuestionStep >= state.questions.length - 1 ||
+                      !state.questionAnswers[
+                        currentQuestion?.plainQuestion.questionId || ""
+                      ]
+                        ? "bg-gray-300 text-gray-500 border-gray-400 cursor-not-allowed"
+                        : "cursor-pointer bg-blue-500 hover:bg-blue-600 text-white border-blue-700 hover:border-blue-800 hover:shadow-xl active:translate-y-0.5 active:border-b-2"
+                    }`}
+                    onClick={() => {
+                      if (
+                        state.questions &&
+                        state.currentQuestionStep <
+                          state.questions.length - 1 &&
+                        state.questionAnswers[
+                          currentQuestion?.plainQuestion.questionId || ""
+                        ]
+                      ) {
+                        playSound("button-pressed.wav");
+                        dispatch({
+                          type: "SET_CURRENT_QUESTION_STEP",
+                          payload: state.currentQuestionStep + 1,
+                        });
+                      }
+                    }}
+                  >
+                    <ArrowRightIcon
+                      className={`duration-300 ${
+                        !state.questions ||
+                        state.currentQuestionStep >=
+                          state.questions.length - 1 ||
+                        !state.questionAnswers[
+                          currentQuestion?.plainQuestion.questionId || ""
+                        ]
+                          ? ""
+                          : "group-hover:-rotate-12"
+                      }`}
+                    />
+                  </Button>
+
+                  <Button
+                    variant={"outline"}
+                    className="cursor-pointer group bg-white hover:bg-gray-50 text-gray-700 font-bold py-3 px-6 rounded-2xl border-2 border-b-4 border-gray-300 hover:border-gray-400 shadow-md hover:shadow-lg transform transition-all duration-200 active:translate-y-0.5 active:border-b-2"
+                    onClick={() => {
+                      dispatch({ type: "TOGGLE_REFERENCE_POPUP" });
+                      playSound("button-pressed.wav");
+                    }}
+                  >
+                    <PyramidIcon className="group-hover:rotate-12 duration-300 mr-2" />
                     Reference
                   </Button>
                   <Button
                     variant="destructive"
-                    className="cursor-pointer active:translate-y-1"
+                    className="cursor-pointer bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-6 rounded-2xl border-b-4 border-red-700 hover:border-red-800 shadow-md hover:shadow-lg transform transition-all duration-200 active:translate-y-0.5 active:border-b-2"
                     onClick={handleExit}
                   >
                     Exit
@@ -1211,11 +2050,12 @@ export default function PracticeRushMultistep({
 
               <div className="w-full grid grid-cols-4 lg:grid-cols-8 items-center justify-center gap-8 h-full">
                 <div
-                  className={`col-span-4 lg:col-span-3 flex flex-col gap-6 h-full`}
+                  className={`col-span-4 lg:col-span-3 flex flex-col gap-6 h-full relative`}
                 >
                   <React.Fragment>
                     {currentQuestion.stimulus && (
                       <div
+                        id="stimulus"
                         className="text-xl text-justify"
                         dangerouslySetInnerHTML={{
                           __html: currentQuestion.stimulus
@@ -1227,15 +2067,13 @@ export default function PracticeRushMultistep({
 
                     {currentQuestion.stem && (
                       <MathJax>
-                        <span
+                        <div
+                          id="question_stem"
                           className="text-xl"
                           dangerouslySetInnerHTML={{
-                            __html: currentQuestion.stem.replaceAll(
-                              /\s*style\s*=\s*"[^"]*"/gi,
-                              ""
-                            ),
+                            __html: currentQuestion.stem,
                           }}
-                        ></span>
+                        ></div>
                       </MathJax>
                     )}
 
@@ -1263,8 +2101,15 @@ export default function PracticeRushMultistep({
                         showStrikethrough={
                           practiceSelections?.subject !== "reading-writing"
                         }
-                        correctAnswers={currentQuestion.correct_answer}
+                        correctAnswers={currentQuestion.correct_answer.map(
+                          (answer) => answer.trim()
+                        )}
                         isAnswerChecked={state.isAnswerChecked}
+                        isReviewMode={Boolean(
+                          state.questionAnswers[
+                            currentQuestion.plainQuestion.questionId
+                          ]
+                        )}
                       />
                     ) : (
                       <DuolingoInput
@@ -1275,27 +2120,51 @@ export default function PracticeRushMultistep({
                             payload: value,
                           })
                         }
+                        onSubmit={handleAnsweringQuestion(
+                          currentQuestion.plainQuestion.questionId
+                        )}
                         disabled={state.isAnswerChecked}
                       />
                     )}
-
-                    <div className="py-1">
+                    <div className="pt-1 pb-2 relative overflow-visible">
                       <Button
                         variant={"default"}
-                        className={`mt-5 w-full relative font-bold cursor-pointer text-lg py-6 border-b-4 rounded-2xl text-white shadow-lg hover:shadow-xl transform transition-all duration-200 active:translate-y-0.5 active:border-b-2 ${
-                          state.isAnswerChecked && state.isAnswerCorrect
-                            ? "bg-green-500 hover:bg-green-600 border-green-700 hover:border-green-800"
+                        className={`mt-5 w-full relative font-bold text-lg py-6 border-b-4 rounded-2xl text-white shadow-lg transform transition-all duration-200 ${
+                          state.isLoadingNextBatch
+                            ? "bg-yellow-500 hover:bg-yellow-600 border-yellow-700 hover:border-yellow-800 cursor-wait animate-pulse"
+                            : state.isAnswerChecked && state.isAnswerCorrect
+                            ? "bg-green-500 hover:bg-green-600 border-green-700 hover:border-green-800 cursor-pointer hover:shadow-xl active:translate-y-0.5 active:border-b-2"
                             : state.isAnswerChecked && !state.isAnswerCorrect
-                            ? "bg-red-500 hover:bg-red-600 border-red-700 hover:border-red-800"
-                            : "bg-blue-500 hover:bg-blue-600 border-blue-700 hover:border-blue-800"
+                            ? "bg-red-500 hover:bg-red-600 border-red-700 hover:border-red-800 cursor-pointer hover:shadow-xl active:translate-y-0.5 active:border-b-2"
+                            : "bg-blue-500 hover:bg-blue-600 border-blue-700 hover:border-blue-800 cursor-pointer hover:shadow-xl active:translate-y-0.5 active:border-b-2"
                         }`}
-                        disabled={state.selectedAnswer == null}
+                        disabled={
+                          state.selectedAnswer == null ||
+                          state.isLoadingNextBatch
+                        }
                         onClick={handleAnsweringQuestion(
                           currentQuestion.plainQuestion.questionId
                         )}
                       >
-                        {!state.isAnswerChecked ? "CHECK" : "CONTINUE"}
+                        {state.isLoadingNextBatch ? (
+                          <DuolingoLoadingSpinner
+                            progress={state.questionsProcessedCount}
+                            total={22}
+                          />
+                        ) : state.questionAnswers[
+                            currentQuestion.plainQuestion.questionId
+                          ] ? (
+                          "NEXT"
+                        ) : !state.isAnswerChecked ? (
+                          "CHECK"
+                        ) : (
+                          "CONTINUE"
+                        )}
                       </Button>
+                      <Confetti
+                        ref={confettiRef}
+                        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-full h-full pointer-events-none"
+                      />
                     </div>
                     {/* <Button
                       variant={"ghost"}
@@ -1307,6 +2176,25 @@ export default function PracticeRushMultistep({
 
                     {state.isAnswerChecked && state.selectedAnswer && (
                       <React.Fragment>
+                        {/* Show review indicator when viewing previous question */}
+                        {state.questionAnswers[
+                          currentQuestion.plainQuestion.questionId
+                        ] && (
+                          <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-4">
+                            <div className="flex items-center gap-2 mb-2">
+                              <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
+                              <span className="text-orange-700 font-semibold">
+                                Question Review
+                              </span>
+                            </div>
+                            <p className="text-orange-600 text-sm">
+                              You are reviewing a previously answered question.
+                              Your original answer and the explanation are shown
+                              below.
+                            </p>
+                          </div>
+                        )}
+
                         <Label className="text-lg font-semibold">
                           Your Answer:{" "}
                           <span
@@ -1318,6 +2206,15 @@ export default function PracticeRushMultistep({
                           >
                             {state.selectedAnswer}
                           </span>
+                          {state.isAnswerCorrect ? (
+                            <span className="ml-2 text-green-600 text-sm">
+                              ✓ Correct
+                            </span>
+                          ) : (
+                            <span className="ml-2 text-red-600 text-sm">
+                              ✗ Incorrect
+                            </span>
+                          )}
                         </Label>
                         <Label className="text-lg font-semibold">
                           Correct Answer:{" "}
@@ -1326,7 +2223,10 @@ export default function PracticeRushMultistep({
                           </span>
                         </Label>
 
-                        <div>
+                        <div className="mt-4">
+                          <Label className="text-lg font-semibold mb-2 block">
+                            Explanation:
+                          </Label>
                           <MathJax
                             id="question_explanation"
                             className=" text-justify"
@@ -1362,10 +2262,7 @@ export default function PracticeRushMultistep({
                         <span
                           className="text-xl"
                           dangerouslySetInnerHTML={{
-                            __html: currentQuestion.stem.replaceAll(
-                              /\s*style\s*=\s*"[^"]*"/gi,
-                              ""
-                            ),
+                            __html: currentQuestion.stem,
                           }}
                         ></span>
                       </MathJax>
@@ -1394,8 +2291,15 @@ export default function PracticeRushMultistep({
                           showStrikethrough={
                             practiceSelections?.subject !== "reading-writing"
                           }
-                          correctAnswers={currentQuestion.correct_answer}
+                          correctAnswers={currentQuestion.correct_answer.map(
+                            (answer) => answer.trim()
+                          )}
                           isAnswerChecked={state.isAnswerChecked}
+                          isReviewMode={Boolean(
+                            state.questionAnswers[
+                              currentQuestion.plainQuestion.questionId
+                            ]
+                          )}
                         />
                       ) : (
                         <DuolingoInput
@@ -1406,26 +2310,51 @@ export default function PracticeRushMultistep({
                               payload: value,
                             })
                           }
+                          onSubmit={handleAnsweringQuestion(
+                            currentQuestion.plainQuestion.questionId
+                          )}
                           disabled={state.isAnswerChecked}
                         />
                       )}
-                      <div className="py-1">
+                      <div className="py-1 relative overflow-visible">
                         <Button
                           variant={"default"}
-                          className={`mt-5 w-full font-bold cursor-pointer text-lg py-6 border-b-4 rounded-2xl text-white shadow-lg hover:shadow-xl transform transition-all duration-200 active:translate-y-0.5 active:border-b-2 ${
-                            state.isAnswerChecked && state.isAnswerCorrect
-                              ? "bg-green-500 hover:bg-green-600 border-green-700 hover:border-green-800"
+                          className={`mt-5 w-full font-bold text-lg py-6 border-b-4 rounded-2xl text-white shadow-lg transform transition-all duration-200 ${
+                            state.isLoadingNextBatch
+                              ? "bg-yellow-500 hover:bg-yellow-600 border-yellow-700 hover:border-yellow-800 cursor-wait animate-pulse"
+                              : state.isAnswerChecked && state.isAnswerCorrect
+                              ? "bg-green-500 hover:bg-green-600 border-green-700 hover:border-green-800 cursor-pointer hover:shadow-xl active:translate-y-0.5 active:border-b-2"
                               : state.isAnswerChecked && !state.isAnswerCorrect
-                              ? "bg-red-500 hover:bg-red-600 border-red-700 hover:border-red-800"
-                              : "bg-blue-500 hover:bg-blue-600 border-blue-700 hover:border-blue-800"
+                              ? "bg-red-500 hover:bg-red-600 border-red-700 hover:border-red-800 cursor-pointer hover:shadow-xl active:translate-y-0.5 active:border-b-2"
+                              : "bg-blue-500 hover:bg-blue-600 border-blue-700 hover:border-blue-800 cursor-pointer hover:shadow-xl active:translate-y-0.5 active:border-b-2"
                           }`}
-                          disabled={state.selectedAnswer == null}
+                          disabled={
+                            state.selectedAnswer == null ||
+                            state.isLoadingNextBatch
+                          }
                           onClick={handleAnsweringQuestion(
                             currentQuestion.plainQuestion.questionId
                           )}
                         >
-                          {!state.isAnswerChecked ? "CHECK" : "CONTINUE"}
+                          {state.isLoadingNextBatch ? (
+                            <DuolingoLoadingSpinner
+                              progress={state.questionsProcessedCount}
+                              total={22}
+                            />
+                          ) : state.questionAnswers[
+                              currentQuestion.plainQuestion.questionId
+                            ] ? (
+                            "NEXT"
+                          ) : !state.isAnswerChecked ? (
+                            "CHECK"
+                          ) : (
+                            "CONTINUE"
+                          )}
                         </Button>
+                        <Confetti
+                          ref={confettiRef}
+                          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-full h-full pointer-events-none"
+                        />
                       </div>
 
                       {/* <Button
@@ -1450,9 +2379,13 @@ export default function PracticeRushMultistep({
         onClose={() => dispatch({ type: "TOGGLE_REFERENCE_POPUP" })}
       />
 
-      {/* Success Feedback */}
+      {/* Success Feedback - only show for newly answered questions, not when reviewing */}
       <SuccessFeedback
-        isVisible={state.isAnswerChecked && state.isAnswerCorrect}
+        isVisible={
+          state.isAnswerChecked &&
+          state.isAnswerCorrect &&
+          state.isTimerActive === false // Timer is stopped only when answering, not when reviewing
+        }
         onContinue={() => {
           if (
             state.questions &&
@@ -1463,7 +2396,16 @@ export default function PracticeRushMultistep({
               payload: state.currentQuestionStep + 1,
             });
           } else {
-            // Practice session completed!
+            // This was the last question - check if we can load next batch
+            if (
+              state.questionsData &&
+              state.currentBatch * 22 < state.questionsData.length
+            ) {
+              loadNextBatch();
+            } else {
+              console.log("Practice session completed!");
+              completeSession();
+            }
           }
         }}
       />
@@ -1474,6 +2416,6 @@ export default function PracticeRushMultistep({
         onConfirm={confirmExit}
         onCancel={() => dispatch({ type: "TOGGLE_EXIT_CONFIRMATION" })}
       />
-    </MathJaxContext>
+    </React.Fragment>
   );
 }

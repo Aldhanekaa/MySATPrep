@@ -3,7 +3,6 @@
 import React, { useId, useState, useEffect } from "react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
@@ -11,6 +10,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { domains } from "@/static-data/domains";
 import { PracticeSelections } from "@/types/session";
 import { QuestionDifficulty } from "@/types/question";
+import { playSound } from "@/lib/playSound";
 
 interface PracticeOnboardingProps {
   onComplete: (selections: PracticeSelections) => void;
@@ -83,6 +83,8 @@ export default function PracticeOnboarding({
   ];
 
   const handleContinue = () => {
+    playSound("navigation_forward-selection-minimal.wav");
+
     if (step === 1) {
       setStep(2);
     } else if (step === 2) {
@@ -121,6 +123,8 @@ export default function PracticeOnboarding({
   };
 
   const handleBack = () => {
+    playSound("navigation_backward-selection-minimal.wav");
+
     if (step === 4) {
       setStep(3);
       setSelectedDomains([]);
@@ -140,6 +144,7 @@ export default function PracticeOnboarding({
       const isCurrentlySelected = prev.includes(domainId);
 
       if (isCurrentlySelected) {
+        playSound("tap-checkbox-unchecked.wav");
         // If deselecting domain, remove all its skills from selected skills
         const domain = getSubjectDomains().find((d) => d.id === domainId);
         const domainSkillIds = domain?.skill?.map((skill) => skill.id) || [];
@@ -148,6 +153,7 @@ export default function PracticeOnboarding({
         );
         return prev.filter((id) => id !== domainId);
       } else {
+        playSound("tap-checkbox-checked.wav");
         // If selecting domain, add all its skills to selected skills
         const domain = getSubjectDomains().find((d) => d.id === domainId);
         const domainSkillIds = domain?.skill?.map((skill) => skill.id) || [];
@@ -158,11 +164,16 @@ export default function PracticeOnboarding({
   };
 
   const toggleSkill = (skillId: string) => {
-    setSelectedSkills((prev) =>
-      prev.includes(skillId)
-        ? prev.filter((id) => id !== skillId)
-        : [...prev, skillId]
-    );
+    setSelectedSkills((prev) => {
+      const isCurrentlySelected = prev.includes(skillId);
+      if (isCurrentlySelected) {
+        playSound("tap-checkbox-unchecked.wav");
+        return prev.filter((id) => id !== skillId);
+      } else {
+        playSound("tap-checkbox-checked.wav");
+        return [...prev, skillId];
+      }
+    });
   };
 
   const selectAllSkills = () => {
@@ -237,7 +248,7 @@ export default function PracticeOnboarding({
       <AnimatePresence mode="wait">
         <motion.fieldset
           key={step}
-          className="space-y-4 max-w-3xl mx-auto mt-14"
+          className="space-y-4 max-w-3xl mx-auto mt-8 "
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -20 }}
@@ -253,12 +264,15 @@ export default function PracticeOnboarding({
                 <RadioGroup
                   className="w-full grid grid-cols-2 gap-8 "
                   value={selectedValue}
-                  onValueChange={setSelectedValue}
+                  onValueChange={(value) => {
+                    playSound("tap-radio.wav");
+                    setSelectedValue(value);
+                  }}
                 >
                   {items.map((item) => (
                     <label
                       key={`${id}-${item.value}`}
-                      className="w-full px-4 py-6 relative flex cursor-pointer flex-col items-center gap-3 rounded-lg border border-input text-center shadow-sm shadow-black/5 outline-offset-2 transition-colors has-[[data-disabled]]:cursor-not-allowed  has-[[data-state=checked]]:border-blue-500/50 has-[[data-state=checked]]:bg-blue-500/10 has-[[data-disabled]]:opacity-50 has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-ring/70"
+                      className="w-full px-4 py-6 relative flex cursor-pointer flex-col items-center gap-3 rounded-2xl border-2 border-input text-center shadow-[0_4px_0_0_theme(colors.gray.300),0_8px_20px_theme(colors.gray.300/0.15)] hover:shadow-[0_6px_0_0_theme(colors.gray.400),0_10px_25px_theme(colors.gray.300/0.2)] outline-offset-2 transition-all duration-150 has-[[data-disabled]]:cursor-not-allowed has-[[data-state=checked]]:border-blue-500 has-[[data-state=checked]]:bg-blue-50 has-[[data-state=checked]]:shadow-[0_4px_0_0_theme(colors.blue.500),0_8px_20px_theme(colors.blue.500/0.25)] has-[[data-disabled]]:opacity-50 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-ring/70 active:shadow-[0_2px_0_0_theme(colors.gray.300),0_4px_10px_theme(colors.gray.300/0.15)] active:translate-y-0.5 has-[[data-state=checked]]:active:shadow-[0_2px_0_0_theme(colors.blue.500),0_4px_10px_theme(colors.blue.500/0.2)]"
                     >
                       <RadioGroupItem
                         id={`${id}-${item.value}`}
@@ -285,7 +299,7 @@ export default function PracticeOnboarding({
                 <motion.div variants={cardVariants}>
                   <Button
                     variant="default"
-                    className="group hover:cursor-pointer w-full text-lg py-6 mt-10"
+                    className="group hover:cursor-pointer w-full text-lg py-6 mt-10 rounded-2xl bg-gradient-to-b from-blue-400 to-blue-500 hover:from-blue-500 hover:to-blue-600 text-white font-bold shadow-[0_4px_0_0_theme(colors.blue.600),0_8px_20px_theme(colors.blue.500/0.25)] hover:shadow-[0_6px_0_0_theme(colors.blue.700),0_10px_25px_theme(colors.blue.500/0.3)] active:shadow-[0_2px_0_0_theme(colors.blue.600),0_4px_10px_theme(colors.blue.500/0.2)] active:translate-y-0.5 transform transition-all duration-150"
                     onClick={handleContinue}
                   >
                     Continue
@@ -313,12 +327,15 @@ export default function PracticeOnboarding({
                 <RadioGroup
                   className="w-full grid grid-cols-3 gap-6"
                   value={selectedAssessment}
-                  onValueChange={setSelectedAssessment}
+                  onValueChange={(value) => {
+                    playSound("tap-radio.wav");
+                    setSelectedAssessment(value);
+                  }}
                 >
                   {assessmentItems.map((item) => (
                     <label
                       key={`${id}-assessment-${item.value}`}
-                      className="w-full px-4 py-6 relative flex cursor-pointer flex-col items-center gap-3 rounded-lg border border-input text-center shadow-sm shadow-black/5 outline-offset-2 transition-colors has-[[data-disabled]]:cursor-not-allowed  has-[[data-state=checked]]:border-blue-500/50 has-[[data-state=checked]]:bg-blue-500/10 has-[[data-disabled]]:opacity-50 has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-ring/70"
+                      className="w-full px-4 py-6 relative flex cursor-pointer flex-col items-center gap-3 rounded-2xl border-2 border-input text-center shadow-[0_4px_0_0_theme(colors.gray.300),0_8px_20px_theme(colors.gray.300/0.15)] hover:shadow-[0_6px_0_0_theme(colors.gray.400),0_10px_25px_theme(colors.gray.300/0.2)] outline-offset-2 transition-all duration-150 has-[[data-disabled]]:cursor-not-allowed has-[[data-state=checked]]:border-blue-500 has-[[data-state=checked]]:bg-blue-50 has-[[data-state=checked]]:shadow-[0_4px_0_0_theme(colors.blue.500),0_8px_20px_theme(colors.blue.500/0.25)] has-[[data-disabled]]:opacity-50 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-ring/70 active:shadow-[0_2px_0_0_theme(colors.gray.300),0_4px_10px_theme(colors.gray.300/0.15)] active:translate-y-0.5 has-[[data-state=checked]]:active:shadow-[0_2px_0_0_theme(colors.blue.500),0_4px_10px_theme(colors.blue.500/0.2)]"
                     >
                       <RadioGroupItem
                         id={`${id}-assessment-${item.value}`}
@@ -346,7 +363,7 @@ export default function PracticeOnboarding({
               >
                 <Button
                   variant="default"
-                  className="group w-full hover:cursor-pointer  text-lg py-6"
+                  className="group w-full hover:cursor-pointer text-lg py-6 rounded-2xl bg-gradient-to-b from-blue-400 to-blue-500 hover:from-blue-500 hover:to-blue-600 text-white font-bold shadow-[0_4px_0_0_theme(colors.blue.600),0_8px_20px_theme(colors.blue.500/0.25)] hover:shadow-[0_6px_0_0_theme(colors.blue.700),0_10px_25px_theme(colors.blue.500/0.3)] active:shadow-[0_2px_0_0_theme(colors.blue.600),0_4px_10px_theme(colors.blue.500/0.2)] active:translate-y-0.5 transform transition-all duration-150 cursor-pointer"
                   onClick={handleContinue}
                   disabled={!selectedAssessment}
                 >
@@ -364,7 +381,7 @@ export default function PracticeOnboarding({
                 </Button>
                 <Button
                   variant="outline"
-                  className=" text-lg w-full py-6"
+                  className="text-lg w-full py-6 rounded-2xl font-bold shadow-[0_4px_0_0_theme(colors.gray.300),0_8px_20px_theme(colors.gray.300/0.25)] hover:shadow-[0_6px_0_0_theme(colors.gray.400),0_10px_25px_theme(colors.gray.300/0.3)] hover:bg-gray-50 active:shadow-[0_2px_0_0_theme(colors.gray.300),0_4px_10px_theme(colors.gray.300/0.2)] active:translate-y-0.5 transform transition-all duration-150 dark:shadow-[0_4px_0_0_theme(colors.gray.600),0_8px_20px_theme(colors.gray.700/0.25)] dark:hover:shadow-[0_6px_0_0_theme(colors.gray.500),0_10px_25px_theme(colors.gray.700/0.3)] dark:hover:bg-gray-800 cursor-pointer"
                   onClick={handleBack}
                 >
                   Back
@@ -381,12 +398,15 @@ export default function PracticeOnboarding({
                 <RadioGroup
                   className="w-full grid grid-cols-2 gap-8 "
                   value={selectedSubject}
-                  onValueChange={setSelectedSubject}
+                  onValueChange={(value) => {
+                    playSound("tap-radio.wav");
+                    setSelectedSubject(value);
+                  }}
                 >
                   {subjectItems.map((item) => (
                     <label
                       key={`${id}-subject-${item.value}`}
-                      className="w-full px-4 py-6 relative flex cursor-pointer flex-col items-center gap-3 rounded-lg border border-input text-center shadow-sm shadow-black/5 outline-offset-2 transition-colors has-[[data-disabled]]:cursor-not-allowed  has-[[data-state=checked]]:border-blue-500/50 has-[[data-state=checked]]:bg-blue-500/10 has-[[data-disabled]]:opacity-50 has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-ring/70"
+                      className="w-full px-4 py-6 relative flex cursor-pointer flex-col items-center gap-3 rounded-2xl border-2 border-input text-center shadow-[0_4px_0_0_theme(colors.gray.300),0_8px_20px_theme(colors.gray.300/0.15)] hover:shadow-[0_6px_0_0_theme(colors.gray.400),0_10px_25px_theme(colors.gray.300/0.2)] outline-offset-2 transition-all duration-150 has-[[data-disabled]]:cursor-not-allowed has-[[data-state=checked]]:border-blue-500 has-[[data-state=checked]]:bg-blue-50 has-[[data-state=checked]]:shadow-[0_4px_0_0_theme(colors.blue.500),0_8px_20px_theme(colors.blue.500/0.25)] has-[[data-disabled]]:opacity-50 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-ring/70 active:shadow-[0_2px_0_0_theme(colors.gray.300),0_4px_10px_theme(colors.gray.300/0.15)] active:translate-y-0.5 has-[[data-state=checked]]:active:shadow-[0_2px_0_0_theme(colors.blue.500),0_4px_10px_theme(colors.blue.500/0.2)]"
                     >
                       <RadioGroupItem
                         id={`${id}-subject-${item.value}`}
@@ -414,7 +434,7 @@ export default function PracticeOnboarding({
               >
                 <Button
                   variant="default"
-                  className="group w-full hover:cursor-pointer  text-lg py-6"
+                  className="group w-full hover:cursor-pointer text-lg py-6 rounded-2xl bg-gradient-to-b from-blue-400 to-blue-500 hover:from-blue-500 hover:to-blue-600 text-white font-bold shadow-[0_4px_0_0_theme(colors.blue.600),0_8px_20px_theme(colors.blue.500/0.25)] hover:shadow-[0_6px_0_0_theme(colors.blue.700),0_10px_25px_theme(colors.blue.500/0.3)] active:shadow-[0_2px_0_0_theme(colors.blue.600),0_4px_10px_theme(colors.blue.500/0.2)] active:translate-y-0.5 transform transition-all duration-150 cursor-pointer"
                   onClick={handleContinue}
                   disabled={!selectedSubject}
                 >
@@ -432,7 +452,7 @@ export default function PracticeOnboarding({
                 </Button>
                 <Button
                   variant="outline"
-                  className=" text-lg w-full py-6"
+                  className="text-lg w-full py-6 rounded-2xl font-bold shadow-[0_4px_0_0_theme(colors.gray.300),0_8px_20px_theme(colors.gray.300/0.25)] hover:shadow-[0_6px_0_0_theme(colors.gray.400),0_10px_25px_theme(colors.gray.300/0.3)] hover:bg-gray-50 active:shadow-[0_2px_0_0_theme(colors.gray.300),0_4px_10px_theme(colors.gray.300/0.2)] active:translate-y-0.5 transform transition-all duration-150 dark:shadow-[0_4px_0_0_theme(colors.gray.600),0_8px_20px_theme(colors.gray.700/0.25)] dark:hover:shadow-[0_6px_0_0_theme(colors.gray.500),0_10px_25px_theme(colors.gray.700/0.3)] dark:hover:bg-gray-800 cursor-pointer"
                   onClick={handleBack}
                 >
                   Back
@@ -457,7 +477,7 @@ export default function PracticeOnboarding({
                         variant="default"
                         size="sm"
                         onClick={selectAllSkills}
-                        className="px-4 py-2"
+                        className="px-4 py-2 rounded-2xl bg-gradient-to-b from-blue-400 to-blue-500 hover:from-blue-500 hover:to-blue-600 text-white font-bold shadow-[0_3px_0_0_theme(colors.blue.600),0_6px_15px_theme(colors.blue.500/0.25)] hover:shadow-[0_4px_0_0_theme(colors.blue.700),0_8px_20px_theme(colors.blue.500/0.3)] active:shadow-[0_1px_0_0_theme(colors.blue.600),0_3px_8px_theme(colors.blue.500/0.2)] active:translate-y-0.5 transform transition-all duration-150 cursor-pointer"
                       >
                         Select All Skills
                       </Button>
@@ -465,7 +485,7 @@ export default function PracticeOnboarding({
                         variant="outline"
                         size="sm"
                         onClick={clearAllSkills}
-                        className="px-4 py-2"
+                        className="px-4 py-2 rounded-2xl font-bold shadow-[0_3px_0_0_theme(colors.gray.300),0_6px_15px_theme(colors.gray.300/0.25)] hover:shadow-[0_4px_0_0_theme(colors.gray.400),0_8px_20px_theme(colors.gray.300/0.3)] hover:bg-gray-50 active:shadow-[0_1px_0_0_theme(colors.gray.300),0_3px_8px_theme(colors.gray.300/0.2)] active:translate-y-0.5 transform transition-all duration-150 dark:shadow-[0_3px_0_0_theme(colors.gray.600),0_6px_15px_theme(colors.gray.700/0.25)] dark:hover:shadow-[0_4px_0_0_theme(colors.gray.500),0_8px_20px_theme(colors.gray.700/0.3)] dark:hover:bg-gray-800 cursor-pointer"
                       >
                         Clear All Skills
                       </Button>
@@ -645,34 +665,66 @@ export default function PracticeOnboarding({
                       ).map((difficulty) => (
                         <div
                           key={`${id}-difficulty-${difficulty.value}`}
-                          className="relative flex flex-col items-start gap-4 rounded-lg border border-input p-3 shadow-sm shadow-black/5 has-[[data-state=checked]]:border-ring"
+                          className={`relative flex flex-col items-start gap-4 rounded-2xl border-2 p-4 cursor-pointer transition-all duration-150 ${
+                            selectedDifficulties.includes(difficulty.value)
+                              ? "border-blue-500 bg-blue-50 shadow-[0_4px_0_0_theme(colors.blue.500),0_8px_20px_theme(colors.blue.500/0.25)]"
+                              : "border-gray-300 bg-white shadow-[0_4px_0_0_theme(colors.gray.300),0_8px_20px_theme(colors.gray.300/0.15)] hover:shadow-[0_6px_0_0_theme(colors.gray.400),0_10px_25px_theme(colors.gray.300/0.2)]"
+                          } active:shadow-[0_2px_0_0_theme(colors.gray.300),0_4px_10px_theme(colors.gray.300/0.15)] active:translate-y-0.5 has-[[data-state=checked]]:active:shadow-[0_2px_0_0_theme(colors.blue.500),0_4px_10px_theme(colors.blue.500/0.2)]`}
+                          onClick={() => {
+                            const isChecked = selectedDifficulties.includes(
+                              difficulty.value
+                            );
+                            if (isChecked) {
+                              playSound("tap-checkbox-unchecked.wav");
+                              setSelectedDifficulties((prev) =>
+                                prev.filter((d) => d !== difficulty.value)
+                              );
+                            } else {
+                              playSound("tap-checkbox-checked.wav");
+                              setSelectedDifficulties((prev) => [
+                                ...prev,
+                                difficulty.value,
+                              ]);
+                            }
+                          }}
                         >
-                          <div className="flex items-center gap-2">
-                            <Checkbox
-                              id={`${id}-difficulty-${difficulty.value}`}
-                              checked={selectedDifficulties.includes(
-                                difficulty.value
-                              )}
-                              onCheckedChange={(checked) => {
-                                if (checked) {
-                                  setSelectedDifficulties((prev) => [
-                                    ...prev,
-                                    difficulty.value,
-                                  ]);
-                                } else {
-                                  setSelectedDifficulties((prev) =>
-                                    prev.filter((d) => d !== difficulty.value)
-                                  );
-                                }
-                              }}
-                              className="after:absolute after:inset-0"
-                            />
-                            <Label
-                              htmlFor={`${id}-difficulty-${difficulty.value}`}
+                          <div className="flex items-center gap-3 w-full">
+                            <div
+                              className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all duration-150 ${
+                                selectedDifficulties.includes(difficulty.value)
+                                  ? "bg-blue-500 border-blue-500"
+                                  : "border-gray-300 bg-white"
+                              }`}
                             >
+                              {selectedDifficulties.includes(
+                                difficulty.value
+                              ) && (
+                                <svg
+                                  className="w-4 h-4 text-white"
+                                  fill="currentColor"
+                                  viewBox="0 0 20 20"
+                                >
+                                  <path
+                                    fillRule="evenodd"
+                                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                    clipRule="evenodd"
+                                  />
+                                </svg>
+                              )}
+                            </div>
+                            <span className="text-lg font-semibold cursor-pointer flex-1">
                               {difficulty.label}
-                            </Label>
+                            </span>
                           </div>
+                          {/* Hidden checkbox for accessibility */}
+                          <Checkbox
+                            id={`${id}-difficulty-${difficulty.value}`}
+                            checked={selectedDifficulties.includes(
+                              difficulty.value
+                            )}
+                            onChange={() => {}} // Prevent default behavior
+                            className="sr-only"
+                          />
                         </div>
                       ))}
                     </div>
@@ -685,7 +737,7 @@ export default function PracticeOnboarding({
               >
                 <Button
                   variant="default"
-                  className="group w-full hover:cursor-pointer text-lg py-6"
+                  className="group w-full hover:cursor-pointer text-lg py-6 rounded-2xl bg-gradient-to-b from-blue-400 to-blue-500 hover:from-blue-500 hover:to-blue-600 text-white font-bold shadow-[0_4px_0_0_theme(colors.blue.600),0_8px_20px_theme(colors.blue.500/0.25)] hover:shadow-[0_6px_0_0_theme(colors.blue.700),0_10px_25px_theme(colors.blue.500/0.3)] active:shadow-[0_2px_0_0_theme(colors.blue.600),0_4px_10px_theme(colors.blue.500/0.2)] active:translate-y-0.5 transform transition-all duration-150 cursor-pointer"
                   onClick={handleContinue}
                   disabled={
                     selectedDomains.length === 0 ||
@@ -707,7 +759,7 @@ export default function PracticeOnboarding({
                 </Button>
                 <Button
                   variant="outline"
-                  className=" text-lg w-full py-6"
+                  className="text-lg w-full py-6 rounded-2xl font-bold shadow-[0_4px_0_0_theme(colors.gray.300),0_8px_20px_theme(colors.gray.300/0.25)] hover:shadow-[0_6px_0_0_theme(colors.gray.400),0_10px_25px_theme(colors.gray.300/0.3)] hover:bg-gray-50 active:shadow-[0_2px_0_0_theme(colors.gray.300),0_4px_10px_theme(colors.gray.300/0.2)] active:translate-y-0.5 transform transition-all duration-150 dark:shadow-[0_4px_0_0_theme(colors.gray.600),0_8px_20px_theme(colors.gray.700/0.25)] dark:hover:shadow-[0_6px_0_0_theme(colors.gray.500),0_10px_25px_theme(colors.gray.700/0.3)] dark:hover:bg-gray-800 cursor-pointer"
                   onClick={handleBack}
                 >
                   Back

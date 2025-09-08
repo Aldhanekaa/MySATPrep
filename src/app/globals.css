@@ -121,10 +121,53 @@
   }
 }
 
-#question_explanation span img {
-  display: inline-block;
+/* styles/globals.css */
+
+/* Style tables only inside .answer-option */
+.answer-option table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.5rem 0;
+  background: #fff;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
-#question_explanation > span p {
-  margin: 1rem 0;
+.answer-option tbody {
+  background: #fafbfc;
+}
+
+.answer-option tr {
+  border-bottom: 1px solid #eaeaea;
+  transition: background 0.2s;
+}
+
+.answer-option tr:last-child {
+  border-bottom: none;
+}
+
+.answer-option td {
+  padding: 0.75rem 1.25rem;
+  text-align: center;
+  font-size: 1rem;
+  color: #222;
+  font-family: "Inter", Arial, sans-serif;
+  vertical-align: middle;
+}
+
+/* Optional: Table header styling */
+.answer-option th {
+  background: #f3f4f6;
+  color: #0070f3;
+  font-weight: 600;
+  padding: 0.75rem 1.25rem;
+  text-align: center;
+  font-size: 1.05rem;
+  border-bottom: 2px solid #eaeaea;
+}
+
+/* Optional: Row hover effect */
+.answer-option tr:hover {
+  background: #f0f7ff;
 }

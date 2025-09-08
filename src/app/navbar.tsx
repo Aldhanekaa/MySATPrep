@@ -30,7 +30,7 @@ export const SiteHeader = () => {
     <header>
       <nav
         data-state={menuState && "active"}
-        className="fixed group z-20 w-full px-2"
+        className="fixed group z-30 w-full px-2"
       >
         <div
           className={cn(
