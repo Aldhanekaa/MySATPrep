@@ -12,6 +12,7 @@ import {
   isValidPracticeSession,
   isValidPracticeSelections,
   SessionStatus,
+  getSessionHistory,
 } from "@/types/session";
 import { QuestionDifficulty } from "@/types/question";
 import { domains as domainsData } from "@/static-data/domains";
@@ -113,6 +114,9 @@ function Practice() {
   const [shouldRestoreSession, setShouldRestoreSession] =
     useState<boolean>(false);
   const [restoredSessionData, setRestoredSessionData] =
+    useState<PracticeSession | null>(null);
+  const [isReviewMode, setIsReviewMode] = useState<boolean>(false);
+  const [reviewSessionData, setReviewSessionData] =
     useState<PracticeSession | null>(null);
 
   // Check for session continuation parameter first
@@ -339,6 +343,84 @@ function Practice() {
         window.history.replaceState({}, "", url.toString());
         return;
       }
+    } else if (sessionParam && sessionParam !== "continue") {
+      // Handle session ID for review mode
+      console.log(
+        `Detected session ID parameter: ${sessionParam}, checking practice history...`
+      );
+
+      try {
+        const practiceHistory = getSessionHistory();
+        const targetSession = practiceHistory.find(
+          (session) => session.sessionId === sessionParam
+        );
+
+        if (!targetSession) {
+          console.warn(
+            `Session ID ${sessionParam} not found in practice history`
+          );
+          toast.error("Session Not Found", {
+            description:
+              "The requested practice session was not found in your history. Please check the link or start a new session.",
+            duration: 5000,
+          });
+          // Remove invalid session parameter and redirect to normal onboarding
+          const url = new URL(window.location.href);
+          url.searchParams.delete("session");
+          window.history.replaceState({}, "", url.toString());
+          return;
+        }
+
+        // Validate the found session
+        if (!isValidPracticeSession(targetSession)) {
+          console.error(
+            "Invalid session structure found in practice history:",
+            targetSession
+          );
+          toast.error("Invalid Session Data", {
+            description:
+              "The session data is corrupted. Please try another session or start a new one.",
+            duration: 5000,
+          });
+          const url = new URL(window.location.href);
+          url.searchParams.delete("session");
+          window.history.replaceState({}, "", url.toString());
+          return;
+        }
+
+        console.log(
+          "Session found in practice history, setting up review mode:",
+          {
+            sessionId: targetSession.sessionId,
+            status: targetSession.status,
+            totalQuestions: targetSession.totalQuestions,
+            answeredQuestions: targetSession.answeredQuestions.length,
+            timestamp: targetSession.timestamp,
+          }
+        );
+
+        // Set up review mode
+        setReviewSessionData(targetSession);
+        setPracticeSelections(targetSession.practiceSelections);
+        setIsReviewMode(true);
+        setOnboardingComplete(true);
+
+        toast.success("Session Loaded for Review", {
+          description:
+            "This session is in review mode. You can see questions and answers but cannot make changes.",
+          duration: 5000,
+        });
+      } catch (error) {
+        console.error("Error loading session for review:", error);
+        toast.error("Failed to Load Session", {
+          description:
+            "Could not load the requested session for review. Please try again or start a new session.",
+          duration: 5000,
+        });
+        const url = new URL(window.location.href);
+        url.searchParams.delete("session");
+        window.history.replaceState({}, "", url.toString());
+      }
     }
   }, [searchParams]);
 
@@ -395,12 +477,12 @@ function Practice() {
     );
   };
 
-  // Check for URL parameters and validate them (skip if restoring session)
+  // Check for URL parameters and validate them (skip if restoring session or in review mode)
   useEffect(() => {
-    // Skip URL parameter processing if we're restoring a session
-    if (shouldRestoreSession) {
+    // Skip URL parameter processing if we're restoring a session or in review mode
+    if (shouldRestoreSession || isReviewMode) {
       console.log(
-        "Skipping URL parameter processing - restoring session instead"
+        "Skipping URL parameter processing - restoring session or in review mode"
       );
       return;
     }
@@ -706,7 +788,7 @@ function Practice() {
         setShowValidationBanner(true);
       }
     }
-  }, [searchParams, shouldRestoreSession]);
+  }, [searchParams, shouldRestoreSession, isReviewMode]);
 
   const handleOnboardingComplete = (selections: PracticeSelections) => {
     setPracticeSelections(selections);
@@ -805,7 +887,10 @@ function Practice() {
         <PracticeRushMultistep
           practiceSelections={practiceSelections}
           onSessionComplete={handleSessionComplete}
-          restoredSessionData={restoredSessionData || undefined}
+          restoredSessionData={
+            restoredSessionData || reviewSessionData || undefined
+          }
+          isReviewMode={isReviewMode}
         />
       ) : null}
     </React.Fragment>

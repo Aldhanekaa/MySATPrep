@@ -1498,12 +1498,14 @@ interface PracticeRushMultistepProps {
   practiceSelections: PracticeSelections;
   onSessionComplete?: (sessionData: PracticeSession) => void;
   restoredSessionData?: PracticeSession; // New prop for passing down localStorage data
+  isReviewMode?: boolean; // New prop for review-only mode
 }
 
 export default function PracticeRushMultistep({
   practiceSelections,
   onSessionComplete,
   restoredSessionData,
+  isReviewMode = false,
 }: PracticeRushMultistepProps) {
   const router = useRouter();
   const confettiRef = useRef<ConfettiRef>(null);
@@ -2094,6 +2096,116 @@ export default function PracticeRushMultistep({
       isFetchingRef.current = true;
 
       try {
+        // Handle review mode - only fetch previously answered questions
+        if (isReviewMode && restoredSessionData) {
+          console.log(
+            "🔍 Review mode detected - loading only answered questions..."
+          );
+
+          const answeredQuestionDetails =
+            restoredSessionData.answeredQuestionDetails || [];
+          const answeredQuestionIds = Object.keys(
+            restoredSessionData.questionAnswers || {}
+          );
+
+          console.log("📊 Review session details:", {
+            sessionId: restoredSessionData.sessionId,
+            status: restoredSessionData.status,
+            totalAnswered: answeredQuestionIds.length,
+            detailsCount: answeredQuestionDetails.length,
+          });
+
+          if (
+            answeredQuestionDetails.length === 0 &&
+            answeredQuestionIds.length === 0
+          ) {
+            toast.error("No Answered Questions Found", {
+              description: "This session has no answered questions to review.",
+              duration: 5000,
+            });
+            return;
+          }
+
+          dispatch({ type: "SET_CURRENT_STEP", payload: 3 });
+
+          // Extract plain questions from answered question details
+          const validPlainQuestions = answeredQuestionDetails
+            .map((item) => item.plainQuestion)
+            .filter((q) => q !== null) as PlainQuestionType[];
+
+          if (validPlainQuestions.length > 0) {
+            // Use the helper function to fetch only the answered questions
+            const reviewQuestions = await fetchQuestionDetails(
+              validPlainQuestions
+            );
+
+            dispatch({ type: "SET_CURRENT_STEP", payload: 4 });
+
+            // Restore the session state including answers and timing data
+            console.log("🔄 Restoring review session state...");
+
+            // Dispatch restored session data for review
+            dispatch({
+              type: "RESTORE_SESSION_STATE",
+              payload: {
+                questionAnswers: restoredSessionData.questionAnswers || {},
+                questionTimes: restoredSessionData.questionTimes || {},
+                answeredQuestionDetails:
+                  restoredSessionData.answeredQuestionDetails || [],
+                currentQuestionStep: 0, // Start from first question in review mode
+                sessionStartTime: new Date(
+                  restoredSessionData.timestamp
+                ).getTime(),
+                sessionId: restoredSessionData.sessionId,
+              },
+            });
+
+            dispatch({ type: "SET_CURRENT_STEP", payload: 5 });
+
+            setTimeout(() => {
+              dispatch({ type: "SET_QUESTIONS", payload: reviewQuestions });
+              dispatch({ type: "SET_CURRENT_STEP", payload: 5 });
+
+              // Don't start timer in review mode
+              console.log("✅ Review session loaded - questions are read-only");
+
+              const answeredCount = Object.keys(
+                restoredSessionData.questionAnswers || {}
+              ).length;
+              const correctAnswers = Object.keys(
+                restoredSessionData.questionAnswers || {}
+              ).filter((questionId) => {
+                const userAnswer =
+                  restoredSessionData.questionAnswers?.[questionId];
+                const question = reviewQuestions.find(
+                  (q) => q.plainQuestion.questionId === questionId
+                );
+                return (
+                  userAnswer &&
+                  question?.correct_answer
+                    ?.map((a) => a.trim())
+                    .includes(userAnswer)
+                );
+              }).length;
+
+              toast.success("Review Session Loaded! 👁️", {
+                description: `Reviewing ${answeredCount} answered questions (${correctAnswers} correct). Answers are read-only.`,
+                duration: 6000,
+              });
+            }, 1500);
+
+            return;
+          } else {
+            console.warn("No valid questions found in review session data");
+            toast.error("Invalid Review Session", {
+              description:
+                "The session data doesn't contain valid question information.",
+              duration: 5000,
+            });
+            return;
+          }
+        }
+
         // Check if we have restored session data with previously answered questions
         if (
           restoredSessionData?.answeredQuestionDetails &&
@@ -2450,6 +2562,7 @@ export default function PracticeRushMultistep({
     [
       state.questionsData,
       restoredSessionData,
+      isReviewMode,
       fetchAndProcessQuestions,
       fetchQuestionDetails,
     ]
@@ -2653,6 +2766,23 @@ export default function PracticeRushMultistep({
     (questionId: string) => {
       return () => {
         if (!currentQuestion) return;
+
+        // In review mode, only allow navigation - no answer changes
+        if (isReviewMode) {
+          playSound("button-pressed.wav");
+
+          // Just move to next question if available
+          if (
+            state.questions &&
+            state.currentQuestionStep < state.questions.length - 1
+          ) {
+            dispatch({
+              type: "SET_CURRENT_QUESTION_STEP",
+              payload: state.currentQuestionStep + 1,
+            });
+          }
+          return;
+        }
 
         // Check if this is a previously answered question being reviewed
         const isPreviouslyAnswered = Boolean(state.questionAnswers[questionId]);
@@ -2859,6 +2989,7 @@ export default function PracticeRushMultistep({
       state.inProgressQuestionTimes,
       state.sessionId,
       practiceSelections,
+      isReviewMode,
     ]
   );
 
@@ -3007,6 +3138,17 @@ export default function PracticeRushMultistep({
         ) : (
           <React.Fragment>
             <div className="min-h-screen items-center justify-center pt-32 pb-10">
+              {isReviewMode && (
+                <div className="mb-6 p-4 bg-blue-100 border-2 border-blue-300 rounded-lg text-center">
+                  <h4 className="text-lg font-bold text-blue-800 mb-1">
+                    📚 Review Mode - Session ID: {state.sessionId}
+                  </h4>
+                  <p className="text-sm text-blue-600">
+                    You are reviewing a completed practice session. All answers
+                    are read-only.
+                  </p>
+                </div>
+              )}
               <div className="grid grid-cols-12 justify-between mb-10">
                 <div className="col-span-12 xl:col-span-7">
                   <div className="flex gap-4 items-center">
@@ -3223,22 +3365,23 @@ export default function PracticeRushMultistep({
                       </TooltipContent>
                     </Tooltip>
 
-                    {Object.keys(state.questionAnswers).length > 0 && (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="default"
-                            className="cursor-pointer bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-2xl border-b-4 border-green-700 hover:border-green-800 shadow-md hover:shadow-lg transform transition-all duration-200 active:translate-y-0.5 active:border-b-2"
-                            onClick={handleFinish}
-                          >
-                            Finish Practice
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Complete practice session and view results</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    )}
+                    {Object.keys(state.questionAnswers).length > 0 &&
+                      !isReviewMode && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="default"
+                              className="cursor-pointer bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-2xl border-b-4 border-green-700 hover:border-green-800 shadow-md hover:shadow-lg transform transition-all duration-200 active:translate-y-0.5 active:border-b-2"
+                              onClick={handleFinish}
+                            >
+                              Finish Practice
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Complete practice session and view results</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
 
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -3461,11 +3604,14 @@ export default function PracticeRushMultistep({
                             (answer) => answer.trim()
                           )}
                           isAnswerChecked={state.isAnswerChecked}
-                          isReviewMode={Boolean(
-                            state.questionAnswers[
-                              currentQuestion.plainQuestion.questionId
-                            ]
-                          )}
+                          isReviewMode={
+                            isReviewMode ||
+                            Boolean(
+                              state.questionAnswers[
+                                currentQuestion.plainQuestion.questionId
+                              ]
+                            )
+                          }
                         />
                       ) : (
                         <DuolingoInput
@@ -3479,7 +3625,7 @@ export default function PracticeRushMultistep({
                           onSubmit={handleAnsweringQuestion(
                             currentQuestion.plainQuestion.questionId
                           )}
-                          disabled={state.isAnswerChecked}
+                          disabled={state.isAnswerChecked || isReviewMode}
                         />
                       ))}
                     <div className="pt-1 pb-2 relative overflow-visible">
@@ -3697,11 +3843,14 @@ export default function PracticeRushMultistep({
                             (answer) => answer.trim()
                           )}
                           isAnswerChecked={state.isAnswerChecked}
-                          isReviewMode={Boolean(
-                            state.questionAnswers[
-                              currentQuestion.plainQuestion.questionId
-                            ]
-                          )}
+                          isReviewMode={
+                            isReviewMode ||
+                            Boolean(
+                              state.questionAnswers[
+                                currentQuestion.plainQuestion.questionId
+                              ]
+                            )
+                          }
                         />
                       ) : (
                         <DuolingoInput
@@ -3715,7 +3864,7 @@ export default function PracticeRushMultistep({
                           onSubmit={handleAnsweringQuestion(
                             currentQuestion.plainQuestion.questionId
                           )}
-                          disabled={state.isAnswerChecked}
+                          disabled={state.isAnswerChecked || isReviewMode}
                         />
                       )}
                       <div className="py-1 relative overflow-visible">
