@@ -1,7 +1,11 @@
 import { SiteHeader } from "@/app/navbar";
+import QuestionProblemCard from "@/components/question-problem-card";
+import { QuestionById_Response } from "@/types";
 import React from "react";
 
-async function fetchQuestionById(questionId: string) {
+async function fetchQuestionById(
+  questionId: string
+): Promise<QuestionById_Response> {
   const response = await fetch(
     `${
       process.env.NEXT_PUBLIC_URL
@@ -22,7 +26,7 @@ async function fetchQuestionById(questionId: string) {
 export default async function Page({
   params,
 }: {
-  params: { questionId: string };
+  params: Promise<{ questionId: string }>;
 }) {
   const { questionId } = await params;
 
@@ -39,11 +43,14 @@ export default async function Page({
     return <div>not found</div>;
   }
 
+  const questionData = result.data;
+
   console.log("Question data:", JSON.stringify(result.data, null, 2));
 
   return (
     <React.Fragment>
       <SiteHeader />
+      <QuestionProblemCard question={questionData} />
     </React.Fragment>
   );
 }

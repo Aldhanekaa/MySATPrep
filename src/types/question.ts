@@ -85,6 +85,16 @@ export type PlainQuestionType = {
   difficulty: QuestionDifficulty;
 };
 
+export type QuestionById_Data = {
+  problem: API_Response_Question;
+  question: PlainQuestionType;
+};
+export type QuestionById_Response = {
+  data: QuestionById_Data;
+  success: boolean;
+  message: string;
+};
+
 export type QuestionState = {
   answerOptions?: {
     [key in "A" | "B" | "C" | "D"]: string;
