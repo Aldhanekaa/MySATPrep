@@ -13,7 +13,6 @@ import {
   API_Response_Question_List,
   PlainQuestionType,
   QuestionState,
-  QuestionDifficulty,
 } from "@/types/question";
 import {
   PracticeSelections,
@@ -1158,8 +1157,10 @@ interface AppState {
   isTimerActive: boolean;
   isTimerVisible: boolean;
   isLoadingNextBatch: boolean;
-  currentBatch: number;
+  currentBatch: number; // Keep for backward compatibility but will be deprecated
+  questionsLoadedCount: number; // Track total questions loaded so far
   questionsProcessedCount: number;
+  cachedSelectionsHash: string | null; // Hash of practice selections to validate cache compatibility
   sessionId: string;
   sessionStartTime: number;
   isSavingSession: boolean;
@@ -1167,7 +1168,11 @@ interface AppState {
 }
 
 type AppAction =
-  | { type: "SET_QUESTIONS_DATA"; payload: API_Response_Question_List }
+  | {
+      type: "SET_QUESTIONS_DATA";
+      payload: API_Response_Question_List;
+      selectionsHash?: string;
+    }
   | { type: "SET_QUESTIONS"; payload: QuestionState[] }
   | { type: "SET_CURRENT_STEP"; payload: number }
   | { type: "SET_CURRENT_QUESTION_STEP"; payload: number }
@@ -1225,7 +1230,9 @@ const initialState: AppState = {
   isTimerVisible: true,
   isLoadingNextBatch: false,
   currentBatch: 1,
+  questionsLoadedCount: 22, // Initially load 22 questions
   questionsProcessedCount: 0,
+  cachedSelectionsHash: null, // No cached selections initially
   sessionId: `practice-${Date.now()}-${Math.random()
     .toString(36)
     .substr(2, 9)}`,
@@ -1237,9 +1244,18 @@ const initialState: AppState = {
 function appReducer(state: AppState, action: AppAction): AppState {
   switch (action.type) {
     case "SET_QUESTIONS_DATA":
-      return { ...state, questionsData: action.payload };
+      return {
+        ...state,
+        questionsData: action.payload,
+        cachedSelectionsHash:
+          action.selectionsHash || state.cachedSelectionsHash,
+      };
     case "SET_QUESTIONS":
-      return { ...state, questions: action.payload };
+      return {
+        ...state,
+        questions: action.payload,
+        questionsLoadedCount: action.payload.length, // Set loaded count to initial questions length
+      };
     case "SET_CURRENT_STEP":
       return { ...state, currentStep: action.payload };
     case "SET_CURRENT_QUESTION_STEP":
@@ -1383,17 +1399,11 @@ function appReducer(state: AppState, action: AppAction): AppState {
       return {
         ...state,
         isLoadingNextBatch: false,
-        questions: action.payload,
-        currentQuestionStep: 0,
-        currentBatch: state.currentBatch + 1,
+        questions: [...(state.questions || []), ...action.payload], // Append new questions to existing ones
+        questionsLoadedCount:
+          state.questionsLoadedCount + action.payload.length, // Update loaded count
         currentStep: 5, // Return to practice
-        selectedAnswer: null,
-        disabledOptions: {},
-        isAnswerChecked: false,
-        isAnswerCorrect: false,
-        questionStartTime: Date.now(),
-        currentQuestionElapsedTime: 0,
-        isTimerActive: true,
+        questionsProcessedCount: 0, // Reset count after loading
       };
     case "SET_QUESTIONS_PROCESSED_COUNT":
       return {
@@ -1884,212 +1894,349 @@ export default function PracticeRushMultistep({
     // dispatch({ type: "RESET_QUESTION_STATE" });
   }, [state.currentQuestionStep]);
 
-  const FetchQuestions = useCallback(async (selections: PracticeSelections) => {
-    // If questionIds are provided in selections, use them directly
-    if (selections.questionIds && selections.questionIds.length > 0) {
-      console.log(
-        "Using pre-selected questions from shared link:",
-        selections.questionIds
-      );
+  // Track if we've already fetched questions for current selections to prevent multiple calls
+  const hasFetchedRef = useRef(false);
+  const currentSelectionsRef = useRef<string>("");
+  const isFetchingRef = useRef(false);
 
-      dispatch({ type: "SET_CURRENT_STEP", payload: 3 });
-
-      // Create mock questionsData from the provided questionIds
-      const questionsData: API_Response_Question_List =
-        selections.questionIds.map((id, index) => ({
-          updateDate: Date.now(),
-          pPcc: "",
-          questionId: id,
-          skill_cd: "CID", // Default skill code (Central Ideas and Details)
-          score_band_range_cd: 1,
-          uId: `shared-${index}`,
-          skill_desc: "Shared Question",
-          createDate: Date.now(),
-          program: "SAT",
-          primary_class_cd_desc: "Shared Questions",
-          ibn: id,
-          external_id: id,
-          primary_class_cd: "INI", // Default domain (Information and Ideas for R&W)
-          difficulty: "M" as QuestionDifficulty,
-        }));
-
-      dispatch({ type: "SET_QUESTIONS_DATA", payload: questionsData });
-
-      const questionsToFetch = questionsData.slice(0, 22); // Limit to first 22 if more provided
-      const questions: {
-        plainQuestion: PlainQuestionType;
-        data: API_Response_Question;
-      }[] = [];
-      const correctQuestions: QuestionState[] = [];
-
-      for (const question of questionsToFetch) {
-        console.log(
-          "Fetching shared question:",
-          question.external_id || question.ibn
-        );
-        const questionsData: API_Response_Question =
-          await fetchQuestionsbyIBN_ExternalId(
-            question.external_id
-              ? question.external_id
-              : question.ibn
-              ? question.ibn
-              : ""
-          );
-
-        if (questionsData)
-          questions.push({ plainQuestion: question, data: questionsData });
+  const FetchQuestions = useCallback(
+    async (selections: PracticeSelections) => {
+      // Prevent multiple simultaneous calls
+      if (isFetchingRef.current) {
+        console.log("⏳ FetchQuestions already in progress, skipping...");
+        return;
       }
 
-      dispatch({ type: "SET_CURRENT_STEP", payload: 4 });
+      isFetchingRef.current = true;
 
-      for (let i = 0; i < questions.length; i++) {
-        const question = questions[i];
-        const plainQuestion = question.plainQuestion;
-        const questionsData = question.data;
+      try {
+        // Only fetch from API if we don't have cached data for these selections
+        console.log(
+          "🔄 No cached data found, fetching from /api/get-questions..."
+        );
 
-        if (
-          questionsData.correct_answer &&
-          Array.isArray(questionsData.correct_answer) &&
-          questionsData.correct_answer.length > 0
-        ) {
-          correctQuestions.push({
-            ...questionsData,
-            correct_answer: questionsData.correct_answer,
-            plainQuestion: plainQuestion,
+        let excludeQuestionsIds: string[] = [];
+        let otherParams = "";
+
+        if (!selections.questionIds) {
+          // load practiceStatistics local storage, and get the current assessment statistics
+          const practiceStatistics = localStorage.getItem("practiceStatistics");
+          const assessmentStatistics: PracticeStatistics = practiceStatistics
+            ? JSON.parse(practiceStatistics)
+            : {};
+
+          if (selections.assessment in assessmentStatistics) {
+            const currentAssessmentStatistics =
+              assessmentStatistics[selections.assessment];
+            console.log(currentAssessmentStatistics);
+
+            if (currentAssessmentStatistics?.answeredQuestions) {
+              excludeQuestionsIds =
+                currentAssessmentStatistics.answeredQuestions;
+              otherParams = `&excludeIds=${excludeQuestionsIds.join(",")}`;
+            }
+          }
+        }
+
+        let questionsData: API_Response_Question_List | null =
+          state.questionsData;
+
+        if (!questionsData) {
+          const questionsResponse = await fetch(
+            `/api/get-questions?assessment=${
+              selections.assessment
+            }&domains=${selections.domains
+              .map((d) => d.primaryClassCd)
+              .join(",")}&difficulties=${selections.difficulties.join(
+              ","
+            )}&skills=${selections.skills
+              .map((s) => s.skill_cd)
+              .join(",")}${otherParams}`
+          )
+            .then((res) => res.json())
+            .catch((error) => {
+              console.error("Error fetching questions:", error);
+              toast.error("Failed to Fetch Questions", {
+                description:
+                  "Unable to load practice questions. Please check your connection and try again.",
+                duration: 5000,
+              });
+              return [];
+            });
+          questionsData = questionsResponse.data || null;
+
+          // Cache the questions data with the selections hash for future reuse
+        }
+
+        // Create a hash of the practice selections to check cache compatibility
+        const selectionsHash = JSON.stringify({
+          assessment: selections.assessment,
+          domains: selections.domains?.map((d) => d.primaryClassCd).sort(),
+          difficulties: selections.difficulties?.sort(),
+          skills: selections.skills?.map((s) => s.skill_cd).sort(),
+          // Don't include questionIds in hash as those are for shared links
+        });
+
+        if (questionsData) {
+          dispatch({
+            type: "SET_QUESTIONS_DATA",
+            payload: questionsData,
+            selectionsHash: selectionsHash,
           });
         }
-      }
 
-      dispatch({ type: "SET_CURRENT_STEP", payload: 5 });
+        // If questionIds are provided in selections, use them directly
+        if (
+          questionsData &&
+          selections.questionIds &&
+          selections.questionIds.length > 0
+        ) {
+          console.log(
+            "Using pre-selected questions from shared link:",
+            selections.questionIds
+          );
 
-      setTimeout(() => {
-        // Apply randomization if requested
-        const finalQuestions = selections.randomize
-          ? [...correctQuestions].sort(() => Math.random() - 0.5)
-          : correctQuestions;
+          dispatch({ type: "SET_CURRENT_STEP", payload: 3 });
 
-        dispatch({ type: "SET_QUESTIONS", payload: finalQuestions });
-        dispatch({ type: "SET_CURRENT_STEP", payload: 5 });
-        dispatch({ type: "START_TIMER" });
-      }, 1500);
+          // Create mock questionsData from the provided questionIds
+          const filteredQuestionsData: API_Response_Question_List =
+            questionsData.filter((question) =>
+              selections.questionIds?.includes(question.questionId)
+            );
 
-      return;
-    }
+          const questionsToFetch = filteredQuestionsData; // Limit to first 22 if more provided
+          const questions: {
+            plainQuestion: PlainQuestionType;
+            data: API_Response_Question;
+          }[] = [];
+          const correctQuestions: QuestionState[] = [];
 
-    // Original logic for when no questionIds are provided
-    // load practiceStatistics local storage, and get the current assessment statistics
-    const practiceStatistics = localStorage.getItem("practiceStatistics");
-    const assessmentStatistics: PracticeStatistics = practiceStatistics
-      ? JSON.parse(practiceStatistics)
-      : {};
+          for (const question of questionsToFetch) {
+            // console.log(
+            //   "Fetching shared question:",
+            //   question.external_id || question.ibn
+            // );
+            const questionsData: API_Response_Question =
+              await fetchQuestionsbyIBN_ExternalId(
+                question.external_id
+                  ? question.external_id
+                  : question.ibn
+                  ? question.ibn
+                  : ""
+              );
 
-    console.log(assessmentStatistics);
+            if (questionsData)
+              questions.push({ plainQuestion: question, data: questionsData });
+          }
 
-    let excludeQuestionsIds: string[] = [];
-    let otherParams = "";
-    if (selections.assessment in assessmentStatistics) {
-      const currentAssessmentStatistics =
-        assessmentStatistics[selections.assessment];
-      console.log(currentAssessmentStatistics);
+          dispatch({ type: "SET_CURRENT_STEP", payload: 4 });
 
-      if (currentAssessmentStatistics?.answeredQuestions) {
-        excludeQuestionsIds = currentAssessmentStatistics.answeredQuestions;
-        otherParams = `&excludeIds=${excludeQuestionsIds.join(",")}`;
-      }
-    }
+          for (let i = 0; i < questions.length; i++) {
+            const question = questions[i];
+            const plainQuestion = question.plainQuestion;
+            const questionsData = question.data;
 
-    const questionsResponse = await fetch(
-      `/api/get-questions?assessment=${
-        selections.assessment
-      }&domains=${selections.domains
-        .map((d) => d.primaryClassCd)
-        .join(",")}&difficulties=${selections.difficulties.join(
-        ","
-      )}&skills=${selections.skills
-        .map((s) => s.skill_cd)
-        .join(",")}${otherParams}`
-    )
-      .then((res) => res.json())
-      .catch((error) => {
-        console.error("Error fetching questions:", error);
-        toast.error("Failed to Fetch Questions", {
+            if (
+              questionsData.correct_answer &&
+              Array.isArray(questionsData.correct_answer) &&
+              questionsData.correct_answer.length > 0
+            ) {
+              correctQuestions.push({
+                ...questionsData,
+                correct_answer: questionsData.correct_answer,
+                plainQuestion: plainQuestion,
+              });
+            }
+          }
+
+          dispatch({ type: "SET_CURRENT_STEP", payload: 5 });
+
+          setTimeout(() => {
+            // Apply randomization if requested
+            // const finalQuestions = selections.randomize
+            //   ? [...correctQuestions].sort(() => Math.random() - 0.5)
+            //   : correctQuestions;
+
+            dispatch({ type: "SET_QUESTIONS", payload: correctQuestions });
+            dispatch({ type: "SET_CURRENT_STEP", payload: 5 });
+            dispatch({ type: "START_TIMER" });
+          }, 1500);
+
+          return;
+        }
+
+        if (questionsData) {
+          console.log(
+            "✅ Successfully fetched questions data from API, caching for future use"
+          );
+
+          dispatch({ type: "SET_CURRENT_STEP", payload: 3 });
+
+          const isRandomized = selections.randomize;
+          const difficultiesChosen = selections.difficulties;
+
+          let questionsToFetch: PlainQuestionType[];
+
+          if (
+            isRandomized &&
+            difficultiesChosen &&
+            difficultiesChosen.length > 0
+          ) {
+            // Filter questions by selected difficulties
+            const questionsByDifficulty: {
+              [key: string]: PlainQuestionType[];
+            } = {};
+
+            // Group questions by difficulty
+            difficultiesChosen.forEach((difficulty) => {
+              questionsByDifficulty[difficulty] = questionsData.filter(
+                (question) => question.difficulty === difficulty
+              );
+            });
+
+            // Calculate how many questions to take from each difficulty
+            const totalQuestions = 22;
+            const questionsPerDifficulty = Math.floor(
+              totalQuestions / difficultiesChosen.length
+            );
+            const remainder = totalQuestions % difficultiesChosen.length;
+
+            const selectedQuestions: PlainQuestionType[] = [];
+
+            difficultiesChosen.forEach((difficulty, index) => {
+              const questionsForThisDifficulty =
+                questionsByDifficulty[difficulty] || [];
+
+              // Add one extra question to the first 'remainder' difficulties to distribute the remainder
+              const questionsToTakeFromThisDifficulty =
+                questionsPerDifficulty + (index < remainder ? 1 : 0);
+
+              // Shuffle questions for this difficulty and take the required amount
+              const shuffledQuestions = [...questionsForThisDifficulty].sort(
+                () => Math.random() - 0.5
+              );
+              const selectedFromThisDifficulty = shuffledQuestions.slice(
+                0,
+                questionsToTakeFromThisDifficulty
+              );
+
+              selectedQuestions.push(...selectedFromThisDifficulty);
+
+              console.log(
+                `Selected ${selectedFromThisDifficulty.length} questions from difficulty ${difficulty}`
+              );
+            });
+
+            // Final shuffle of all selected questions
+            questionsToFetch = selectedQuestions.sort(
+              () => Math.random() - 0.5
+            );
+
+            console.log(
+              `Total questions after difficulty-based selection: ${questionsToFetch.length}`
+            );
+          } else {
+            // Original behavior for non-randomized or when no difficulties specified
+            questionsToFetch = questionsData.slice(0, 22);
+          }
+
+          const questions: {
+            plainQuestion: PlainQuestionType;
+            data: API_Response_Question;
+          }[] = [];
+          const correctQuestions: QuestionState[] = [];
+
+          for (const question of questionsToFetch) {
+            // console.log("Fetching question:", question);
+            const questionData: API_Response_Question =
+              await fetchQuestionsbyIBN_ExternalId(
+                question.external_id
+                  ? question.external_id
+                  : question.ibn
+                  ? question.ibn
+                  : ""
+              );
+
+            // console.log("questionsData", questionsData);
+            if (questionData)
+              questions.push({ plainQuestion: question, data: questionData });
+          }
+          dispatch({ type: "SET_CURRENT_STEP", payload: 4 });
+
+          for (let i = 0; i < questions.length; i++) {
+            const question = questions[i];
+            const plainQuestion = question.plainQuestion;
+            const questionsData = question.data;
+
+            // console.log("Processing question:", question, questionsData);
+
+            if (
+              questionsData.correct_answer &&
+              Array.isArray(questionsData.correct_answer) &&
+              questionsData.correct_answer.length > 0
+            ) {
+              correctQuestions.push({
+                ...questionsData,
+                correct_answer: questionsData.correct_answer, // explicitly assign the non-null array
+                plainQuestion: plainQuestion,
+              });
+            }
+            // Process each question as needed
+          }
+
+          dispatch({ type: "SET_CURRENT_STEP", payload: 5 });
+
+          setTimeout(() => {
+            // if (correctQuestions && !state.questions)
+            //   playSound("start-session.wav");
+
+            dispatch({ type: "SET_QUESTIONS", payload: correctQuestions });
+
+            dispatch({ type: "SET_CURRENT_STEP", payload: 5 });
+
+            dispatch({ type: "START_TIMER" }); // Start timer when questions are loaded
+          }, 1500);
+        }
+      } catch (error) {
+        console.error("Error in FetchQuestions:", error);
+        toast.error("Failed to Load Practice Questions", {
           description:
-            "Unable to load practice questions. Please check your connection and try again.",
+            "An unexpected error occurred while loading questions. Please try again.",
           duration: 5000,
         });
-        return [];
-      });
-
-    if ("data" in questionsResponse) {
-      dispatch({ type: "SET_CURRENT_STEP", payload: 3 });
-      const questionsData: API_Response_Question_List = questionsResponse.data;
-
-      dispatch({ type: "SET_QUESTIONS_DATA", payload: questionsData });
-
-      const questionsToFetch = questionsData.splice(0, 22); // Fetch first 22 questions for demo
-      const questions: {
-        plainQuestion: PlainQuestionType;
-        data: API_Response_Question;
-      }[] = [];
-      const correctQuestions: QuestionState[] = [];
-
-      for (const question of questionsToFetch) {
-        // console.log("Fetching question:", question);
-        const questionsData: API_Response_Question =
-          await fetchQuestionsbyIBN_ExternalId(
-            question.external_id
-              ? question.external_id
-              : question.ibn
-              ? question.ibn
-              : ""
-          );
-
-        // console.log("questionsData", questionsData);
-        if (questionsData)
-          questions.push({ plainQuestion: question, data: questionsData });
+      } finally {
+        isFetchingRef.current = false;
       }
-      dispatch({ type: "SET_CURRENT_STEP", payload: 4 });
-
-      for (let i = 0; i < questions.length; i++) {
-        const question = questions[i];
-        const plainQuestion = question.plainQuestion;
-        const questionsData = question.data;
-
-        // console.log("Processing question:", question, questionsData);
-
-        if (
-          questionsData.correct_answer &&
-          Array.isArray(questionsData.correct_answer) &&
-          questionsData.correct_answer.length > 0
-        ) {
-          correctQuestions.push({
-            ...questionsData,
-            correct_answer: questionsData.correct_answer, // explicitly assign the non-null array
-            plainQuestion: plainQuestion,
-          });
-        }
-        // Process each question as needed
-      }
-
-      dispatch({ type: "SET_CURRENT_STEP", payload: 5 });
-
-      setTimeout(() => {
-        // if (correctQuestions && !state.questions)
-        //   playSound("start-session.wav");
-
-        dispatch({ type: "SET_QUESTIONS", payload: correctQuestions });
-
-        dispatch({ type: "SET_CURRENT_STEP", payload: 5 });
-
-        dispatch({ type: "START_TIMER" }); // Start timer when questions are loaded
-      }, 1500);
-    }
-  }, []);
+    },
+    [state.questionsData]
+  );
 
   useEffect(() => {
     if (practiceSelections) {
-      dispatch({ type: "SET_CURRENT_STEP", payload: 2 });
-      FetchQuestions(practiceSelections);
+      // Create a hash of current selections to check if they've changed
+      const selectionsKey = JSON.stringify({
+        assessment: practiceSelections.assessment,
+        domains: practiceSelections.domains
+          ?.map((d) => d.primaryClassCd)
+          .sort(),
+        difficulties: practiceSelections.difficulties?.sort(),
+        skills: practiceSelections.skills?.map((s) => s.skill_cd).sort(),
+        questionIds: practiceSelections.questionIds?.sort(),
+      });
+
+      // Reset flags if selections have actually changed
+      if (selectionsKey !== currentSelectionsRef.current) {
+        hasFetchedRef.current = false;
+        isFetchingRef.current = false;
+        currentSelectionsRef.current = selectionsKey;
+      }
+
+      // Only fetch if we haven't already fetched for these selections and not currently fetching
+      if (!hasFetchedRef.current && !isFetchingRef.current) {
+        hasFetchedRef.current = true;
+        dispatch({ type: "SET_CURRENT_STEP", payload: 2 });
+        FetchQuestions(practiceSelections);
+      }
     }
   }, [practiceSelections, FetchQuestions]);
 
@@ -2117,7 +2264,7 @@ export default function PracticeRushMultistep({
     }
 
     // Check if there are more questions available
-    const startIndex = state.currentBatch * 22;
+    const startIndex = state.questionsLoadedCount;
     if (startIndex >= state.questionsData.length) {
       console.log("No more questions available in the dataset");
       return;
@@ -2126,11 +2273,74 @@ export default function PracticeRushMultistep({
     dispatch({ type: "START_LOADING_NEXT_BATCH" });
 
     try {
-      // Get the next 22 questions from questionsData
-      const questionsToFetch = state.questionsData.slice(
-        startIndex,
-        startIndex + 22
-      );
+      const isRandomized = practiceSelections?.randomize;
+      const difficultiesChosen = practiceSelections?.difficulties;
+
+      let questionsToFetch: PlainQuestionType[];
+
+      if (isRandomized && difficultiesChosen && difficultiesChosen.length > 0) {
+        // Get remaining questions from questionsData starting from startIndex
+        const remainingQuestions = state.questionsData.slice(startIndex);
+
+        // Filter remaining questions by selected difficulties
+        const questionsByDifficulty: {
+          [key: string]: PlainQuestionType[];
+        } = {};
+
+        // Group remaining questions by difficulty
+        difficultiesChosen.forEach((difficulty) => {
+          questionsByDifficulty[difficulty] = remainingQuestions.filter(
+            (question) => question.difficulty === difficulty
+          );
+        });
+
+        // Calculate how many questions to take from each difficulty
+        const totalQuestions = 22;
+        const questionsPerDifficulty = Math.floor(
+          totalQuestions / difficultiesChosen.length
+        );
+        const remainder = totalQuestions % difficultiesChosen.length;
+
+        const selectedQuestions: PlainQuestionType[] = [];
+
+        difficultiesChosen.forEach((difficulty, index) => {
+          const questionsForThisDifficulty =
+            questionsByDifficulty[difficulty] || [];
+
+          // Add one extra question to the first 'remainder' difficulties to distribute the remainder
+          const questionsToTakeFromThisDifficulty =
+            questionsPerDifficulty + (index < remainder ? 1 : 0);
+
+          // Shuffle questions for this difficulty and take the required amount
+          const shuffledQuestions = [...questionsForThisDifficulty].sort(
+            () => Math.random() - 0.5
+          );
+          const selectedFromThisDifficulty = shuffledQuestions.slice(
+            0,
+            questionsToTakeFromThisDifficulty
+          );
+
+          selectedQuestions.push(...selectedFromThisDifficulty);
+
+          console.log(
+            `Selected ${selectedFromThisDifficulty.length} questions from difficulty ${difficulty} for next batch`
+          );
+        });
+
+        // Final shuffle of all selected questions
+        questionsToFetch = selectedQuestions.sort(() => Math.random() - 0.5);
+
+        console.log(
+          `Total questions after difficulty-based selection for next batch: ${questionsToFetch.length}`
+        );
+      } else {
+        // Original behavior for non-randomized or when no difficulties specified
+        questionsToFetch = state.questionsData.slice(
+          startIndex,
+          startIndex + 22
+        );
+      }
+
       const questions: API_Response_Question[] = [];
       const correctQuestions: QuestionState[] = [];
 
@@ -2188,7 +2398,12 @@ export default function PracticeRushMultistep({
       // Reset loading state on error
       dispatch({ type: "SET_CURRENT_STEP", payload: 5 });
     }
-  }, [state.questionsData, state.isLoadingNextBatch, state.currentBatch]);
+  }, [
+    state.questionsData,
+    state.isLoadingNextBatch,
+    state.questionsLoadedCount,
+    practiceSelections,
+  ]);
 
   const handleAnsweringQuestion = useCallback(
     (questionId: string) => {
@@ -2212,9 +2427,9 @@ export default function PracticeRushMultistep({
               payload: state.currentQuestionStep + 1,
             });
           } else {
-            // This was the last question in current batch - user can choose to continue or finish
+            // This was the last question in loaded questions - user can choose to continue or finish
             console.log(
-              "Reached end of current batch. User can choose to continue or finish."
+              "Reached end of loaded questions. User can choose to continue or finish."
             );
             // Don't automatically load next batch or complete - let user decide via buttons
           }
@@ -2315,9 +2530,9 @@ export default function PracticeRushMultistep({
               payload: state.currentQuestionStep + 1,
             });
           } else {
-            // This was the last question in current batch - user can choose to continue or finish
+            // This was the last question in loaded questions - user can choose to continue or finish
             console.log(
-              "Reached end of current batch. User can choose to continue or finish."
+              "Reached end of loaded questions. User can choose to continue or finish."
             );
             // Don't automatically load next batch or complete - let user decide via buttons
           }
@@ -2348,12 +2563,13 @@ export default function PracticeRushMultistep({
     dispatch({ type: "TOGGLE_FINISH_CONFIRMATION" });
   }
 
-  // Check if we're at the end of current batch and can load more
+  // Check if we're at the end of currently loaded questions and can load more
   const isAtEndOfBatch =
     state.questions && state.currentQuestionStep >= state.questions.length - 1;
 
   const canLoadMore =
-    state.questionsData && state.currentBatch * 22 < state.questionsData.length;
+    state.questionsData &&
+    state.questionsLoadedCount < state.questionsData.length;
 
   function confirmFinish() {
     // Complete the session with current progress
@@ -2462,7 +2678,7 @@ export default function PracticeRushMultistep({
     }
   }
 
-  console.log(currentQuestion);
+  // console.log(currentQuestion?.plainQuestion);
   return (
     <React.Fragment>
       <div className="max-w-11/12 mx-auto px-4 sm:px-6 lg:px-8">
@@ -2513,13 +2729,12 @@ export default function PracticeRushMultistep({
                         </h6>
                         {state.questionsData && (
                           <p className="text-sm text-gray-600 mt-1">
-                            Batch {state.currentBatch} • Question{" "}
-                            {state.currentQuestionStep + 1} of{" "}
+                            Question {state.currentQuestionStep + 1} of{" "}
                             {state.questions?.length || 0} •{" "}
                             {Math.max(
                               0,
                               state.questionsData.length -
-                                state.currentBatch * 22
+                                state.questionsLoadedCount
                             )}{" "}
                             questions remaining
                             {state.isSavingSession && (
@@ -2964,7 +3179,7 @@ export default function PracticeRushMultistep({
                         />
                       ))}
                     <div className="pt-1 pb-2 relative overflow-visible">
-                      {/* Show Load More and Finish buttons when at end of batch and answer is checked */}
+                      {/* Show Load More and Finish buttons when at end of loaded questions and answer is checked */}
                       {practiceSelections?.subject !== "reading-writing" &&
                         (isAtEndOfBatch &&
                         state.isAnswerChecked &&
@@ -3282,9 +3497,9 @@ export default function PracticeRushMultistep({
               payload: state.currentQuestionStep + 1,
             });
           } else {
-            // At end of batch - don't automatically continue
+            // At end of loaded questions - don't automatically continue
             console.log(
-              "Reached end of current batch in success feedback. User can choose to continue or finish."
+              "Reached end of loaded questions in success feedback. User can choose to continue or finish."
             );
           }
         }}
