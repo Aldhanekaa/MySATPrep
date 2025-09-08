@@ -32,16 +32,29 @@ export interface ClassStatistics {
   [primaryClassCd: string]: DomainStatistics;
 }
 
+// Individual answered question with metadata
+export interface AnsweredQuestion {
+  questionId: string;
+  difficulty: "E" | "M" | "H"; // Easy, Medium, Hard
+  isCorrect: boolean;
+  timeSpent: number; // time in milliseconds
+  timestamp: string; // ISO timestamp when answered
+}
+
 // Assessment-level statistics
 export interface AssessmentStatistics {
-  answeredQuestions: string[]; // list of answered question IDs
+  answeredQuestions: string[]; // list of answered question IDs (legacy)
+  answeredQuestionsDetailed: AnsweredQuestion[]; // detailed answered questions with difficulty
   statistics: ClassStatistics;
 }
 
 // Main statistics structure for localStorage
-export interface PracticeRushStatistics {
+export interface PracticeStatistics {
   [assessment: string]: AssessmentStatistics;
 }
+
+// Legacy alias for backward compatibility
+export type PracticeRushStatistics = PracticeStatistics;
 
 // Utility interfaces for working with statistics
 export interface StatisticEntry {
@@ -79,4 +92,54 @@ export interface AssessmentSummary {
   correctAnswers: number;
   averageTime: number;
   accuracy: number; // percentage
+}
+
+// Stats API Route Types
+
+export interface StatsAssessmentInfo {
+  assessment: string;
+  asmtEventId: number;
+}
+
+export interface StatsDomainBreakdown {
+  [domain: string]: number;
+}
+
+export interface StatsDifficultyBreakdown {
+  E: number; // Easy
+  M: number; // Medium
+  H: number; // Hard
+}
+
+export interface StatsSkillBreakdown {
+  [skillCd: string]: number;
+}
+
+export interface StatsData {
+  totalQuestions: number;
+  domainBreakdown: StatsDomainBreakdown;
+  difficultyBreakdown: StatsDifficultyBreakdown;
+  skillBreakdown: StatsSkillBreakdown;
+  assessmentInfo: StatsAssessmentInfo;
+}
+
+export interface StatsAPIResponseData {
+  stats: StatsData;
+  totalQuestions: number;
+  domainBreakdown: StatsDomainBreakdown;
+  difficultyBreakdown: StatsDifficultyBreakdown;
+  skillBreakdown: StatsSkillBreakdown;
+  assessmentInfo: StatsAssessmentInfo;
+}
+
+export interface StatsAPIResponse {
+  success: true;
+  data: StatsAPIResponseData;
+  message: string;
+}
+
+export interface StatsAPIErrorResponse {
+  success: false;
+  error: string;
+  details?: string;
 }

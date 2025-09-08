@@ -1,64 +1,97 @@
 /**
- * Practice Rush Statistics Utilities
- * Functions for managing practice rush statistics in localStorage
+ * Practice Statistics Utilities
+ * Functions for managing practice statistics in localStorage
  */
 
 import {
-  PracticeRushStatistics,
+  PracticeStatistics,
+  PracticeRushStatistics, // Legacy alias
   AssessmentType,
   QuestionStatistic,
   StatisticEntry,
   AssessmentSummary,
   DomainSummary,
   SkillSummary,
+  AnsweredQuestion,
+  ClassStatistics,
 } from "@/types/statistics";
 import { DomainItems, SkillCd_Variants } from "@/types/lookup";
 
-// localStorage key for practice rush statistics
-const PRACTICE_RUSH_STATISTICS_KEY = "practiceRushStatistics";
+// localStorage key for practice statistics
+const PRACTICE_STATISTICS_KEY = "practiceStatistics";
+const LEGACY_PRACTICE_RUSH_STATISTICS_KEY = "practiceRushStatistics";
 
 /**
- * Get practice rush statistics from localStorage
+ * Get practice statistics from localStorage (with migration from legacy key)
  */
-export function getPracticeRushStatistics(): PracticeRushStatistics {
+export function getPracticeStatistics(): PracticeStatistics {
   try {
-    const stored = localStorage.getItem(PRACTICE_RUSH_STATISTICS_KEY);
+    // Try new key first
+    const stored = localStorage.getItem(PRACTICE_STATISTICS_KEY);
+
+    // If not found, try legacy key and migrate
+    if (!stored) {
+      const legacyStored = localStorage.getItem(
+        LEGACY_PRACTICE_RUSH_STATISTICS_KEY
+      );
+      if (legacyStored) {
+        const legacyData = JSON.parse(legacyStored);
+        // Migrate data to new format
+        const migratedData: PracticeStatistics = {};
+
+        for (const [assessment, stats] of Object.entries(legacyData)) {
+          const legacyStats = stats as {
+            answeredQuestions: string[];
+            statistics: ClassStatistics;
+          };
+          migratedData[assessment] = {
+            answeredQuestions: legacyStats.answeredQuestions || [],
+            answeredQuestionsDetailed: [], // Initialize empty array for new format
+            statistics: legacyStats.statistics || {},
+          };
+        }
+
+        // Save migrated data to new key
+        savePracticeStatistics(migratedData);
+
+        // Optionally remove legacy key
+        localStorage.removeItem(LEGACY_PRACTICE_RUSH_STATISTICS_KEY);
+
+        return migratedData;
+      }
+    }
+
     return stored ? JSON.parse(stored) : {};
   } catch (error) {
-    console.error("Error parsing practice rush statistics:", error);
+    console.error("Error parsing practice statistics:", error);
     return {};
   }
 }
 
 /**
- * Save practice rush statistics to localStorage
+ * Save practice statistics to localStorage
  */
-export function savePracticeRushStatistics(
-  statistics: PracticeRushStatistics
-): void {
+export function savePracticeStatistics(statistics: PracticeStatistics): void {
   try {
-    localStorage.setItem(
-      PRACTICE_RUSH_STATISTICS_KEY,
-      JSON.stringify(statistics)
-    );
+    localStorage.setItem(PRACTICE_STATISTICS_KEY, JSON.stringify(statistics));
     console.log("Practice statistics saved successfully");
   } catch (error) {
-    console.error("Error saving practice rush statistics:", error);
+    console.error("Error saving practice statistics:", error);
   }
 }
 
 /**
- * Add a single question statistic to the statistics
+ * Add a question statistic to the practice statistics
  */
 export function addQuestionStatistic(entry: StatisticEntry): void {
   console.log("Saving question statistic for:", entry.questionId);
-
-  const statistics = getPracticeRushStatistics();
+  const statistics = getPracticeStatistics();
 
   // Initialize assessment if it doesn't exist
   if (!statistics[entry.assessment]) {
     statistics[entry.assessment] = {
       answeredQuestions: [],
+      answeredQuestionsDetailed: [],
       statistics: {},
     };
   }
@@ -92,8 +125,63 @@ export function addQuestionStatistic(entry: StatisticEntry): void {
   ] = statisticWithIds;
 
   // Save back to localStorage
-  savePracticeRushStatistics(statistics);
+  savePracticeStatistics(statistics);
 }
+
+/**
+ * Add a detailed answered question with difficulty and metadata
+ */
+export function addAnsweredQuestion(
+  assessment: AssessmentType,
+  questionId: string,
+  difficulty: "E" | "M" | "H",
+  isCorrect: boolean,
+  timeSpent: number
+): void {
+  console.log("Adding detailed answered question:", questionId);
+  const statistics = getPracticeStatistics();
+
+  // Initialize assessment if it doesn't exist
+  if (!statistics[assessment]) {
+    statistics[assessment] = {
+      answeredQuestions: [],
+      answeredQuestionsDetailed: [],
+      statistics: {},
+    };
+  }
+
+  const assessmentStats = statistics[assessment];
+
+  // Check if this question is already in the detailed list
+  const existingIndex = assessmentStats.answeredQuestionsDetailed.findIndex(
+    (q) => q.questionId === questionId
+  );
+
+  const answeredQuestion: AnsweredQuestion = {
+    questionId,
+    difficulty,
+    isCorrect,
+    timeSpent,
+    timestamp: new Date().toISOString(),
+  };
+
+  if (existingIndex !== -1) {
+    // Update existing entry
+    assessmentStats.answeredQuestionsDetailed[existingIndex] = answeredQuestion;
+  } else {
+    // Add new entry
+    assessmentStats.answeredQuestionsDetailed.push(answeredQuestion);
+  }
+
+  // Also add to legacy answered questions list if not already there
+  if (!assessmentStats.answeredQuestions.includes(questionId)) {
+    assessmentStats.answeredQuestions.push(questionId);
+  }
+
+  // Save back to localStorage
+  savePracticeStatistics(statistics);
+}
+
 /**
  * Get statistics for a specific question
  */
@@ -103,7 +191,7 @@ export function getQuestionStatistic(
   skillCd: SkillCd_Variants,
   questionId: string
 ): QuestionStatistic | null {
-  const statistics = getPracticeRushStatistics();
+  const statistics = getPracticeStatistics();
 
   return (
     statistics[assessment]?.statistics[primaryClassCd]?.[skillCd]?.[
@@ -120,7 +208,7 @@ export function getSkillSummary(
   primaryClassCd: DomainItems,
   skillCd: SkillCd_Variants
 ): SkillSummary | null {
-  const statistics = getPracticeRushStatistics();
+  const statistics = getPracticeStatistics();
   const skillStats =
     statistics[assessment]?.statistics[primaryClassCd]?.[skillCd];
 
@@ -151,7 +239,7 @@ export function getDomainSummary(
   assessment: AssessmentType,
   primaryClassCd: DomainItems
 ): DomainSummary | null {
-  const statistics = getPracticeRushStatistics();
+  const statistics = getPracticeStatistics();
   const domainStats = statistics[assessment]?.statistics[primaryClassCd];
 
   if (!domainStats || Object.keys(domainStats).length === 0) {
@@ -193,7 +281,7 @@ export function getDomainSummary(
 export function getAssessmentSummary(
   assessment: AssessmentType
 ): AssessmentSummary | null {
-  const statistics = getPracticeRushStatistics();
+  const statistics = getPracticeStatistics();
   const assessmentStats = statistics[assessment];
 
   if (
@@ -238,23 +326,23 @@ export function getAssessmentSummary(
  * Clear all statistics for a specific assessment
  */
 export function clearAssessmentStatistics(assessment: AssessmentType): void {
-  const statistics = getPracticeRushStatistics();
+  const statistics = getPracticeStatistics();
   delete statistics[assessment];
-  savePracticeRushStatistics(statistics);
+  savePracticeStatistics(statistics);
 }
 
 /**
  * Clear all practice rush statistics
  */
 export function clearAllStatistics(): void {
-  localStorage.removeItem(PRACTICE_RUSH_STATISTICS_KEY);
+  localStorage.removeItem(LEGACY_PRACTICE_RUSH_STATISTICS_KEY);
 }
 
 /**
  * Export statistics as JSON string for backup/sharing
  */
 export function exportStatistics(): string {
-  const statistics = getPracticeRushStatistics();
+  const statistics = getPracticeStatistics();
   return JSON.stringify(statistics, null, 2);
 }
 
@@ -264,7 +352,7 @@ export function exportStatistics(): string {
 export function importStatistics(jsonData: string): boolean {
   try {
     const statistics = JSON.parse(jsonData) as PracticeRushStatistics;
-    savePracticeRushStatistics(statistics);
+    savePracticeStatistics(statistics);
     return true;
   } catch (error) {
     console.error("Error importing statistics:", error);
@@ -277,9 +365,9 @@ export function importStatistics(jsonData: string): boolean {
  */
 export function debugStatistics(): void {
   console.log("=== PRACTICE RUSH STATISTICS DEBUG ===");
-  console.log("localStorage key:", PRACTICE_RUSH_STATISTICS_KEY);
+  console.log("localStorage key:", LEGACY_PRACTICE_RUSH_STATISTICS_KEY);
 
-  const raw = localStorage.getItem(PRACTICE_RUSH_STATISTICS_KEY);
+  const raw = localStorage.getItem(LEGACY_PRACTICE_RUSH_STATISTICS_KEY);
   console.log("Raw localStorage content:", raw);
 
   if (raw) {
@@ -307,6 +395,6 @@ export function debugStatistics(): void {
 // Make it available globally for debugging
 if (typeof window !== "undefined") {
   (
-    window as unknown as { debugPracticeRushStatistics: () => void }
-  ).debugPracticeRushStatistics = debugStatistics;
+    window as unknown as { debugPracticeStatistics: () => void }
+  ).debugPracticeStatistics = debugStatistics;
 }

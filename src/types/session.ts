@@ -58,6 +58,7 @@ export interface PracticeSelections {
   domains: Domain[];
   skills: Skill[];
   difficulties: QuestionDifficulty[];
+  randomize: boolean;
 }
 
 /**
@@ -237,12 +238,14 @@ export const isValidPracticeSelections = (
     "domains" in obj &&
     "skills" in obj &&
     "difficulties" in obj &&
+    "randomize" in obj &&
     typeof (obj as PracticeSelections).practiceType === "string" &&
     typeof (obj as PracticeSelections).assessment === "string" &&
     typeof (obj as PracticeSelections).subject === "string" &&
     Array.isArray((obj as PracticeSelections).domains) &&
     Array.isArray((obj as PracticeSelections).skills) &&
-    Array.isArray((obj as PracticeSelections).difficulties)
+    Array.isArray((obj as PracticeSelections).difficulties) &&
+    typeof (obj as PracticeSelections).randomize === "boolean"
   );
 };
 

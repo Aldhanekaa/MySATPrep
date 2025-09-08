@@ -8,7 +8,7 @@ import Link from "next/link";
 
 const menuItems = [
   { name: "Dashboard", href: "/dashboard" },
-  { name: "Leaderboard", href: "/leaderboard" },
+  // { name: "Leaderboard", href: "/leaderboard" },
   { name: "Questionbank", href: "/questionbank" },
 
   { name: "Resources", href: "/resources" },
@@ -90,7 +90,7 @@ export const SiteHeader = () => {
                 </ul>
               </div>
               <div className="flex w-full flex-col space-y-3 sm:flex-row sm:gap-3 sm:space-y-0 md:w-fit">
-                <Button
+                {/* <Button
                   asChild
                   variant="outline"
                   size="sm"
@@ -108,17 +108,30 @@ export const SiteHeader = () => {
                   <Link href="#">
                     <span>Sign Up</span>
                   </Link>
+                </Button> */}
+                <Button
+                  asChild
+                  size="sm"
+                  className={cn(
+                    `bg-blue-500 hover:bg-blue-700 ${
+                      isScrolled && "lg:hidden "
+                    }`
+                  )}
+                >
+                  <Link href="/practice">
+                    <span>Practice Rush</span>
+                  </Link>
                 </Button>
                 <Button
                   asChild
                   size="sm"
                   className={cn(
-                    ` bg-indigo-500 hover:bg-indigo-700 ${
+                    ` bg-blue-500 hover:bg-blue-700 ${
                       isScrolled ? "lg:inline-flex" : "hidden"
                     }`
                   )}
                 >
-                  <Link href="#">
+                  <Link href="/practice">
                     <span>Practice Rush</span>
                   </Link>
                 </Button>

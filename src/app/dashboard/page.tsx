@@ -1,0 +1,273 @@
+"use client";
+import React from "react";
+import { SiteHeader } from "../navbar";
+
+import {
+  Workspaces,
+  WorkspaceTrigger,
+  WorkspaceContent,
+} from "@/components/ui/workspaces";
+import { Home, BookMarked, TrendingUp, Clock } from "lucide-react";
+import { Assessments } from "@/static-data/assessment";
+import { useLocalStorage } from "@/lib/useLocalStorage";
+import { Badge } from "@/components/ui/badge";
+import {
+  HomeTab,
+  SavedTab,
+  TrackerTab,
+  SessionsTab,
+} from "@/components/dashboard";
+import { AssessmentWorkspace } from "./types";
+
+import {
+  Tabs as VerticalTabs,
+  TabsContent as VerticalTabsContent,
+  TabsList as VerticalTabsList,
+  TabsTrigger as VerticalTabsTrigger,
+} from "@/components/ui/vertical-tabs";
+
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+
+// Convert assessments to workspace format
+const assessmentWorkspaces: AssessmentWorkspace[] = Object.entries(
+  Assessments
+).map(([key, assessment]) => ({
+  id: assessment.id.toString(),
+  name: assessment.text,
+  logo: `https://avatar.vercel.sh/${key.toLowerCase()}`,
+  plan: "Assessment",
+  assessmentId: assessment.id,
+}));
+
+// Tab configuration
+interface TabItem {
+  value: string;
+  label: string;
+  icon: React.ComponentType<{
+    className?: string;
+    size?: number;
+    strokeWidth?: number;
+    "aria-hidden"?: boolean;
+  }>;
+  tooltip: string;
+  badge?: number;
+}
+
+const TAB_ITEMS: TabItem[] = [
+  {
+    value: "home",
+    label: "Home",
+    icon: Home,
+    tooltip: "Home",
+  },
+  {
+    value: "saved",
+    label: "Saved",
+    icon: BookMarked,
+    tooltip: "Saved Questions",
+    badge: 4,
+  },
+  {
+    value: "tracker",
+    label: "Tracker",
+    icon: TrendingUp,
+    tooltip: "Progress Tracker",
+  },
+  {
+    value: "sessions",
+    label: "Sessions",
+    icon: Clock,
+    tooltip: "Practice Sessions",
+  },
+];
+
+// Shared tab content components
+const TabContentComponents = {
+  home: HomeTab,
+  saved: SavedTab,
+  tracker: TrackerTab,
+  sessions: SessionsTab,
+};
+
+export default function DashboardPage() {
+  // Use custom hook for localStorage management
+  const [activeAssessmentId, setActiveAssessmentId] = useLocalStorage(
+    "preferred-assessment-id",
+    assessmentWorkspaces[0]?.id || "99"
+  );
+
+  const handleAssessmentChange = (workspace: AssessmentWorkspace) => {
+    setActiveAssessmentId(workspace.id);
+    console.log(
+      "Selected assessment:",
+      workspace.name,
+      "ID:",
+      workspace.assessmentId
+    );
+  };
+
+  const selectedAssessment = React.useMemo(() => {
+    return assessmentWorkspaces.find((ws) => ws.id === activeAssessmentId);
+  }, [activeAssessmentId]);
+
+  return (
+    <React.Fragment>
+      <SiteHeader />
+      <div className="w-full flex flex-col min-h-screen pt-32 pb-60 items-center">
+        <main className="space-y-4 max-w-7xl w-full mx-auto px-3">
+          <div className="flex flex-col gap-4 md:flex-row justify-between items-start md:pl-13 space-y-6">
+            <div className="space-y-2">
+              <h1 className="text-2xl font-bold">
+                Good Morning,
+                <br />
+              </h1>
+              <p className="text-muted-foreground">
+                Select an assessment type to get started with practice
+                questions.
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              <label className="text-sm font-medium">Assessment Type</label>
+              <Workspaces
+                workspaces={assessmentWorkspaces}
+                selectedWorkspaceId={activeAssessmentId}
+                onWorkspaceChange={handleAssessmentChange}
+              >
+                <WorkspaceTrigger className="min-w-72" />
+                <WorkspaceContent title="Assessment Types"></WorkspaceContent>
+              </Workspaces>
+            </div>
+          </div>
+
+          {/* Mobile Tabs - shown only on mobile */}
+          <div className="lg:hidden md:pl-13">
+            <Tabs defaultValue="home" className="text-sm text-muted-foreground">
+              <TabsList className="grid w-full grid-cols-4">
+                {TAB_ITEMS.map((tab) => {
+                  const IconComponent = tab.icon;
+                  return (
+                    <TabsTrigger key={tab.value} value={tab.value}>
+                      {tab.badge ? (
+                        <div className="flex items-center relative">
+                          <IconComponent className="w-4 h-4 mr-1" />
+                          {tab.label}
+                          <Badge className="ml-1 px-1.5 py-0.5 text-xs bg-primary text-primary-foreground">
+                            {tab.badge}
+                          </Badge>
+                        </div>
+                      ) : (
+                        <>
+                          <IconComponent className="w-4 h-4 mr-1" />
+                          {tab.label}
+                        </>
+                      )}
+                    </TabsTrigger>
+                  );
+                })}
+              </TabsList>
+              {TAB_ITEMS.map((tab) => {
+                const ContentComponent =
+                  TabContentComponents[
+                    tab.value as keyof typeof TabContentComponents
+                  ];
+                return (
+                  <TabsContent
+                    key={tab.value}
+                    value={tab.value}
+                    className="mt-4"
+                  >
+                    <div className="rounded-lg border bg-card p-6">
+                      <ContentComponent
+                        selectedAssessment={selectedAssessment}
+                      />
+                    </div>
+                  </TabsContent>
+                );
+              })}
+            </Tabs>
+          </div>
+
+          {/* Desktop Vertical Tabs - shown only on lg screens and above */}
+          <div className="hidden lg:block px-4 md:px-0">
+            <VerticalTabs
+              defaultValue="home"
+              orientation="vertical"
+              className="flex w-full gap-2"
+            >
+              <VerticalTabsList className="flex-col justify-start">
+                {TAB_ITEMS.map((tab) => {
+                  const IconComponent = tab.icon;
+                  return (
+                    <TooltipProvider key={tab.value} delayDuration={0}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span>
+                            <VerticalTabsTrigger
+                              value={tab.value}
+                              className={`py-3 ${
+                                tab.badge ? "group relative" : ""
+                              }`}
+                            >
+                              {tab.badge ? (
+                                <span className="relative">
+                                  <IconComponent
+                                    size={16}
+                                    strokeWidth={2}
+                                    aria-hidden={true}
+                                  />
+                                  <Badge className="absolute -top-2.5 left-full min-w-4 -translate-x-1.5 border-background px-0.5 text-[10px]/[.875rem] transition-opacity group-data-[state=inactive]:opacity-50">
+                                    {tab.badge}
+                                  </Badge>
+                                </span>
+                              ) : (
+                                <IconComponent
+                                  size={16}
+                                  strokeWidth={2}
+                                  aria-hidden={true}
+                                />
+                              )}
+                            </VerticalTabsTrigger>
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent
+                          side="right"
+                          className="px-2 py-1 text-xs"
+                        >
+                          {tab.tooltip}
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  );
+                })}
+              </VerticalTabsList>
+              <div className="grow rounded-lg border border-border text-start min-h-[400px]">
+                {TAB_ITEMS.map((tab) => {
+                  const ContentComponent =
+                    TabContentComponents[
+                      tab.value as keyof typeof TabContentComponents
+                    ];
+                  return (
+                    <VerticalTabsContent key={tab.value} value={tab.value}>
+                      <div className="p-6 space-y-4 h-full">
+                        <ContentComponent
+                          selectedAssessment={selectedAssessment}
+                        />
+                      </div>
+                    </VerticalTabsContent>
+                  );
+                })}
+              </div>
+            </VerticalTabs>
+          </div>
+        </main>
+      </div>
+    </React.Fragment>
+  );
+}

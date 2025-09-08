@@ -52,6 +52,10 @@ export default function FooterSection() {
           © {new Date().getFullYear()} PracticeSAT. Made with Love by Aldhaneka,
           Indonesia.
         </span>
+        <span className="text-muted-foreground block text-center text-sm">
+          SAT® is a trademark registered and owned by the College Board®, which
+          is not affiliated with and does not endorse this product or site.
+        </span>
       </div>
     </footer>
   );

@@ -11,6 +11,7 @@ import OnboardCard from "@/components/ui/onboard-card";
 import {
   API_Response_Question,
   API_Response_Question_List,
+  PlainQuestionType,
   QuestionState,
 } from "@/types/question";
 import {
@@ -20,8 +21,11 @@ import {
   QuestionTimes,
   SessionStatus,
 } from "@/types/session";
-import { AssessmentType } from "@/types/statistics";
-import { addQuestionStatistic } from "@/lib/practiceRushStatistics";
+import { AssessmentType, PracticeStatistics } from "@/types/statistics";
+import {
+  addQuestionStatistic,
+  addAnsweredQuestion,
+} from "@/lib/practiceStatistics";
 
 import { MathJax } from "better-react-mathjax";
 import { Pill, PillIndicator } from "@/components/ui/pill";
@@ -31,12 +35,20 @@ import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   ArrowLeftIcon,
   ArrowRightIcon,
+  BookmarkIcon,
   CheckCircle,
   Clock,
   GripHorizontal,
   PyramidIcon,
+  SendIcon,
   Strikethrough,
   X,
 } from "lucide-react";
@@ -45,6 +57,7 @@ import Image from "next/image";
 import ReferenceSheet from "@/src/sat-math-refrence-sheet.webp";
 import { Confetti, ConfettiRef } from "./ui/confetti";
 import { playSound } from "@/lib/playSound";
+import { useRouter } from "next/navigation";
 
 // Duolingo-styled Loading Spinner Component
 interface DuolingoLoadingSpinnerProps {
@@ -331,6 +344,228 @@ function ExitConfirmation({
   );
 }
 
+// Finish Confirmation Component
+interface FinishConfirmationProps {
+  isVisible: boolean;
+  onConfirm: () => void;
+  onCancel: () => void;
+  questionsAnswered: number;
+}
+
+function FinishConfirmation({
+  isVisible,
+  onConfirm,
+  onCancel,
+  questionsAnswered,
+}: FinishConfirmationProps) {
+  // Play sound when popup opens
+  React.useEffect(() => {
+    if (isVisible) {
+      playSound("popup-confirm-up.wav");
+    }
+  }, [isVisible]);
+
+  // Enhanced handlers that play sound on close
+  const handleCancel = () => {
+    playSound("popup-confirm-down.wav");
+    onCancel();
+  };
+
+  const handleConfirm = () => {
+    playSound("popup-confirm-down.wav");
+    onConfirm();
+  };
+
+  if (!isVisible) return null;
+
+  return (
+    <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/20">
+      <div className="bg-green-50 border-4 border-green-200 rounded-3xl p-8 max-w-md w-full mx-4 shadow-2xl">
+        <div className="text-center">
+          <div className="flex items-center justify-center gap-3 mb-6">
+            <CheckCircle className="h-8 w-8 text-green-600" />
+            <h2 className="text-3xl font-bold text-green-800">
+              Finish Practice?
+            </h2>
+          </div>
+          <p className="text-lg text-green-700 mb-4">
+            You&apos;ve answered {questionsAnswered} questions so far.
+          </p>
+          <p className="text-lg text-green-700 mb-8">
+            Are you ready to finish this practice session and see your results?
+          </p>
+          <div className="flex gap-4">
+            <button
+              onClick={handleCancel}
+              className="cursor-pointer flex-1 bg-blue-500 hover:bg-blue-600 text-white font-bold text-lg py-4 px-6 rounded-2xl border-b-4 border-blue-600 hover:border-blue-700 shadow-lg hover:shadow-xl transform transition-all duration-200 active:translate-y-0.5 active:border-b-2"
+            >
+              CONTINUE
+            </button>
+            <button
+              onClick={handleConfirm}
+              className="cursor-pointer flex-1 bg-green-600 hover:bg-green-700 text-white font-bold text-lg py-4 px-6 rounded-2xl border-b-4 border-green-800 hover:border-green-900 shadow-lg hover:shadow-xl transform transition-all duration-200 active:translate-y-0.5 active:border-b-2"
+            >
+              FINISH
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Share Modal Component
+interface ShareModalProps {
+  isVisible: boolean;
+  onClose: () => void;
+  practiceSelections: PracticeSelections;
+  questions: QuestionState[] | null;
+}
+
+function ShareModal({
+  isVisible,
+  onClose,
+  practiceSelections,
+  questions,
+}: ShareModalProps) {
+  const [shareUrl, setShareUrl] = React.useState("");
+  const [isCopied, setIsCopied] = React.useState(false);
+
+  // Generate share URL
+  React.useEffect(() => {
+    if (!isVisible || !questions) return;
+
+    const questionIds = questions
+      .map((q) => q.plainQuestion.questionId)
+      .join(",");
+    const domainIds = practiceSelections.domains
+      .map((d) => d.primaryClassCd)
+      .join(",");
+    const skillCds = practiceSelections.skills.map((s) => s.skill_cd).join(",");
+
+    const params = new URLSearchParams({
+      assessment: practiceSelections.assessment,
+      domains: domainIds,
+      skillCds: skillCds,
+      questionIds: questionIds,
+    });
+
+    const url = `${window.location.origin}/practice?${params.toString()}`;
+    setShareUrl(url);
+  }, [isVisible, practiceSelections, questions]);
+
+  // Play sound when popup opens
+  React.useEffect(() => {
+    if (isVisible) {
+      playSound("popup-confirm-up.wav");
+    }
+  }, [isVisible]);
+
+  const handleClose = () => {
+    playSound("popup-confirm-down.wav");
+    onClose();
+    setIsCopied(false);
+  };
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setIsCopied(true);
+      playSound("button-pressed.wav");
+      setTimeout(() => setIsCopied(false), 3000);
+    } catch (error) {
+      console.error("Failed to copy to clipboard:", error);
+    }
+  };
+
+  if (!isVisible) return null;
+
+  return (
+    <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/20">
+      <div className="bg-blue-50 border-4 border-blue-200 rounded-3xl p-8 max-w-lg w-full mx-4 shadow-2xl">
+        <div className="text-center">
+          <div className="flex items-center justify-center gap-3 mb-6">
+            <SendIcon className="h-8 w-8 text-blue-600" />
+            <h2 className="text-3xl font-bold text-blue-800">
+              Share Practice Session
+            </h2>
+          </div>
+          <p className="text-lg text-blue-700 mb-6">
+            Share this practice session with others! They&apos;ll get the same
+            questions and settings.
+          </p>
+
+          {/* URL Input with copy button */}
+          <div className="relative mb-6">
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={shareUrl}
+                readOnly
+                className="flex-1 px-4 py-3 text-sm bg-white border-2 border-blue-300 rounded-2xl font-mono text-blue-800 focus:outline-none focus:border-blue-500 transition-all duration-200"
+                placeholder="Generating share link..."
+              />
+              <Button
+                onClick={handleCopy}
+                className={`px-6 py-3 font-bold text-sm rounded-2xl border-2 border-b-4 shadow-lg transform transition-all duration-200 active:translate-y-0.5 active:border-b-2 ${
+                  isCopied
+                    ? "bg-green-500 hover:bg-green-600 text-white border-green-700 hover:border-green-800"
+                    : "bg-blue-500 hover:bg-blue-600 text-white border-blue-700 hover:border-blue-800"
+                }`}
+              >
+                {isCopied ? "Copied!" : "Copy"}
+              </Button>
+            </div>
+          </div>
+
+          {/* Success message */}
+          {isCopied && (
+            <div className="mb-6 p-3 bg-green-100 border-2 border-green-300 rounded-2xl">
+              <p className="text-green-800 font-semibold">
+                ✓ Link copied to clipboard!
+              </p>
+            </div>
+          )}
+
+          {/* Practice details */}
+          <div className="mb-6 p-4 bg-white border-2 border-blue-200 rounded-2xl text-left">
+            <h3 className="font-bold text-blue-800 mb-2">Session Details:</h3>
+            <div className="space-y-1 text-sm text-blue-700">
+              <p>
+                <span className="font-semibold">Assessment:</span>{" "}
+                {practiceSelections.assessment}
+              </p>
+              <p>
+                <span className="font-semibold">Subject:</span>{" "}
+                {practiceSelections.subject}
+              </p>
+              <p>
+                <span className="font-semibold">Domains:</span>{" "}
+                {practiceSelections.domains.length}
+              </p>
+              <p>
+                <span className="font-semibold">Skills:</span>{" "}
+                {practiceSelections.skills.length}
+              </p>
+              <p>
+                <span className="font-semibold">Questions:</span>{" "}
+                {questions?.length || 0}
+              </p>
+            </div>
+          </div>
+
+          <Button
+            onClick={handleClose}
+            className="cursor-pointer w-full bg-blue-500 hover:bg-blue-600 text-white font-bold text-lg py-4 px-6 rounded-2xl border-b-4 border-blue-600 hover:border-blue-700 shadow-lg hover:shadow-xl transform transition-all duration-200 active:translate-y-0.5 active:border-b-2"
+          >
+            Close
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Duolingo-styled Input Component
 interface DuolingoInputProps {
   value: string;
@@ -439,7 +674,8 @@ const AnswerOptions = React.memo(function AnswerOptions({
                 if (
                   selectedAnswer?.trim() !== trimmedKey &&
                   !disabledOptions[key] &&
-                  !isAnswerChecked
+                  !isAnswerChecked &&
+                  !isReviewMode
                 ) {
                   playSound("button-pressed.wav");
                   onAnswerSelect(key);
@@ -448,7 +684,7 @@ const AnswerOptions = React.memo(function AnswerOptions({
               className={`relative ${
                 disabledOptions[key]
                   ? " cursor-not-allowed after:absolute after:inset-0 after:h-0.5 after:w-[102.5%] after:bg-black after:-translate-x-1/2 after:left-1/2 after:top-1/2 after:-translate-y-1/2"
-                  : isAnswerChecked
+                  : isAnswerChecked || isReviewMode
                   ? "cursor-default"
                   : "cursor-pointer"
               } w-full transition duration-500 ${
@@ -906,6 +1142,7 @@ interface AppState {
   isAnswerCorrect: boolean;
   currentStep: number;
   isExitConfirmationOpen: boolean;
+  isFinishConfirmationOpen: boolean;
   questionStartTime: number;
   currentQuestionElapsedTime: number; // Track elapsed time for current question
   isTimerActive: boolean;
@@ -916,6 +1153,7 @@ interface AppState {
   sessionId: string;
   sessionStartTime: number;
   isSavingSession: boolean;
+  isShareModalOpen: boolean;
 }
 
 type AppAction =
@@ -939,6 +1177,8 @@ type AppAction =
     }
   | { type: "TOGGLE_REFERENCE_POPUP" }
   | { type: "TOGGLE_EXIT_CONFIRMATION" }
+  | { type: "TOGGLE_FINISH_CONFIRMATION" }
+  | { type: "TOGGLE_SHARE_MODAL" }
   | { type: "START_TIMER" }
   | { type: "STOP_TIMER" }
   | { type: "TOGGLE_TIMER_VISIBILITY" }
@@ -968,6 +1208,7 @@ const initialState: AppState = {
   isAnswerCorrect: false,
   currentStep: 1,
   isExitConfirmationOpen: false,
+  isFinishConfirmationOpen: false,
   questionStartTime: Date.now(),
   currentQuestionElapsedTime: 0,
   isTimerActive: false,
@@ -980,6 +1221,7 @@ const initialState: AppState = {
     .substr(2, 9)}`,
   sessionStartTime: Date.now(),
   isSavingSession: false,
+  isShareModalOpen: false,
 };
 
 function appReducer(state: AppState, action: AppAction): AppState {
@@ -1093,6 +1335,16 @@ function appReducer(state: AppState, action: AppAction): AppState {
         ...state,
         isExitConfirmationOpen: !state.isExitConfirmationOpen,
       };
+    case "TOGGLE_FINISH_CONFIRMATION":
+      return {
+        ...state,
+        isFinishConfirmationOpen: !state.isFinishConfirmationOpen,
+      };
+    case "TOGGLE_SHARE_MODAL":
+      return {
+        ...state,
+        isShareModalOpen: !state.isShareModalOpen,
+      };
     case "START_TIMER":
       return {
         ...state,
@@ -1157,11 +1409,14 @@ function appReducer(state: AppState, action: AppAction): AppState {
 
 interface PracticeRushMultistepProps {
   practiceSelections: PracticeSelections;
+  onSessionComplete?: (sessionData: PracticeSession) => void;
 }
 
 export default function PracticeRushMultistep({
   practiceSelections,
+  onSessionComplete,
 }: PracticeRushMultistepProps) {
+  const router = useRouter();
   const confettiRef = useRef<ConfettiRef>(null);
 
   const [state, dispatch] = useReducer(appReducer, initialState);
@@ -1177,7 +1432,39 @@ export default function PracticeRushMultistep({
     isSavingRef.current = true;
     dispatch({ type: "SET_SAVING_SESSION", payload: true });
 
-    const currentSession: PracticeSession = {
+    // Calculate correct answers by comparing user answers with correct answers
+    const answeredQuestions = Object.keys(state.questionAnswers).filter(
+      (id) => state.questionAnswers[id] !== null
+    );
+
+    let correctAnswersCount = 0;
+    answeredQuestions.forEach((questionId) => {
+      const userAnswer = state.questionAnswers[questionId];
+
+      const question = state.questions?.find(
+        (q) => q.plainQuestion.questionId === questionId
+      );
+
+      // console.log("User Answer:", userAnswer);
+      // console.log("Question ID:", questionId);
+      // console.log("Question Data:", question);
+
+      if (question && userAnswer && question.correct_answer) {
+        // Handle both single correct answer and multiple correct answers
+        const correctAnswers = Array.isArray(question.correct_answer)
+          ? question.correct_answer
+          : [question.correct_answer];
+
+        if (correctAnswers.map((e) => e.trim()).includes(userAnswer)) {
+          correctAnswersCount++;
+        }
+      }
+    });
+
+    const currentSession: PracticeSession & {
+      correctAnswers?: number;
+      accuracyPercentage?: number;
+    } = {
       sessionId: state.sessionId,
       timestamp: new Date(state.sessionStartTime).toISOString(),
       status:
@@ -1189,9 +1476,12 @@ export default function PracticeRushMultistep({
       questionAnswers: state.questionAnswers,
       questionTimes: state.questionTimes,
       totalQuestions: state.questions.length,
-      answeredQuestions: Object.keys(state.questionAnswers).filter(
-        (id) => state.questionAnswers[id] !== null
-      ),
+      answeredQuestions,
+      correctAnswers: correctAnswersCount,
+      accuracyPercentage:
+        answeredQuestions.length > 0
+          ? Math.round((correctAnswersCount / answeredQuestions.length) * 100)
+          : 0,
       averageTimePerQuestion:
         Object.keys(state.questionTimes).length > 0
           ? Object.values(state.questionTimes).reduce(
@@ -1365,7 +1655,35 @@ export default function PracticeRushMultistep({
       if (!isSavingRef.current) {
         // Use a synchronous save for page unload
         if (state.questions && state.questions.length > 0) {
-          const currentSession: PracticeSession = {
+          // Calculate correct answers by comparing user answers with correct answers
+          const answeredQuestions = Object.keys(state.questionAnswers).filter(
+            (id) => state.questionAnswers[id] !== null
+          );
+
+          let correctAnswersCount = 0;
+          answeredQuestions.forEach((questionId) => {
+            const userAnswer = state.questionAnswers[questionId];
+
+            const question = state.questions?.find(
+              (q) => q.plainQuestion.questionId === questionId
+            );
+
+            if (question && userAnswer && question.correct_answer) {
+              // Handle both single correct answer and multiple correct answers
+              const correctAnswers = Array.isArray(question.correct_answer)
+                ? question.correct_answer
+                : [question.correct_answer];
+
+              if (correctAnswers.map((e) => e.trim()).includes(userAnswer)) {
+                correctAnswersCount++;
+              }
+            }
+          });
+
+          const currentSession: PracticeSession & {
+            correctAnswers?: number;
+            accuracyPercentage?: number;
+          } = {
             sessionId: state.sessionId,
             timestamp: new Date(state.sessionStartTime).toISOString(),
             status: SessionStatus.IN_PROGRESS,
@@ -1374,9 +1692,14 @@ export default function PracticeRushMultistep({
             questionAnswers: state.questionAnswers,
             questionTimes: state.questionTimes,
             totalQuestions: state.questions.length,
-            answeredQuestions: Object.keys(state.questionAnswers).filter(
-              (id) => state.questionAnswers[id] !== null
-            ),
+            answeredQuestions,
+            correctAnswers: correctAnswersCount,
+            accuracyPercentage:
+              answeredQuestions.length > 0
+                ? Math.round(
+                    (correctAnswersCount / answeredQuestions.length) * 100
+                  )
+                : 0,
             averageTimePerQuestion:
               Object.keys(state.questionTimes).length > 0
                 ? Object.values(state.questionTimes).reduce(
@@ -1416,7 +1739,39 @@ export default function PracticeRushMultistep({
 
   // Function to handle session completion
   const completeSession = useCallback(() => {
-    const completedSession: PracticeSession = {
+    // Calculate correct answers by comparing user answers with correct answers
+    const answeredQuestions = Object.keys(state.questionAnswers).filter(
+      (id) => state.questionAnswers[id] !== null
+    );
+
+    let correctAnswersCount = 0;
+    answeredQuestions.forEach((questionId) => {
+      const userAnswer = state.questionAnswers[questionId];
+
+      const question = state.questions?.find(
+        (q) => q.plainQuestion.questionId === questionId
+      );
+
+      // console.log("User Answer:", userAnswer);
+      // console.log("Question ID:", questionId);
+      // console.log("Question Data:", question);
+
+      if (question && userAnswer && question.correct_answer) {
+        // Handle both single correct answer and multiple correct answers
+        const correctAnswers = Array.isArray(question.correct_answer)
+          ? question.correct_answer
+          : [question.correct_answer];
+
+        if (correctAnswers.map((e) => e.trim()).includes(userAnswer)) {
+          correctAnswersCount++;
+        }
+      }
+    });
+
+    const completedSession: PracticeSession & {
+      correctAnswers?: number;
+      accuracyPercentage?: number;
+    } = {
       sessionId: state.sessionId,
       timestamp: new Date(state.sessionStartTime).toISOString(),
       status: SessionStatus.COMPLETED,
@@ -1425,9 +1780,12 @@ export default function PracticeRushMultistep({
       questionAnswers: state.questionAnswers,
       questionTimes: state.questionTimes,
       totalQuestions: state.questions?.length || 0,
-      answeredQuestions: Object.keys(state.questionAnswers).filter(
-        (id) => state.questionAnswers[id] !== null
-      ),
+      answeredQuestions,
+      correctAnswers: correctAnswersCount,
+      accuracyPercentage:
+        answeredQuestions.length > 0
+          ? Math.round((correctAnswersCount / answeredQuestions.length) * 100)
+          : 0,
       averageTimePerQuestion:
         Object.keys(state.questionTimes).length > 0
           ? Object.values(state.questionTimes).reduce(
@@ -1474,6 +1832,11 @@ export default function PracticeRushMultistep({
         Math.round(completedSession.totalTimeSpent / 1000),
         "seconds"
       );
+
+      // Call the parent callback with completed session data
+      if (onSessionComplete) {
+        onSessionComplete(completedSession);
+      }
     } catch (error) {
       console.error("Failed to save completed session:", error);
     }
@@ -1485,6 +1848,7 @@ export default function PracticeRushMultistep({
     state.questionTimes,
     state.questions,
     practiceSelections,
+    onSessionComplete,
   ]);
 
   // Scroll to top when question step changes
@@ -1495,6 +1859,27 @@ export default function PracticeRushMultistep({
   }, [state.currentQuestionStep]);
 
   const FetchQuestions = useCallback(async (selections: PracticeSelections) => {
+    // load practiceStatistics local storage, and get the current assessment statistics
+    const practiceStatistics = localStorage.getItem("practiceStatistics");
+    const assessmentStatistics: PracticeStatistics = practiceStatistics
+      ? JSON.parse(practiceStatistics)
+      : {};
+
+    console.log(assessmentStatistics);
+
+    let excludeQuestionsIds: string[] = [];
+    let otherParams = "";
+    if (selections.assessment in assessmentStatistics) {
+      const currentAssessmentStatistics =
+        assessmentStatistics[selections.assessment];
+      console.log(currentAssessmentStatistics);
+
+      if (currentAssessmentStatistics?.answeredQuestions) {
+        excludeQuestionsIds = currentAssessmentStatistics.answeredQuestions;
+        otherParams = `&excludeIds=${excludeQuestionsIds.join(",")}`;
+      }
+    }
+
     const questionsResponse = await fetch(
       `/api/get-questions?assessment=${
         selections.assessment
@@ -1502,7 +1887,9 @@ export default function PracticeRushMultistep({
         .map((d) => d.primaryClassCd)
         .join(",")}&difficulties=${selections.difficulties.join(
         ","
-      )}&skills=${selections.skills.map((s) => s.skill_cd).join(",")}`
+      )}&skills=${selections.skills
+        .map((s) => s.skill_cd)
+        .join(",")}${otherParams}`
     )
       .then((res) => res.json())
       .catch((error) => {
@@ -1517,7 +1904,10 @@ export default function PracticeRushMultistep({
       dispatch({ type: "SET_QUESTIONS_DATA", payload: questionsData });
 
       const questionsToFetch = questionsData.splice(0, 22); // Fetch first 22 questions for demo
-      const questions: API_Response_Question[] = [];
+      const questions: {
+        plainQuestion: PlainQuestionType;
+        data: API_Response_Question;
+      }[] = [];
       const correctQuestions: QuestionState[] = [];
 
       for (const question of questionsToFetch) {
@@ -1531,22 +1921,28 @@ export default function PracticeRushMultistep({
               : ""
           );
 
-        if (questionsData) questions.push(questionsData);
+        // console.log("questionsData", questionsData);
+        if (questionsData)
+          questions.push({ plainQuestion: question, data: questionsData });
       }
       dispatch({ type: "SET_CURRENT_STEP", payload: 4 });
 
       for (let i = 0; i < questions.length; i++) {
         const question = questions[i];
+        const plainQuestion = question.plainQuestion;
+        const questionsData = question.data;
+
+        // console.log("Processing question:", question, questionsData);
 
         if (
-          question.correct_answer &&
-          Array.isArray(question.correct_answer) &&
-          question.correct_answer.length > 0
+          questionsData.correct_answer &&
+          Array.isArray(questionsData.correct_answer) &&
+          questionsData.correct_answer.length > 0
         ) {
           correctQuestions.push({
-            ...question,
-            correct_answer: question.correct_answer, // explicitly assign the non-null array
-            plainQuestion: questionsData[i],
+            ...questionsData,
+            correct_answer: questionsData.correct_answer, // explicitly assign the non-null array
+            plainQuestion: plainQuestion,
           });
         }
         // Process each question as needed
@@ -1665,12 +2061,38 @@ export default function PracticeRushMultistep({
   const handleAnsweringQuestion = useCallback(
     (questionId: string) => {
       return () => {
-        if (!state.selectedAnswer || !currentQuestion) return;
+        if (!currentQuestion) return;
 
         // Check if this is a previously answered question being reviewed
         const isPreviouslyAnswered = Boolean(state.questionAnswers[questionId]);
 
-        if (!state.isAnswerChecked && !isPreviouslyAnswered) {
+        // For previously answered questions, we should always proceed to next question
+        if (isPreviouslyAnswered) {
+          playSound("button-pressed.wav");
+
+          // Move to next question if available
+          if (
+            state.questions &&
+            state.currentQuestionStep < state.questions.length - 1
+          ) {
+            dispatch({
+              type: "SET_CURRENT_QUESTION_STEP",
+              payload: state.currentQuestionStep + 1,
+            });
+          } else {
+            // This was the last question in current batch - user can choose to continue or finish
+            console.log(
+              "Reached end of current batch. User can choose to continue or finish."
+            );
+            // Don't automatically load next batch or complete - let user decide via buttons
+          }
+          return;
+        }
+
+        // For new questions, we need a selected answer
+        if (!state.selectedAnswer) return;
+
+        if (!state.isAnswerChecked) {
           // First time answering this question
           const correctAnswers = currentQuestion.correct_answer.map((e) =>
             e.trim()
@@ -1724,6 +2146,15 @@ export default function PracticeRushMultistep({
                 ibn: currentQuestion.plainQuestion.ibn || undefined,
               },
             });
+
+            // Also save detailed answered question with difficulty
+            addAnsweredQuestion(
+              assessmentType,
+              currentQuestion.plainQuestion.questionId,
+              currentQuestion.plainQuestion.difficulty as "E" | "M" | "H",
+              correct,
+              timeElapsed
+            );
           } catch (error) {
             console.error("Error saving question statistic:", error);
           }
@@ -1734,7 +2165,7 @@ export default function PracticeRushMultistep({
           // Note: The feedback overlay will handle the continue action
           // Don't advance to next question here - let overlay handle it
         } else {
-          // Either this is a review of a previously answered question or continuing after checking
+          // Continuing after checking the answer for the first time
           playSound("button-pressed.wav");
 
           // Move to next question if available
@@ -1747,16 +2178,11 @@ export default function PracticeRushMultistep({
               payload: state.currentQuestionStep + 1,
             });
           } else {
-            // This was the last question - check if we can load next batch
-            if (
-              state.questionsData &&
-              state.currentBatch * 22 < state.questionsData.length
-            ) {
-              loadNextBatch();
-            } else {
-              console.log("Practice session completed!");
-              completeSession();
-            }
+            // This was the last question in current batch - user can choose to continue or finish
+            console.log(
+              "Reached end of current batch. User can choose to continue or finish."
+            );
+            // Don't automatically load next batch or complete - let user decide via buttons
           }
         }
       };
@@ -1769,12 +2195,8 @@ export default function PracticeRushMultistep({
       state.currentQuestionStep,
       state.questionStartTime,
       state.currentQuestionElapsedTime,
-      state.questionsData,
-      state.currentBatch,
       state.questionAnswers,
       state.inProgressQuestionTimes,
-      loadNextBatch,
-      completeSession,
       practiceSelections,
     ]
   );
@@ -1784,9 +2206,53 @@ export default function PracticeRushMultistep({
     dispatch({ type: "TOGGLE_EXIT_CONFIRMATION" });
   }
 
+  function handleFinish() {
+    // Show finish confirmation popup
+    dispatch({ type: "TOGGLE_FINISH_CONFIRMATION" });
+  }
+
+  // Check if we're at the end of current batch and can load more
+  const isAtEndOfBatch =
+    state.questions && state.currentQuestionStep >= state.questions.length - 1;
+
+  const canLoadMore =
+    state.questionsData && state.currentBatch * 22 < state.questionsData.length;
+
+  function confirmFinish() {
+    // Complete the session with current progress
+    completeSession();
+  }
+
   function confirmExit() {
+    // Calculate correct answers by comparing user answers with correct answers
+    const answeredQuestions = Object.keys(state.questionAnswers).filter(
+      (id) => state.questionAnswers[id] !== null
+    );
+
+    let correctAnswersCount = 0;
+    answeredQuestions.forEach((questionId) => {
+      const userAnswer = state.questionAnswers[questionId];
+      const question = state.questions?.find(
+        (q) => q.plainQuestion.questionId === questionId
+      );
+
+      if (question && userAnswer && question.correct_answer) {
+        // Handle both single correct answer and multiple correct answers
+        const correctAnswers = Array.isArray(question.correct_answer)
+          ? question.correct_answer
+          : [question.correct_answer];
+
+        if (correctAnswers.map((e) => e.trim()).includes(userAnswer)) {
+          correctAnswersCount++;
+        }
+      }
+    });
+
     // Save user's progress to local storage with ABANDONED status
-    const abandonedSession: PracticeSession = {
+    const abandonedSession: PracticeSession & {
+      correctAnswers?: number;
+      accuracyPercentage?: number;
+    } = {
       sessionId: state.sessionId,
       timestamp: new Date(state.sessionStartTime).toISOString(),
       status: SessionStatus.ABANDONED,
@@ -1795,9 +2261,12 @@ export default function PracticeRushMultistep({
       questionAnswers: state.questionAnswers,
       questionTimes: state.questionTimes,
       totalQuestions: state.questions?.length || 0,
-      answeredQuestions: Object.keys(state.questionAnswers).filter(
-        (id) => state.questionAnswers[id] !== null
-      ),
+      answeredQuestions,
+      correctAnswers: correctAnswersCount,
+      accuracyPercentage:
+        answeredQuestions.length > 0
+          ? Math.round((correctAnswersCount / answeredQuestions.length) * 100)
+          : 0,
       averageTimePerQuestion:
         Object.keys(state.questionTimes).length > 0
           ? Object.values(state.questionTimes).reduce(
@@ -1830,9 +2299,6 @@ export default function PracticeRushMultistep({
 
       localStorage.setItem("practiceHistory", JSON.stringify(sessions));
 
-      // Clear current session since user is exiting
-      localStorage.removeItem("currentPracticeSession");
-
       console.log("Practice session saved successfully as abandoned");
       console.log(
         "Question Times (in seconds):",
@@ -1843,14 +2309,14 @@ export default function PracticeRushMultistep({
           ])
         )
       );
+
+      // Call the parent callback with session data
+      if (onSessionComplete) {
+        router.push("/");
+        // onSessionComplete(abandonedSession);
+      }
     } catch (error) {
       console.error("Failed to save practice session:", error);
-    }
-
-    // Navigate back to practice selection or home page
-    // You might want to use router.push() here depending on your routing setup
-    if (typeof window !== "undefined") {
-      window.location.href = "/practice"; // Adjust this path as needed
     }
   }
 
@@ -1872,8 +2338,8 @@ export default function PracticeRushMultistep({
         ) : (
           <React.Fragment>
             <div className="min-h-screen items-center justify-center pt-32 pb-10">
-              <div className="flex flex-row justify-between mb-10">
-                <div>
+              <div className="grid grid-cols-12 justify-between mb-10">
+                <div className="col-span-12 xl:col-span-7">
                   <div className="flex gap-4 items-center">
                     <DuolingoTimer
                       startTime={state.questionStartTime}
@@ -1951,100 +2417,322 @@ export default function PracticeRushMultistep({
                     </div>
                   </div>
                 </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant={"outline"}
-                    disabled={state.currentQuestionStep === 0}
-                    className={`group font-bold py-3 px-3 rounded-xl border-2 border-b-4 shadow-lg transform transition-all duration-200 ${
-                      state.currentQuestionStep === 0
-                        ? "bg-gray-300 text-gray-500 border-gray-400 cursor-not-allowed"
-                        : "cursor-pointer bg-blue-500 hover:bg-blue-600 text-white border-blue-700 hover:border-blue-800 hover:shadow-xl active:translate-y-0.5 active:border-b-2"
-                    }`}
-                    onClick={() => {
-                      if (state.currentQuestionStep > 0) {
-                        playSound("button-pressed.wav");
-                        dispatch({
-                          type: "SET_CURRENT_QUESTION_STEP",
-                          payload: state.currentQuestionStep - 1,
-                        });
-                      }
-                    }}
-                  >
-                    <ArrowLeftIcon
-                      className={`duration-300 ${
-                        state.currentQuestionStep === 0
-                          ? ""
-                          : "group-hover:rotate-12"
-                      }`}
-                    />
-                  </Button>
-                  <Button
-                    variant={"outline"}
-                    disabled={
-                      !state.questions ||
-                      state.currentQuestionStep >= state.questions.length - 1 ||
-                      !state.questionAnswers[
-                        currentQuestion?.plainQuestion.questionId || ""
-                      ]
-                    }
-                    className={`group font-bold py-3 px-3 rounded-xl border-2 border-b-4 shadow-lg transform transition-all duration-200 ${
-                      !state.questions ||
-                      state.currentQuestionStep >= state.questions.length - 1 ||
-                      !state.questionAnswers[
-                        currentQuestion?.plainQuestion.questionId || ""
-                      ]
-                        ? "bg-gray-300 text-gray-500 border-gray-400 cursor-not-allowed"
-                        : "cursor-pointer bg-blue-500 hover:bg-blue-600 text-white border-blue-700 hover:border-blue-800 hover:shadow-xl active:translate-y-0.5 active:border-b-2"
-                    }`}
-                    onClick={() => {
-                      if (
-                        state.questions &&
-                        state.currentQuestionStep <
-                          state.questions.length - 1 &&
-                        state.questionAnswers[
-                          currentQuestion?.plainQuestion.questionId || ""
-                        ]
-                      ) {
-                        playSound("button-pressed.wav");
-                        dispatch({
-                          type: "SET_CURRENT_QUESTION_STEP",
-                          payload: state.currentQuestionStep + 1,
-                        });
-                      }
-                    }}
-                  >
-                    <ArrowRightIcon
-                      className={`duration-300 ${
-                        !state.questions ||
-                        state.currentQuestionStep >=
-                          state.questions.length - 1 ||
-                        !state.questionAnswers[
-                          currentQuestion?.plainQuestion.questionId || ""
-                        ]
-                          ? ""
-                          : "group-hover:-rotate-12"
-                      }`}
-                    />
-                  </Button>
+                <div className="col-span-12 xl:col-span-5 flex gap-2 items-center justify-center md:justify-start mt-6 xl:mt-0 lg:justify-end  xl:justify-end">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant={"outline"}
+                          disabled={state.currentQuestionStep === 0}
+                          className={`group font-bold py-3 px-3 rounded-xl border-2 border-b-4 shadow-lg transform transition-all duration-200 ${
+                            state.currentQuestionStep === 0
+                              ? "bg-gray-300 text-gray-500 border-gray-400 cursor-not-allowed"
+                              : "cursor-pointer bg-blue-500 hover:bg-blue-600 text-white border-blue-700 hover:border-blue-800 hover:shadow-xl active:translate-y-0.5 active:border-b-2"
+                          }`}
+                          onClick={() => {
+                            if (state.currentQuestionStep > 0) {
+                              playSound("button-pressed.wav");
+                              dispatch({
+                                type: "SET_CURRENT_QUESTION_STEP",
+                                payload: state.currentQuestionStep - 1,
+                              });
+                            }
+                          }}
+                        >
+                          <ArrowLeftIcon
+                            className={`duration-300 ${
+                              state.currentQuestionStep === 0
+                                ? ""
+                                : "group-hover:rotate-12"
+                            }`}
+                          />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Go to previous question</p>
+                      </TooltipContent>
+                    </Tooltip>
 
-                  <Button
-                    variant={"outline"}
-                    className="cursor-pointer group bg-white hover:bg-gray-50 text-gray-700 font-bold py-3 px-6 rounded-2xl border-2 border-b-4 border-gray-300 hover:border-gray-400 shadow-md hover:shadow-lg transform transition-all duration-200 active:translate-y-0.5 active:border-b-2"
-                    onClick={() => {
-                      dispatch({ type: "TOGGLE_REFERENCE_POPUP" });
-                      playSound("button-pressed.wav");
-                    }}
-                  >
-                    <PyramidIcon className="group-hover:rotate-12 duration-300 mr-2" />
-                    Reference
-                  </Button>
-                  <Button
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant={"outline"}
+                          disabled={
+                            !state.questions ||
+                            state.currentQuestionStep >=
+                              state.questions.length - 1 ||
+                            !state.questionAnswers[
+                              currentQuestion?.plainQuestion.questionId || ""
+                            ]
+                          }
+                          className={`group font-bold py-3 px-3 rounded-xl border-2 border-b-4 shadow-lg transform transition-all duration-200 ${
+                            !state.questions ||
+                            state.currentQuestionStep >=
+                              state.questions.length - 1 ||
+                            !state.questionAnswers[
+                              currentQuestion?.plainQuestion.questionId || ""
+                            ]
+                              ? "bg-gray-300 text-gray-500 border-gray-400 cursor-not-allowed"
+                              : "cursor-pointer bg-blue-500 hover:bg-blue-600 text-white border-blue-700 hover:border-blue-800 hover:shadow-xl active:translate-y-0.5 active:border-b-2"
+                          }`}
+                          onClick={() => {
+                            if (
+                              state.questions &&
+                              state.currentQuestionStep <
+                                state.questions.length - 1 &&
+                              state.questionAnswers[
+                                currentQuestion?.plainQuestion.questionId || ""
+                              ]
+                            ) {
+                              playSound("button-pressed.wav");
+                              dispatch({
+                                type: "SET_CURRENT_QUESTION_STEP",
+                                payload: state.currentQuestionStep + 1,
+                              });
+                            }
+                          }}
+                        >
+                          <ArrowRightIcon
+                            className={`duration-300 ${
+                              !state.questions ||
+                              state.currentQuestionStep >=
+                                state.questions.length - 1 ||
+                              !state.questionAnswers[
+                                currentQuestion?.plainQuestion.questionId || ""
+                              ]
+                                ? ""
+                                : "group-hover:-rotate-12"
+                            }`}
+                          />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>
+                          Go to next question{" "}
+                          {!state.questionAnswers[
+                            currentQuestion?.plainQuestion.questionId || ""
+                          ]
+                            ? "(answer current question first)"
+                            : ""}
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="default"
+                          className="justify-center items-center cursor-pointer bg-neutral-500 hover:bg-neutral-600 text-white font-bold py-3 px-6 rounded-2xl border-b-4 border-neutral-700 hover:border-neutral-800 shadow-md hover:shadow-lg transform transition-all duration-200 active:translate-y-0.5 active:border-b-2"
+                          onClick={() => {
+                            dispatch({ type: "TOGGLE_SHARE_MODAL" });
+                            playSound("button-pressed.wav");
+                          }}
+                        >
+                          <SendIcon className="group-hover:rotate-12 duration-300 mr-1" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Share this practice session</p>
+                      </TooltipContent>
+                    </Tooltip>
+
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant={"outline"}
+                          className="cursor-pointer group bg-white hover:bg-gray-50 text-gray-700 font-bold py-3 px-6 rounded-2xl border-2 border-b-4 border-gray-300 hover:border-gray-400 shadow-md hover:shadow-lg transform transition-all duration-200 active:translate-y-0.5 active:border-b-2"
+                          onClick={() => {
+                            dispatch({ type: "TOGGLE_REFERENCE_POPUP" });
+                            playSound("button-pressed.wav");
+                          }}
+                        >
+                          <PyramidIcon className="group-hover:rotate-12 duration-300 mr-2" />
+                          Reference
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Open reference sheet</p>
+                      </TooltipContent>
+                    </Tooltip>
+
+                    {Object.keys(state.questionAnswers).length > 0 && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="default"
+                            className="cursor-pointer bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-2xl border-b-4 border-green-700 hover:border-green-800 shadow-md hover:shadow-lg transform transition-all duration-200 active:translate-y-0.5 active:border-b-2"
+                            onClick={handleFinish}
+                          >
+                            Finish Practice
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Complete practice session and view results</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
+
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="default"
+                          className="justify-center items-center cursor-pointer bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 px-6 rounded-2xl border-b-4 border-yellow-700 hover:border-yellow-800 shadow-md hover:shadow-lg transform transition-all duration-200 active:translate-y-0.5 active:border-b-2"
+                          onClick={() => {
+                            if (!currentQuestion) return;
+
+                            try {
+                              const existingSavedQuestions =
+                                localStorage.getItem("savedQuestions");
+                              const savedQuestions: Record<
+                                string,
+                                Array<{
+                                  questionId: string;
+                                  externalId?: string | null;
+                                  ibn?: string | null;
+                                }>
+                              > = existingSavedQuestions
+                                ? JSON.parse(existingSavedQuestions)
+                                : {};
+
+                              const assessmentKey =
+                                practiceSelections.assessment;
+
+                              // Initialize array if it doesn't exist
+                              if (!savedQuestions[assessmentKey]) {
+                                savedQuestions[assessmentKey] = [];
+                              }
+
+                              // Check if question is already saved
+                              const questionIndex = savedQuestions[
+                                assessmentKey
+                              ].findIndex(
+                                (q) =>
+                                  q.questionId ===
+                                  currentQuestion.plainQuestion.questionId
+                              );
+
+                              if (questionIndex === -1) {
+                                // Question not saved, so save it
+                                savedQuestions[assessmentKey].push({
+                                  questionId:
+                                    currentQuestion.plainQuestion.questionId,
+                                  externalId:
+                                    currentQuestion.plainQuestion.external_id,
+                                  ibn: currentQuestion.plainQuestion.ibn,
+                                });
+                                console.log("Question saved successfully!");
+                              } else {
+                                // Question already saved, so remove it
+                                savedQuestions[assessmentKey].splice(
+                                  questionIndex,
+                                  1
+                                );
+                                console.log("Question removed from saved!");
+                              }
+
+                              localStorage.setItem(
+                                "savedQuestions",
+                                JSON.stringify(savedQuestions)
+                              );
+                              playSound("button-pressed.wav");
+
+                              // Force re-render by triggering a state change
+                              dispatch({ type: "TOGGLE_TIMER_VISIBILITY" });
+                              dispatch({ type: "TOGGLE_TIMER_VISIBILITY" });
+                            } catch (error) {
+                              console.error(
+                                "Failed to save/remove question:",
+                                error
+                              );
+                            }
+                          }}
+                        >
+                          {(() => {
+                            try {
+                              const existingSavedQuestions =
+                                localStorage.getItem("savedQuestions");
+                              const savedQuestions: Record<
+                                string,
+                                Array<{
+                                  questionId: string;
+                                  externalId?: string | null;
+                                  ibn?: string | null;
+                                }>
+                              > = existingSavedQuestions
+                                ? JSON.parse(existingSavedQuestions)
+                                : {};
+
+                              const assessmentKey =
+                                practiceSelections.assessment;
+                              const isQuestionSaved = savedQuestions[
+                                assessmentKey
+                              ]?.some(
+                                (q) =>
+                                  q.questionId ===
+                                  currentQuestion?.plainQuestion.questionId
+                              );
+
+                              return (
+                                <BookmarkIcon
+                                  className={`group-hover:rotate-12 duration-300 mr-2 ${
+                                    isQuestionSaved ? "fill-current" : ""
+                                  }`}
+                                />
+                              );
+                            } catch {
+                              return (
+                                <BookmarkIcon className="group-hover:rotate-12 duration-300" />
+                              );
+                            }
+                          })()}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>
+                          {(() => {
+                            try {
+                              const existingSavedQuestions =
+                                localStorage.getItem("savedQuestions");
+                              const savedQuestions: Record<
+                                string,
+                                Array<{
+                                  questionId: string;
+                                  externalId?: string | null;
+                                  ibn?: string | null;
+                                }>
+                              > = existingSavedQuestions
+                                ? JSON.parse(existingSavedQuestions)
+                                : {};
+
+                              const assessmentKey =
+                                practiceSelections.assessment;
+                              const isQuestionSaved = savedQuestions[
+                                assessmentKey
+                              ]?.some(
+                                (q) =>
+                                  q.questionId ===
+                                  currentQuestion?.plainQuestion.questionId
+                              );
+
+                              return isQuestionSaved
+                                ? "Remove from saved questions"
+                                : "Save question for later review";
+                            } catch {
+                              return "Save question for later review";
+                            }
+                          })()}
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+
+                  {/* <Button
                     variant="destructive"
                     className="cursor-pointer bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-6 rounded-2xl border-b-4 border-red-700 hover:border-red-800 shadow-md hover:shadow-lg transform transition-all duration-200 active:translate-y-0.5 active:border-b-2"
                     onClick={handleExit}
                   >
                     Exit
-                  </Button>
+                  </Button> */}
                 </div>
               </div>
 
@@ -2065,102 +2753,135 @@ export default function PracticeRushMultistep({
                       ></div>
                     )}
 
-                    {currentQuestion.stem && (
-                      <MathJax>
-                        <div
-                          id="question_stem"
-                          className="text-xl"
-                          dangerouslySetInnerHTML={{
-                            __html: currentQuestion.stem,
-                          }}
-                        ></div>
-                      </MathJax>
-                    )}
+                    {practiceSelections?.subject !== "reading-writing" &&
+                      currentQuestion.stem && (
+                        <MathJax>
+                          <div
+                            id="question_stem"
+                            className="text-xl"
+                            dangerouslySetInnerHTML={{
+                              __html: currentQuestion.stem,
+                            }}
+                          ></div>
+                        </MathJax>
+                      )}
 
-                    {currentQuestion.answerOptions ? (
-                      <AnswerOptions
-                        answerOptions={currentQuestion.answerOptions}
-                        questionId={currentQuestion.plainQuestion.questionId}
-                        selectedAnswer={state.selectedAnswer}
-                        disabledOptions={state.disabledOptions}
-                        onAnswerSelect={(key) =>
-                          dispatch({
-                            type: "SET_SELECTED_ANSWER",
-                            payload: key,
-                          })
-                        }
-                        onToggleDisabled={(key) => {
-                          dispatch({
-                            type: "SET_DISABLED_OPTION",
-                            payload: {
-                              key,
-                              value: !state.disabledOptions[key],
-                            },
-                          });
-                        }}
-                        showStrikethrough={
-                          practiceSelections?.subject !== "reading-writing"
-                        }
-                        correctAnswers={currentQuestion.correct_answer.map(
-                          (answer) => answer.trim()
-                        )}
-                        isAnswerChecked={state.isAnswerChecked}
-                        isReviewMode={Boolean(
-                          state.questionAnswers[
+                    {practiceSelections?.subject !== "reading-writing" &&
+                      (currentQuestion.answerOptions ? (
+                        <AnswerOptions
+                          answerOptions={currentQuestion.answerOptions}
+                          questionId={currentQuestion.plainQuestion.questionId}
+                          selectedAnswer={state.selectedAnswer}
+                          disabledOptions={state.disabledOptions}
+                          onAnswerSelect={(key) =>
+                            dispatch({
+                              type: "SET_SELECTED_ANSWER",
+                              payload: key,
+                            })
+                          }
+                          onToggleDisabled={(key) => {
+                            dispatch({
+                              type: "SET_DISABLED_OPTION",
+                              payload: {
+                                key,
+                                value: !state.disabledOptions[key],
+                              },
+                            });
+                          }}
+                          showStrikethrough={
+                            practiceSelections?.subject !== "reading-writing"
+                          }
+                          correctAnswers={currentQuestion.correct_answer.map(
+                            (answer) => answer.trim()
+                          )}
+                          isAnswerChecked={state.isAnswerChecked}
+                          isReviewMode={Boolean(
+                            state.questionAnswers[
+                              currentQuestion.plainQuestion.questionId
+                            ]
+                          )}
+                        />
+                      ) : (
+                        <DuolingoInput
+                          value={state.selectedAnswer || ""}
+                          onChange={(value) =>
+                            dispatch({
+                              type: "SET_SELECTED_ANSWER",
+                              payload: value,
+                            })
+                          }
+                          onSubmit={handleAnsweringQuestion(
                             currentQuestion.plainQuestion.questionId
-                          ]
-                        )}
-                      />
-                    ) : (
-                      <DuolingoInput
-                        value={state.selectedAnswer || ""}
-                        onChange={(value) =>
-                          dispatch({
-                            type: "SET_SELECTED_ANSWER",
-                            payload: value,
-                          })
-                        }
-                        onSubmit={handleAnsweringQuestion(
-                          currentQuestion.plainQuestion.questionId
-                        )}
-                        disabled={state.isAnswerChecked}
-                      />
-                    )}
+                          )}
+                          disabled={state.isAnswerChecked}
+                        />
+                      ))}
                     <div className="pt-1 pb-2 relative overflow-visible">
-                      <Button
-                        variant={"default"}
-                        className={`mt-5 w-full relative font-bold text-lg py-6 border-b-4 rounded-2xl text-white shadow-lg transform transition-all duration-200 ${
-                          state.isLoadingNextBatch
-                            ? "bg-yellow-500 hover:bg-yellow-600 border-yellow-700 hover:border-yellow-800 cursor-wait animate-pulse"
-                            : state.isAnswerChecked && state.isAnswerCorrect
-                            ? "bg-green-500 hover:bg-green-600 border-green-700 hover:border-green-800 cursor-pointer hover:shadow-xl active:translate-y-0.5 active:border-b-2"
-                            : state.isAnswerChecked && !state.isAnswerCorrect
-                            ? "bg-red-500 hover:bg-red-600 border-red-700 hover:border-red-800 cursor-pointer hover:shadow-xl active:translate-y-0.5 active:border-b-2"
-                            : "bg-blue-500 hover:bg-blue-600 border-blue-700 hover:border-blue-800 cursor-pointer hover:shadow-xl active:translate-y-0.5 active:border-b-2"
-                        }`}
-                        disabled={
-                          state.selectedAnswer == null ||
-                          state.isLoadingNextBatch
-                        }
-                        onClick={handleAnsweringQuestion(
+                      {/* Show Load More and Finish buttons when at end of batch and answer is checked */}
+                      {practiceSelections?.subject !== "reading-writing" &&
+                        (isAtEndOfBatch &&
+                        state.isAnswerChecked &&
+                        state.questionAnswers[
                           currentQuestion.plainQuestion.questionId
-                        )}
-                      >
-                        {state.isLoadingNextBatch ? (
-                          <DuolingoLoadingSpinner
-                            progress={state.questionsProcessedCount}
-                            total={22}
-                          />
-                        ) : state.questionAnswers[
-                            currentQuestion.plainQuestion.questionId
-                          ] ? (
-                          "NEXT"
-                        ) : !state.isAnswerChecked ? (
-                          "CHECK"
+                        ] ? (
+                          <div className="flex gap-3 mt-5">
+                            {canLoadMore && (
+                              <Button
+                                variant="default"
+                                className="flex-1 font-bold text-lg py-6 border-b-4 rounded-2xl text-white shadow-lg transform transition-all duration-200 bg-blue-500 hover:bg-blue-600 border-blue-700 hover:border-blue-800 cursor-pointer hover:shadow-xl active:translate-y-0.5 active:border-b-2"
+                                onClick={() => loadNextBatch()}
+                              >
+                                LOAD MORE
+                              </Button>
+                            )}
+                            <Button
+                              variant="default"
+                              className="flex-1 font-bold text-lg py-6 border-b-4 rounded-2xl text-white shadow-lg transform transition-all duration-200 bg-green-500 hover:bg-green-600 border-green-700 hover:border-green-800 cursor-pointer hover:shadow-xl active:translate-y-0.5 active:border-b-2"
+                              onClick={handleFinish}
+                            >
+                              FINISH
+                            </Button>
+                          </div>
                         ) : (
-                          "CONTINUE"
-                        )}
-                      </Button>
+                          <Button
+                            variant={"default"}
+                            className={`mt-5 w-full relative font-bold text-lg py-6 border-b-4 rounded-2xl text-white shadow-lg transform transition-all duration-200 ${
+                              state.isLoadingNextBatch
+                                ? "bg-yellow-500 hover:bg-yellow-600 border-yellow-700 hover:border-yellow-800 cursor-wait animate-pulse"
+                                : state.isAnswerChecked && state.isAnswerCorrect
+                                ? "bg-green-500 hover:bg-green-600 border-green-700 hover:border-green-800 cursor-pointer hover:shadow-xl active:translate-y-0.5 active:border-b-2"
+                                : state.isAnswerChecked &&
+                                  !state.isAnswerCorrect
+                                ? "bg-red-500 hover:bg-red-600 border-red-700 hover:border-red-800 cursor-pointer hover:shadow-xl active:translate-y-0.5 active:border-b-2"
+                                : "bg-blue-500 hover:bg-blue-600 border-blue-700 hover:border-blue-800 cursor-pointer hover:shadow-xl active:translate-y-0.5 active:border-b-2"
+                            }`}
+                            disabled={
+                              (state.selectedAnswer == null &&
+                                !state.questionAnswers[
+                                  currentQuestion.plainQuestion.questionId
+                                ]) ||
+                              state.isLoadingNextBatch
+                            }
+                            onClick={handleAnsweringQuestion(
+                              currentQuestion.plainQuestion.questionId
+                            )}
+                          >
+                            {state.isLoadingNextBatch ? (
+                              <DuolingoLoadingSpinner
+                                progress={state.questionsProcessedCount}
+                                total={22}
+                              />
+                            ) : state.questionAnswers[
+                                currentQuestion.plainQuestion.questionId
+                              ] ? (
+                              "NEXT"
+                            ) : !state.isAnswerChecked ? (
+                              "CHECK"
+                            ) : (
+                              "CONTINUE"
+                            )}
+                          </Button>
+                        ))}
                       <Confetti
                         ref={confettiRef}
                         className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-full h-full pointer-events-none"
@@ -2329,7 +3050,10 @@ export default function PracticeRushMultistep({
                               : "bg-blue-500 hover:bg-blue-600 border-blue-700 hover:border-blue-800 cursor-pointer hover:shadow-xl active:translate-y-0.5 active:border-b-2"
                           }`}
                           disabled={
-                            state.selectedAnswer == null ||
+                            (state.selectedAnswer == null &&
+                              !state.questionAnswers[
+                                currentQuestion.plainQuestion.questionId
+                              ]) ||
                             state.isLoadingNextBatch
                           }
                           onClick={handleAnsweringQuestion(
@@ -2396,16 +3120,10 @@ export default function PracticeRushMultistep({
               payload: state.currentQuestionStep + 1,
             });
           } else {
-            // This was the last question - check if we can load next batch
-            if (
-              state.questionsData &&
-              state.currentBatch * 22 < state.questionsData.length
-            ) {
-              loadNextBatch();
-            } else {
-              console.log("Practice session completed!");
-              completeSession();
-            }
+            // At end of batch - don't automatically continue
+            console.log(
+              "Reached end of current batch in success feedback. User can choose to continue or finish."
+            );
           }
         }}
       />
@@ -2415,6 +3133,26 @@ export default function PracticeRushMultistep({
         isVisible={state.isExitConfirmationOpen}
         onConfirm={confirmExit}
         onCancel={() => dispatch({ type: "TOGGLE_EXIT_CONFIRMATION" })}
+      />
+
+      {/* Finish Confirmation */}
+      <FinishConfirmation
+        isVisible={state.isFinishConfirmationOpen}
+        onConfirm={confirmFinish}
+        onCancel={() => dispatch({ type: "TOGGLE_FINISH_CONFIRMATION" })}
+        questionsAnswered={
+          Object.keys(state.questionAnswers).filter(
+            (id) => state.questionAnswers[id] !== null
+          ).length
+        }
+      />
+
+      {/* Share Modal */}
+      <ShareModal
+        isVisible={state.isShareModalOpen}
+        onClose={() => dispatch({ type: "TOGGLE_SHARE_MODAL" })}
+        practiceSelections={practiceSelections}
+        questions={state.questions}
       />
     </React.Fragment>
   );
