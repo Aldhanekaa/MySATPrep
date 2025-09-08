@@ -426,7 +426,7 @@ export function debugStatistics(): void {
   } else {
     console.log("No data found in localStorage");
   }
-  console.log("==========================================");
+  console.log("=========================================");
 }
 
 // Make it available globally for debugging
