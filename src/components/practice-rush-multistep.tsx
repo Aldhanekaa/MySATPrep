@@ -20,12 +20,19 @@ import {
   QuestionAnswers,
   QuestionTimes,
   SessionStatus,
+  AnsweredQuestionDetails,
 } from "@/types/session";
 import { AssessmentType, PracticeStatistics } from "@/types/statistics";
 import {
   addQuestionStatistic,
   addAnsweredQuestion,
+  updateSessionXP,
 } from "@/lib/practiceStatistics";
+import { SavedQuestions, SavedQuestion } from "@/types/savedQuestions";
+import {
+  addXPForCorrectAnswer,
+  reduceXPForIncorrectAnswer,
+} from "@/lib/userProfile";
 import { toast } from "sonner";
 
 import { MathJax } from "better-react-mathjax";
@@ -1143,6 +1150,7 @@ interface AppState {
   currentQuestionStep: number;
   questionAnswers: QuestionAnswers;
   questionTimes: QuestionTimes;
+  answeredQuestionDetails: AnsweredQuestionDetails; // New field for question metadata
   inProgressQuestionTimes: { [questionId: string]: number }; // Track elapsed time for questions in progress
   disabledOptions: { [key: string]: boolean };
   selectedAnswer: string | null;
@@ -1165,6 +1173,7 @@ interface AppState {
   sessionStartTime: number;
   isSavingSession: boolean;
   isShareModalOpen: boolean;
+  sessionXPReceived: number; // Track total XP gained/lost during this session
 }
 
 type AppAction =
@@ -1188,6 +1197,9 @@ type AppAction =
         questionId: string;
         answer: string;
         timeElapsed: number;
+        externalId: string | null;
+        ibn: string | null;
+        plainQuestion?: PlainQuestionType; // Add plainQuestion to payload
       };
     }
   | { type: "TOGGLE_REFERENCE_POPUP" }
@@ -1207,7 +1219,19 @@ type AppAction =
         totalQuestions: number;
       };
     }
-  | { type: "SET_SAVING_SESSION"; payload: boolean };
+  | {
+      type: "RESTORE_SESSION_STATE";
+      payload: {
+        currentQuestionStep: number;
+        questionAnswers: QuestionAnswers;
+        questionTimes: QuestionTimes;
+        answeredQuestionDetails: AnsweredQuestionDetails;
+        sessionId: string;
+        sessionStartTime: number;
+      };
+    }
+  | { type: "SET_SAVING_SESSION"; payload: boolean }
+  | { type: "ADD_SESSION_XP"; payload: number };
 
 const initialState: AppState = {
   questionsData: null,
@@ -1215,6 +1239,7 @@ const initialState: AppState = {
   currentQuestionStep: 0,
   questionAnswers: {},
   questionTimes: {},
+  answeredQuestionDetails: [], // Initialize empty array
   inProgressQuestionTimes: {},
   disabledOptions: {},
   selectedAnswer: null,
@@ -1239,6 +1264,7 @@ const initialState: AppState = {
   sessionStartTime: Date.now(),
   isSavingSession: false,
   isShareModalOpen: false,
+  sessionXPReceived: 0, // Initialize session XP tracking
 };
 
 function appReducer(state: AppState, action: AppAction): AppState {
@@ -1340,6 +1366,30 @@ function appReducer(state: AppState, action: AppAction): AppState {
       const updatedInProgress = { ...state.inProgressQuestionTimes };
       delete updatedInProgress[questionId]; // Remove from in-progress tracking
 
+      // Add or update question details if answer is provided
+      const updatedQuestionDetails = [...state.answeredQuestionDetails];
+      if (action.payload.answer) {
+        // Check if question already exists in details
+        const existingDetailIndex = updatedQuestionDetails.findIndex(
+          (detail) => detail.questionId === questionId
+        );
+
+        const questionDetail = {
+          questionId,
+          externalId: action.payload.externalId,
+          ibn: action.payload.ibn,
+          plainQuestion: action.payload.plainQuestion, // Include plainQuestion data
+        };
+
+        if (existingDetailIndex !== -1) {
+          // Update existing detail
+          updatedQuestionDetails[existingDetailIndex] = questionDetail;
+        } else {
+          // Add new detail
+          updatedQuestionDetails.push(questionDetail);
+        }
+      }
+
       return {
         ...state,
         isAnswerChecked: action.payload.checked,
@@ -1352,6 +1402,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
           ...state.questionTimes,
           [questionId]: action.payload.timeElapsed,
         },
+        answeredQuestionDetails: updatedQuestionDetails,
         inProgressQuestionTimes: updatedInProgress,
       };
     case "TOGGLE_REFERENCE_POPUP":
@@ -1423,6 +1474,21 @@ function appReducer(state: AppState, action: AppAction): AppState {
         ...state,
         isSavingSession: action.payload,
       };
+    case "RESTORE_SESSION_STATE":
+      return {
+        ...state,
+        currentQuestionStep: action.payload.currentQuestionStep,
+        questionAnswers: action.payload.questionAnswers,
+        questionTimes: action.payload.questionTimes,
+        answeredQuestionDetails: action.payload.answeredQuestionDetails,
+        sessionId: action.payload.sessionId,
+        sessionStartTime: action.payload.sessionStartTime,
+      };
+    case "ADD_SESSION_XP":
+      return {
+        ...state,
+        sessionXPReceived: state.sessionXPReceived + action.payload,
+      };
     default:
       return state;
   }
@@ -1431,11 +1497,13 @@ function appReducer(state: AppState, action: AppAction): AppState {
 interface PracticeRushMultistepProps {
   practiceSelections: PracticeSelections;
   onSessionComplete?: (sessionData: PracticeSession) => void;
+  restoredSessionData?: PracticeSession; // New prop for passing down localStorage data
 }
 
 export default function PracticeRushMultistep({
   practiceSelections,
   onSessionComplete,
+  restoredSessionData,
 }: PracticeRushMultistepProps) {
   const router = useRouter();
   const confettiRef = useRef<ConfettiRef>(null);
@@ -1496,6 +1564,7 @@ export default function PracticeRushMultistep({
       currentQuestionStep: state.currentQuestionStep,
       questionAnswers: state.questionAnswers,
       questionTimes: state.questionTimes,
+      answeredQuestionDetails: state.answeredQuestionDetails,
       totalQuestions: state.questions.length,
       answeredQuestions,
       correctAnswers: correctAnswersCount,
@@ -1514,6 +1583,7 @@ export default function PracticeRushMultistep({
         (sum, time) => sum + time,
         0
       ),
+      totalXPReceived: state.sessionXPReceived, // Include session XP tracking
     };
 
     try {
@@ -1568,6 +1638,8 @@ export default function PracticeRushMultistep({
     state.currentQuestionStep,
     state.questionAnswers,
     state.questionTimes,
+    state.answeredQuestionDetails,
+    state.sessionXPReceived,
     practiceSelections,
   ]);
 
@@ -1612,37 +1684,13 @@ export default function PracticeRushMultistep({
   // Initialize session when practice starts
   useEffect(() => {
     if (practiceSelections) {
-      // Try to restore existing session for this practice type
-      try {
-        const existingSession = localStorage.getItem("currentPracticeSession");
-        if (existingSession) {
-          const session = JSON.parse(existingSession);
-          // Check if it's the same practice configuration
-          if (
-            JSON.stringify(session.practiceSelections) ===
-            JSON.stringify(practiceSelections)
-          ) {
-            console.log("Restored existing session:", session.sessionId);
-            // We could restore the session state here if needed
-            // For now, we'll start fresh but keep the same session ID
-            return;
-          }
-        }
-      } catch (error) {
-        console.error("Error restoring session:", error);
-        toast.error("Failed to Restore Session", {
-          description:
-            "Couldn't restore your previous session. Starting a fresh practice session.",
-          duration: 4000,
-        });
-      }
-
+      // If no restored session data, start a new session
       dispatch({
         type: "INITIALIZE_SESSION",
         payload: { practiceSelections, totalQuestions: 0 },
       });
     }
-  }, [practiceSelections]);
+  }, [practiceSelections, restoredSessionData]);
 
   // Auto-save session every 30 seconds
   useEffect(() => {
@@ -1722,6 +1770,7 @@ export default function PracticeRushMultistep({
             currentQuestionStep: state.currentQuestionStep,
             questionAnswers: state.questionAnswers,
             questionTimes: state.questionTimes,
+            answeredQuestionDetails: state.answeredQuestionDetails,
             totalQuestions: state.questions.length,
             answeredQuestions,
             correctAnswers: correctAnswersCount,
@@ -1742,6 +1791,7 @@ export default function PracticeRushMultistep({
               (sum, time) => sum + time,
               0
             ),
+            totalXPReceived: state.sessionXPReceived, // Include session XP tracking
           };
 
           try {
@@ -1765,6 +1815,8 @@ export default function PracticeRushMultistep({
     state.currentQuestionStep,
     state.questionAnswers,
     state.questionTimes,
+    state.answeredQuestionDetails,
+    state.sessionXPReceived,
     practiceSelections,
   ]);
 
@@ -1810,6 +1862,7 @@ export default function PracticeRushMultistep({
       currentQuestionStep: state.currentQuestionStep,
       questionAnswers: state.questionAnswers,
       questionTimes: state.questionTimes,
+      answeredQuestionDetails: state.answeredQuestionDetails,
       totalQuestions: state.questions?.length || 0,
       answeredQuestions,
       correctAnswers: correctAnswersCount,
@@ -1828,6 +1881,7 @@ export default function PracticeRushMultistep({
         (sum, time) => sum + time,
         0
       ),
+      totalXPReceived: state.sessionXPReceived, // Include session XP tracking
     };
 
     try {
@@ -1882,7 +1936,9 @@ export default function PracticeRushMultistep({
     state.currentQuestionStep,
     state.questionAnswers,
     state.questionTimes,
+    state.answeredQuestionDetails,
     state.questions,
+    state.sessionXPReceived,
     practiceSelections,
     onSessionComplete,
   ]);
@@ -1899,6 +1955,134 @@ export default function PracticeRushMultistep({
   const currentSelectionsRef = useRef<string>("");
   const isFetchingRef = useRef(false);
 
+  // Helper function to fetch individual question details and convert to QuestionState
+  const fetchQuestionDetails = useCallback(
+    async (
+      questionsToFetch: PlainQuestionType[],
+      existingQuestions: QuestionState[] = []
+    ): Promise<QuestionState[]> => {
+      const questions: {
+        plainQuestion: PlainQuestionType;
+        data: API_Response_Question;
+      }[] = [];
+      const correctQuestions: QuestionState[] = [...existingQuestions];
+
+      for (const question of questionsToFetch) {
+        const questionData: API_Response_Question =
+          await fetchQuestionsbyIBN_ExternalId(
+            question.external_id
+              ? question.external_id
+              : question.ibn
+              ? question.ibn
+              : ""
+          );
+
+        if (questionData && questionData.correct_answer)
+          questions.push({ plainQuestion: question, data: questionData });
+      }
+
+      for (let i = 0; i < questions.length; i++) {
+        const question = questions[i];
+        const plainQuestion = question.plainQuestion;
+        const questionsData = question.data;
+
+        if (
+          questionsData.correct_answer &&
+          Array.isArray(questionsData.correct_answer) &&
+          questionsData.correct_answer.length > 0
+        ) {
+          correctQuestions.push({
+            ...questionsData,
+            correct_answer: questionsData.correct_answer,
+            plainQuestion: plainQuestion,
+          });
+        }
+      }
+
+      return correctQuestions;
+    },
+    []
+  );
+
+  // Helper function to fetch and process questions based on selections
+  const fetchAndProcessQuestions = useCallback(
+    async (
+      questionsData: API_Response_Question_List,
+      selections: PracticeSelections,
+      existingQuestions: QuestionState[] = []
+    ): Promise<QuestionState[]> => {
+      const isRandomized = selections.randomize;
+      const difficultiesChosen = selections.difficulties;
+
+      let questionsToFetch: PlainQuestionType[];
+
+      if (isRandomized && difficultiesChosen && difficultiesChosen.length > 0) {
+        // Filter questions by selected difficulties
+        const questionsByDifficulty: {
+          [key: string]: PlainQuestionType[];
+        } = {};
+
+        // Group questions by difficulty
+        difficultiesChosen.forEach((difficulty) => {
+          questionsByDifficulty[difficulty] = questionsData.filter(
+            (question: PlainQuestionType) => question.difficulty === difficulty
+          );
+        });
+
+        // Calculate how many questions to take from each difficulty
+        const totalQuestions = Math.min(
+          22 - existingQuestions.length,
+          questionsData.length
+        );
+        const questionsPerDifficulty = Math.floor(
+          totalQuestions / difficultiesChosen.length
+        );
+        const remainder = totalQuestions % difficultiesChosen.length;
+
+        const selectedQuestions: PlainQuestionType[] = [];
+
+        difficultiesChosen.forEach((difficulty, index) => {
+          const questionsForThisDifficulty =
+            questionsByDifficulty[difficulty] || [];
+
+          // Add one extra question to the first 'remainder' difficulties to distribute the remainder
+          const questionsToTakeFromThisDifficulty =
+            questionsPerDifficulty + (index < remainder ? 1 : 0);
+
+          // Shuffle questions for this difficulty and take the required amount
+          const shuffledQuestions = [...questionsForThisDifficulty].sort(
+            () => Math.random() - 0.5
+          );
+          const selectedFromThisDifficulty = shuffledQuestions.slice(
+            0,
+            questionsToTakeFromThisDifficulty
+          );
+
+          selectedQuestions.push(...selectedFromThisDifficulty);
+
+          console.log(
+            `Selected ${selectedFromThisDifficulty.length} questions from difficulty ${difficulty}`
+          );
+        });
+
+        questionsToFetch = selectedQuestions;
+        console.log(
+          `Total questions after difficulty-based selection: ${questionsToFetch.length}`
+        );
+      } else {
+        // Original behavior for non-randomized or when no difficulties specified
+        const questionsNeeded = Math.min(
+          22 - existingQuestions.length,
+          questionsData.length
+        );
+        questionsToFetch = questionsData.slice(0, questionsNeeded);
+      }
+
+      return await fetchQuestionDetails(questionsToFetch, existingQuestions);
+    },
+    [fetchQuestionDetails]
+  );
+
   const FetchQuestions = useCallback(
     async (selections: PracticeSelections) => {
       // Prevent multiple simultaneous calls
@@ -1910,9 +2094,208 @@ export default function PracticeRushMultistep({
       isFetchingRef.current = true;
 
       try {
-        // Only fetch from API if we don't have cached data for these selections
+        // Check if we have restored session data with previously answered questions
+        if (
+          restoredSessionData?.answeredQuestionDetails &&
+          restoredSessionData.answeredQuestionDetails.length > 0
+        ) {
+          console.log("🔄 Restoring session from restored session data...");
+
+          const questionDetails = restoredSessionData.answeredQuestionDetails;
+          console.log(
+            "Restoring previously answered questions:",
+            questionDetails
+          );
+
+          dispatch({ type: "SET_CURRENT_STEP", payload: 3 });
+
+          // Extract plain questions from restored session data
+          const validPlainQuestions = questionDetails
+            .map((item) => item.plainQuestion)
+            .filter((q) => q !== null) as PlainQuestionType[];
+
+          if (validPlainQuestions.length > 0) {
+            // Use the helper function to fetch the restored questions
+            const restoredQuestions = await fetchQuestionDetails(
+              validPlainQuestions
+            );
+
+            dispatch({ type: "SET_CURRENT_STEP", payload: 4 });
+
+            // Restore the session state including answers and timing data
+            console.log("🔄 Restoring session state...");
+
+            // Extract answers and times from the restored session data
+            const restoredAnswers = restoredSessionData.questionAnswers || {};
+            const restoredTimes = restoredSessionData.questionTimes || {};
+            const restoredAnsweredDetails =
+              restoredSessionData.answeredQuestionDetails || [];
+
+            // Dispatch restored session data
+            dispatch({
+              type: "RESTORE_SESSION_STATE",
+              payload: {
+                questionAnswers: restoredAnswers,
+                questionTimes: restoredTimes,
+                answeredQuestionDetails: restoredAnsweredDetails,
+                currentQuestionStep:
+                  restoredSessionData.currentQuestionStep || 0,
+                sessionStartTime: new Date(
+                  restoredSessionData.timestamp
+                ).getTime(),
+                sessionId: restoredSessionData.sessionId,
+              },
+            });
+
+            console.log("✅ Session state restored successfully");
+            console.log("📊 Restored session summary:", {
+              answeredQuestions: Object.keys(restoredAnswers).length,
+              totalTimeSpent: Object.values(restoredTimes).reduce(
+                (sum, time) => sum + time,
+                0
+              ),
+              sessionId: restoredSessionData.sessionId,
+              currentStep: restoredSessionData.currentQuestionStep || 0,
+            });
+
+            // Now fetch new questions to continue the session
+            const restoredSelections = restoredSessionData.practiceSelections;
+
+            // Get already answered question IDs to exclude them from new fetch
+            const answeredQuestionIds = questionDetails.map(
+              (item) => item.questionId
+            );
+
+            console.log(
+              "🔄 Fetching new questions with restored selections...",
+              restoredSelections
+            );
+
+            let excludeQuestionsIds: string[] = answeredQuestionIds;
+            let otherParams = `&excludeIds=${excludeQuestionsIds.join(",")}`;
+
+            // Also load practiceStatistics and add those to exclude list
+            const practiceStatistics =
+              localStorage.getItem("practiceStatistics");
+            const assessmentStatistics: PracticeStatistics = practiceStatistics
+              ? JSON.parse(practiceStatistics)
+              : {};
+
+            if (restoredSelections.assessment in assessmentStatistics) {
+              const currentAssessmentStatistics =
+                assessmentStatistics[restoredSelections.assessment];
+
+              if (currentAssessmentStatistics?.answeredQuestions) {
+                // Combine already answered questions from both sources
+                const allAnsweredQuestions = [
+                  ...excludeQuestionsIds,
+                  ...currentAssessmentStatistics.answeredQuestions,
+                ];
+                excludeQuestionsIds = [...new Set(allAnsweredQuestions)]; // Remove duplicates
+                otherParams = `&excludeIds=${excludeQuestionsIds.join(",")}`;
+              }
+            }
+
+            // Fetch new questions from API
+            const questionsResponse = await fetch(
+              `/api/get-questions?assessment=${
+                restoredSelections.assessment
+              }&domains=${restoredSelections.domains
+                .map((d) => d.primaryClassCd)
+                .join(",")}&difficulties=${restoredSelections.difficulties.join(
+                ","
+              )}&skills=${restoredSelections.skills
+                .map((s) => s.skill_cd)
+                .join(",")}${otherParams}`
+            )
+              .then((res) => res.json())
+              .catch((error) => {
+                console.error("Error fetching new questions:", error);
+                toast.error("Failed to Fetch New Questions", {
+                  description:
+                    "Unable to load new practice questions. You can continue with restored questions.",
+                  duration: 5000,
+                });
+                return { data: [] };
+              });
+
+            const newQuestionsData = questionsResponse.data || [];
+
+            if (newQuestionsData) {
+              dispatch({
+                type: "SET_QUESTIONS_DATA",
+                payload: newQuestionsData,
+              });
+            }
+
+            let finalQuestions = restoredQuestions;
+
+            if (newQuestionsData.length > 0) {
+              console.log(
+                `✅ Fetched ${newQuestionsData.length} new questions to add to restored session`
+              );
+
+              // Use the helper function to process new questions and combine with restored ones
+              finalQuestions = await fetchAndProcessQuestions(
+                newQuestionsData,
+                restoredSelections,
+                restoredQuestions
+              );
+
+              console.log(
+                `✅ Total questions after combining restored + new: ${finalQuestions.length}`
+              );
+            } else {
+              console.log(
+                "No new questions available, continuing with restored questions only"
+              );
+            }
+
+            dispatch({ type: "SET_CURRENT_STEP", payload: 5 });
+
+            setTimeout(() => {
+              dispatch({ type: "SET_QUESTIONS", payload: finalQuestions });
+              dispatch({ type: "SET_CURRENT_STEP", payload: 5 });
+
+              // Don't start timer immediately - user is reviewing restored session
+              console.log(
+                "🎯 Session restored - user can review previous answers"
+              );
+
+              // Show a toast to inform user about restored session
+              const answeredCount = Object.keys(restoredAnswers).length;
+              const correctAnswers = Object.keys(restoredAnswers).filter(
+                (questionId) => {
+                  const userAnswer = restoredAnswers[questionId];
+                  const question = finalQuestions.find(
+                    (q) => q.plainQuestion.questionId === questionId
+                  );
+                  return (
+                    userAnswer &&
+                    question?.correct_answer
+                      ?.map((a) => a.trim())
+                      .includes(userAnswer)
+                  );
+                }
+              ).length;
+
+              toast.success("Session Restored Successfully! 🎯", {
+                description: `Restored ${answeredCount} previously answered questions (${correctAnswers} correct). You can review your answers and continue practicing.`,
+                duration: 8000,
+              });
+            }, 1500);
+
+            return;
+          } else {
+            console.warn(
+              "No valid questions found in restored session data, proceeding with normal fetch"
+            );
+          }
+        }
+
+        // Normal flow for new sessions or when no restored data is available
         console.log(
-          "🔄 No cached data found, fetching from /api/get-questions..."
+          "🔄 No restored session data found, fetching from /api/get-questions..."
         );
 
         let excludeQuestionsIds: string[] = [];
@@ -2004,51 +2387,12 @@ export default function PracticeRushMultistep({
               selections.questionIds?.includes(question.questionId)
             );
 
-          const questionsToFetch = filteredQuestionsData; // Limit to first 22 if more provided
-          const questions: {
-            plainQuestion: PlainQuestionType;
-            data: API_Response_Question;
-          }[] = [];
-          const correctQuestions: QuestionState[] = [];
-
-          for (const question of questionsToFetch) {
-            // console.log(
-            //   "Fetching shared question:",
-            //   question.external_id || question.ibn
-            // );
-            const questionsData: API_Response_Question =
-              await fetchQuestionsbyIBN_ExternalId(
-                question.external_id
-                  ? question.external_id
-                  : question.ibn
-                  ? question.ibn
-                  : ""
-              );
-
-            if (questionsData)
-              questions.push({ plainQuestion: question, data: questionsData });
-          }
+          // Use the helper function to fetch question details
+          const correctQuestions = await fetchQuestionDetails(
+            filteredQuestionsData
+          );
 
           dispatch({ type: "SET_CURRENT_STEP", payload: 4 });
-
-          for (let i = 0; i < questions.length; i++) {
-            const question = questions[i];
-            const plainQuestion = question.plainQuestion;
-            const questionsData = question.data;
-
-            if (
-              questionsData.correct_answer &&
-              Array.isArray(questionsData.correct_answer) &&
-              questionsData.correct_answer.length > 0
-            ) {
-              correctQuestions.push({
-                ...questionsData,
-                correct_answer: questionsData.correct_answer,
-                plainQuestion: plainQuestion,
-              });
-            }
-          }
-
           dispatch({ type: "SET_CURRENT_STEP", payload: 5 });
 
           setTimeout(() => {
@@ -2072,118 +2416,13 @@ export default function PracticeRushMultistep({
 
           dispatch({ type: "SET_CURRENT_STEP", payload: 3 });
 
-          const isRandomized = selections.randomize;
-          const difficultiesChosen = selections.difficulties;
+          // Use the helper function to fetch and process questions
+          const correctQuestions = await fetchAndProcessQuestions(
+            questionsData,
+            selections
+          );
 
-          let questionsToFetch: PlainQuestionType[];
-
-          if (
-            isRandomized &&
-            difficultiesChosen &&
-            difficultiesChosen.length > 0
-          ) {
-            // Filter questions by selected difficulties
-            const questionsByDifficulty: {
-              [key: string]: PlainQuestionType[];
-            } = {};
-
-            // Group questions by difficulty
-            difficultiesChosen.forEach((difficulty) => {
-              questionsByDifficulty[difficulty] = questionsData.filter(
-                (question) => question.difficulty === difficulty
-              );
-            });
-
-            // Calculate how many questions to take from each difficulty
-            const totalQuestions = 22;
-            const questionsPerDifficulty = Math.floor(
-              totalQuestions / difficultiesChosen.length
-            );
-            const remainder = totalQuestions % difficultiesChosen.length;
-
-            const selectedQuestions: PlainQuestionType[] = [];
-
-            difficultiesChosen.forEach((difficulty, index) => {
-              const questionsForThisDifficulty =
-                questionsByDifficulty[difficulty] || [];
-
-              // Add one extra question to the first 'remainder' difficulties to distribute the remainder
-              const questionsToTakeFromThisDifficulty =
-                questionsPerDifficulty + (index < remainder ? 1 : 0);
-
-              // Shuffle questions for this difficulty and take the required amount
-              const shuffledQuestions = [...questionsForThisDifficulty].sort(
-                () => Math.random() - 0.5
-              );
-              const selectedFromThisDifficulty = shuffledQuestions.slice(
-                0,
-                questionsToTakeFromThisDifficulty
-              );
-
-              selectedQuestions.push(...selectedFromThisDifficulty);
-
-              console.log(
-                `Selected ${selectedFromThisDifficulty.length} questions from difficulty ${difficulty}`
-              );
-            });
-
-            // Final shuffle of all selected questions
-            questionsToFetch = selectedQuestions.sort(
-              () => Math.random() - 0.5
-            );
-
-            console.log(
-              `Total questions after difficulty-based selection: ${questionsToFetch.length}`
-            );
-          } else {
-            // Original behavior for non-randomized or when no difficulties specified
-            questionsToFetch = questionsData.slice(0, 22);
-          }
-
-          const questions: {
-            plainQuestion: PlainQuestionType;
-            data: API_Response_Question;
-          }[] = [];
-          const correctQuestions: QuestionState[] = [];
-
-          for (const question of questionsToFetch) {
-            // console.log("Fetching question:", question);
-            const questionData: API_Response_Question =
-              await fetchQuestionsbyIBN_ExternalId(
-                question.external_id
-                  ? question.external_id
-                  : question.ibn
-                  ? question.ibn
-                  : ""
-              );
-
-            // console.log("questionsData", questionsData);
-            if (questionData)
-              questions.push({ plainQuestion: question, data: questionData });
-          }
           dispatch({ type: "SET_CURRENT_STEP", payload: 4 });
-
-          for (let i = 0; i < questions.length; i++) {
-            const question = questions[i];
-            const plainQuestion = question.plainQuestion;
-            const questionsData = question.data;
-
-            // console.log("Processing question:", question, questionsData);
-
-            if (
-              questionsData.correct_answer &&
-              Array.isArray(questionsData.correct_answer) &&
-              questionsData.correct_answer.length > 0
-            ) {
-              correctQuestions.push({
-                ...questionsData,
-                correct_answer: questionsData.correct_answer, // explicitly assign the non-null array
-                plainQuestion: plainQuestion,
-              });
-            }
-            // Process each question as needed
-          }
-
           dispatch({ type: "SET_CURRENT_STEP", payload: 5 });
 
           setTimeout(() => {
@@ -2208,7 +2447,12 @@ export default function PracticeRushMultistep({
         isFetchingRef.current = false;
       }
     },
-    [state.questionsData]
+    [
+      state.questionsData,
+      restoredSessionData,
+      fetchAndProcessQuestions,
+      fetchQuestionDetails,
+    ]
   );
 
   useEffect(() => {
@@ -2469,6 +2713,9 @@ export default function PracticeRushMultistep({
               questionId,
               answer: state.selectedAnswer,
               timeElapsed,
+              externalId: currentQuestion?.externalid || null,
+              ibn: currentQuestion?.ibn || null,
+              plainQuestion: currentQuestion?.plainQuestion, // Include plainQuestion data
             },
           });
 
@@ -2484,6 +2731,7 @@ export default function PracticeRushMultistep({
               external_id:
                 currentQuestion.plainQuestion.external_id || undefined,
               ibn: currentQuestion.plainQuestion.ibn || undefined,
+              plainQuestion: currentQuestion.plainQuestion, // Include full plainQuestion data
               statistic: {
                 time: timeElapsed,
                 answer: state.selectedAnswer,
@@ -2491,6 +2739,7 @@ export default function PracticeRushMultistep({
                 external_id:
                   currentQuestion.plainQuestion.external_id || undefined,
                 ibn: currentQuestion.plainQuestion.ibn || undefined,
+                plainQuestion: currentQuestion.plainQuestion, // Include in statistic as well
               },
             });
 
@@ -2500,8 +2749,66 @@ export default function PracticeRushMultistep({
               currentQuestion.plainQuestion.questionId,
               currentQuestion.plainQuestion.difficulty as "E" | "M" | "H",
               correct,
-              timeElapsed
+              timeElapsed,
+              currentQuestion.plainQuestion // Include plainQuestion data
             );
+
+            // Update user profile and XP based on answer correctness
+            const scoreBandRange =
+              currentQuestion.plainQuestion.score_band_range_cd;
+            let updatedProfile;
+            let sessionXPChange = 0;
+
+            if (correct) {
+              // Add XP for correct answer
+              updatedProfile = addXPForCorrectAnswer(
+                currentQuestion.plainQuestion.questionId,
+                scoreBandRange
+              );
+
+              // Calculate session XP change
+              sessionXPChange = scoreBandRange * 10;
+
+              // Show XP gain notification
+              const xpGain = scoreBandRange * 10;
+              toast.success(`Correct! +${xpGain} XP! 🎯`, {
+                description: `Total XP: ${updatedProfile.totalXP} | Level: ${updatedProfile.level}`,
+                duration: 3000,
+              });
+            } else {
+              // Reduce XP for incorrect answer
+              updatedProfile = reduceXPForIncorrectAnswer(
+                currentQuestion.plainQuestion.questionId,
+                scoreBandRange
+              );
+
+              // Calculate session XP change (negative)
+              sessionXPChange = -Math.floor((scoreBandRange * 10) / 2);
+
+              // Show XP loss notification
+              const xpLoss = Math.floor((scoreBandRange * 10) / 2);
+              toast.error(`Incorrect. -${xpLoss} XP 💔`, {
+                description: `Total XP: ${updatedProfile.totalXP} | Level: ${updatedProfile.level}`,
+                duration: 3000,
+              });
+            }
+
+            // Update session XP tracking
+            dispatch({ type: "ADD_SESSION_XP", payload: sessionXPChange });
+
+            // Update practice history immediately with new XP
+            updateSessionXP(state.sessionId, sessionXPChange);
+
+            console.log("📊 Updated user profile:", {
+              totalXP: updatedProfile.totalXP,
+              level: updatedProfile.level,
+              questionsAnswered: updatedProfile.questionsAnswered,
+              correctAnswers: updatedProfile.correctAnswers,
+              incorrectAnswers: updatedProfile.incorrectAnswers,
+              sessionXPChange,
+            });
+
+            // currentQuestion.plainQuestion.score_band_range_cd
           } catch (error) {
             console.error("Error saving question statistic:", error);
             toast.error("Failed to Save Statistics", {
@@ -2549,14 +2856,15 @@ export default function PracticeRushMultistep({
       state.currentQuestionElapsedTime,
       state.questionAnswers,
       state.inProgressQuestionTimes,
+      state.sessionId,
       practiceSelections,
     ]
   );
 
-  function handleExit() {
-    // Show exit confirmation popup instead of directly exiting
-    dispatch({ type: "TOGGLE_EXIT_CONFIRMATION" });
-  }
+  // function handleExit() {
+  //   // Show exit confirmation popup instead of directly exiting
+  //   dispatch({ type: "TOGGLE_EXIT_CONFIRMATION" });
+  // }
 
   function handleFinish() {
     // Show finish confirmation popup
@@ -2613,6 +2921,7 @@ export default function PracticeRushMultistep({
       currentQuestionStep: state.currentQuestionStep,
       questionAnswers: state.questionAnswers,
       questionTimes: state.questionTimes,
+      answeredQuestionDetails: state.answeredQuestionDetails,
       totalQuestions: state.questions?.length || 0,
       answeredQuestions,
       correctAnswers: correctAnswersCount,
@@ -2631,6 +2940,7 @@ export default function PracticeRushMultistep({
         (sum, time) => sum + time,
         0
       ),
+      totalXPReceived: state.sessionXPReceived, // Include session XP tracking
     };
 
     try {
@@ -2940,16 +3250,10 @@ export default function PracticeRushMultistep({
                             try {
                               const existingSavedQuestions =
                                 localStorage.getItem("savedQuestions");
-                              const savedQuestions: Record<
-                                string,
-                                Array<{
-                                  questionId: string;
-                                  externalId?: string | null;
-                                  ibn?: string | null;
-                                }>
-                              > = existingSavedQuestions
-                                ? JSON.parse(existingSavedQuestions)
-                                : {};
+                              const savedQuestions: SavedQuestions =
+                                existingSavedQuestions
+                                  ? JSON.parse(existingSavedQuestions)
+                                  : {};
 
                               const assessmentKey =
                                 practiceSelections.assessment;
@@ -2970,13 +3274,18 @@ export default function PracticeRushMultistep({
 
                               if (questionIndex === -1) {
                                 // Question not saved, so save it
-                                savedQuestions[assessmentKey].push({
+                                const newSavedQuestion: SavedQuestion = {
                                   questionId:
                                     currentQuestion.plainQuestion.questionId,
                                   externalId:
                                     currentQuestion.plainQuestion.external_id,
                                   ibn: currentQuestion.plainQuestion.ibn,
-                                });
+                                  plainQuestion: currentQuestion.plainQuestion, // Include full plainQuestion data
+                                  timestamp: new Date().toISOString(),
+                                };
+                                savedQuestions[assessmentKey].push(
+                                  newSavedQuestion
+                                );
                                 console.log("Question saved successfully!");
                               } else {
                                 // Question already saved, so remove it
@@ -3013,16 +3322,10 @@ export default function PracticeRushMultistep({
                             try {
                               const existingSavedQuestions =
                                 localStorage.getItem("savedQuestions");
-                              const savedQuestions: Record<
-                                string,
-                                Array<{
-                                  questionId: string;
-                                  externalId?: string | null;
-                                  ibn?: string | null;
-                                }>
-                              > = existingSavedQuestions
-                                ? JSON.parse(existingSavedQuestions)
-                                : {};
+                              const savedQuestions: SavedQuestions =
+                                existingSavedQuestions
+                                  ? JSON.parse(existingSavedQuestions)
+                                  : {};
 
                               const assessmentKey =
                                 practiceSelections.assessment;

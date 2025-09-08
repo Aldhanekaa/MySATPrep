@@ -5,6 +5,9 @@
 
 import { QuestionDifficulty } from "./question";
 
+// Import PlainQuestionType for enhanced answered question details
+import type { PlainQuestionType } from "./question";
+
 // Session configuration constants
 export const SESSION_CONFIG = {
   MAX_HISTORY_SESSIONS: 10,
@@ -78,6 +81,23 @@ export interface QuestionTimes {
   [questionId: string]: number;
 }
 
+/**
+ * Question details for answered questions
+ * Contains metadata about each answered question
+ */
+export interface AnsweredQuestionDetail {
+  questionId: string;
+  externalId: string | null;
+  ibn: string | null;
+  plainQuestion?: PlainQuestionType; // Optional plain question data for enhanced details
+}
+
+/**
+ * Array of answered question details
+ * Tracks metadata for all questions answered in a session
+ */
+export type AnsweredQuestionDetails = AnsweredQuestionDetail[];
+
 // Session analytics and statistics
 export interface SessionAnalytics {
   totalQuestions: number;
@@ -104,12 +124,14 @@ export interface PracticeSession {
   // Response data
   questionAnswers: QuestionAnswers;
   questionTimes: QuestionTimes;
+  answeredQuestionDetails: AnsweredQuestionDetails; // New field for question metadata
 
   // Analytics (computed values)
   totalQuestions: number;
   answeredQuestions: string[];
   averageTimePerQuestion: number;
   totalTimeSpent: number;
+  totalXPReceived?: number; // XP gained/lost during this session
 }
 
 // Extended session with additional analytics
@@ -213,6 +235,7 @@ export const isValidPracticeSession = (
     "practiceSelections" in obj &&
     "questionAnswers" in obj &&
     "questionTimes" in obj &&
+    "answeredQuestionDetails" in obj &&
     "answeredQuestions" in obj &&
     "totalQuestions" in obj &&
     "averageTimePerQuestion" in obj &&
@@ -221,6 +244,7 @@ export const isValidPracticeSession = (
     typeof (obj as PracticeSession).timestamp === "string" &&
     typeof (obj as PracticeSession).currentQuestionStep === "number" &&
     Array.isArray((obj as PracticeSession).answeredQuestions) &&
+    Array.isArray((obj as PracticeSession).answeredQuestionDetails) &&
     typeof (obj as PracticeSession).totalQuestions === "number" &&
     typeof (obj as PracticeSession).averageTimePerQuestion === "number" &&
     typeof (obj as PracticeSession).totalTimeSpent === "number"
@@ -269,6 +293,7 @@ export const createPracticeSession = (
     currentQuestionStep: 0,
     questionAnswers: {},
     questionTimes: {},
+    answeredQuestionDetails: [], // Initialize empty array
     totalQuestions: options.totalQuestions,
     answeredQuestions: [],
     averageTimePerQuestion: 0,

@@ -51,10 +51,14 @@ export default function PracticeRushCelebration({
     sessionData.averageTimePerQuestion / 1000
   );
 
-  // Generate XP based on performance (gamification element)
-  const baseXP = totalAnswered * 2; // 2 XP per question attempted
-  const bonusXP = correctAnswers * 3; // 3 bonus XP per correct answer
-  const totalXP = baseXP + bonusXP;
+  // Use actual XP received from session data, fallback to calculated value for backward compatibility
+  const actualXPReceived = sessionData.totalXPReceived ?? 0;
+  const fallbackXP = totalAnswered * 2 + correctAnswers * 3; // Legacy calculation
+  const displayXP = actualXPReceived !== 0 ? actualXPReceived : fallbackXP;
+
+  // Determine if XP was positive, negative, or neutral
+  const xpChangeType =
+    actualXPReceived > 0 ? "gained" : actualXPReceived < 0 ? "lost" : "neutral";
 
   // Determine celebration message based on performance
   const getCelebrationMessage = () => {
@@ -104,24 +108,74 @@ export default function PracticeRushCelebration({
 
         {/* Statistics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Total XP / Questions Answered */}
+          {/* XP Gained/Lost / Questions Answered */}
           <div className="relative">
-            <div className="bg-orange-400 rounded-2xl py-4 px-2 text-center shadow-lg border-b-4 border-orange-600 transform transition-all duration-200 hover:shadow-xl hover:border-orange-700">
+            <div
+              className={`rounded-2xl py-4 px-2 text-center shadow-lg border-b-4 transform transition-all duration-200 hover:shadow-xl ${
+                xpChangeType === "gained"
+                  ? "bg-green-400 border-green-600 hover:border-green-700"
+                  : xpChangeType === "lost"
+                  ? "bg-red-400 border-red-600 hover:border-red-700"
+                  : "bg-orange-400 border-orange-600 hover:border-orange-700"
+              }`}
+            >
               <div className="bg-white rounded-xl p-4 mx-2 mb-4">
                 <div className="flex justify-center mb-3">
-                  <div className="bg-orange-100 rounded-full p-2">
-                    <Trophy className="h-8 w-8 text-orange-500" />
+                  <div
+                    className={`rounded-full p-2 ${
+                      xpChangeType === "gained"
+                        ? "bg-green-100"
+                        : xpChangeType === "lost"
+                        ? "bg-red-100"
+                        : "bg-orange-100"
+                    }`}
+                  >
+                    <Trophy
+                      className={`h-8 w-8 ${
+                        xpChangeType === "gained"
+                          ? "text-green-500"
+                          : xpChangeType === "lost"
+                          ? "text-red-500"
+                          : "text-orange-500"
+                      }`}
+                    />
                   </div>
                 </div>
-                <p className="text-3xl font-bold text-orange-700 mb-1">
-                  {totalXP}
+                <p
+                  className={`text-3xl font-bold mb-1 ${
+                    xpChangeType === "gained"
+                      ? "text-green-700"
+                      : xpChangeType === "lost"
+                      ? "text-red-700"
+                      : "text-orange-700"
+                  }`}
+                >
+                  {xpChangeType === "gained"
+                    ? "+"
+                    : xpChangeType === "lost"
+                    ? ""
+                    : ""}
+                  {Math.abs(displayXP)}
                 </p>
-                <p className="text-sm text-orange-600">
+                <p
+                  className={`text-sm ${
+                    xpChangeType === "gained"
+                      ? "text-green-600"
+                      : xpChangeType === "lost"
+                      ? "text-red-600"
+                      : "text-orange-600"
+                  }`}
+                >
                   {totalAnswered} questions answered
                 </p>
               </div>
               <p className="text-sm font-bold text-white uppercase tracking-wide">
-                TOTAL XP
+                XP{" "}
+                {xpChangeType === "gained"
+                  ? "GAINED"
+                  : xpChangeType === "lost"
+                  ? "LOST"
+                  : "TOTAL"}
               </p>
             </div>
           </div>

@@ -6,7 +6,13 @@ import { SiteHeader } from "../navbar";
 import PracticeOnboarding from "@/components/practice-onboarding";
 import PracticeRushMultistep from "@/components/practice-rush-multistep";
 import PracticeRushCelebration from "@/components/celebrating-section/practice-rush-celebration";
-import { PracticeSelections, PracticeSession } from "@/types/session";
+import {
+  PracticeSelections,
+  PracticeSession,
+  isValidPracticeSession,
+  isValidPracticeSelections,
+  SessionStatus,
+} from "@/types/session";
 import { QuestionDifficulty } from "@/types/question";
 import { domains as domainsData } from "@/static-data/domains";
 import { Assessments } from "@/static-data/assessment";
@@ -23,6 +29,7 @@ import {
   validSubjects,
   validPracticeTypes,
 } from "@/static-data/validation";
+import { PracticeSessionRestorer } from "@/components/practice-session-restorer";
 
 // Validation functions for URL parameters
 function validateAssessment(assessment: string): boolean {
@@ -103,9 +110,301 @@ export default function Practice() {
   const [showValidationBanner, setShowValidationBanner] =
     useState<boolean>(false);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [shouldRestoreSession, setShouldRestoreSession] =
+    useState<boolean>(false);
+  const [restoredSessionData, setRestoredSessionData] =
+    useState<PracticeSession | null>(null);
 
-  // Check for URL parameters and validate them
+  // Check for session continuation parameter first
   useEffect(() => {
+    const sessionParam = searchParams.get("session");
+
+    if (sessionParam === "continue") {
+      console.log(
+        "Detected session=continue parameter, validating localStorage data..."
+      );
+
+      // Validate currentPracticeSession localStorage data
+      try {
+        const currentSessionData = localStorage.getItem(
+          "currentPracticeSession"
+        );
+
+        // Check for null, undefined, empty string, or any falsy value
+        if (!currentSessionData || currentSessionData.trim() === "") {
+          console.warn(
+            "No currentPracticeSession found in localStorage, falling back to onboarding"
+          );
+          toast.error("No Active Session Found", {
+            description:
+              "No practice session was found to continue. Please start a new practice session.",
+            duration: 5000,
+          });
+          setShouldRestoreSession(false);
+          // Force redirect to normal onboarding by removing the session parameter
+          const url = new URL(window.location.href);
+          url.searchParams.delete("session");
+          window.history.replaceState({}, "", url.toString());
+          return;
+        }
+
+        // Parse and validate the session data
+        let sessionData: PracticeSession;
+        try {
+          sessionData = JSON.parse(currentSessionData);
+        } catch (parseError) {
+          console.error(
+            "Failed to parse currentPracticeSession JSON:",
+            parseError
+          );
+          toast.error("Invalid Session Data", {
+            description:
+              "The saved session data is corrupted. Please start a new practice session.",
+            duration: 5000,
+          });
+          // Clean up corrupted data
+          localStorage.removeItem("currentPracticeSession");
+          setShouldRestoreSession(false);
+          // Force redirect to normal onboarding by removing the session parameter
+          const url = new URL(window.location.href);
+          url.searchParams.delete("session");
+          window.history.replaceState({}, "", url.toString());
+          return;
+        }
+
+        // Validate session structure using type guard
+        if (!isValidPracticeSession(sessionData)) {
+          console.error(
+            "Invalid session structure found in localStorage:",
+            sessionData
+          );
+          toast.error("Invalid Session Format", {
+            description:
+              "The saved session data format is invalid. Please start a new practice session.",
+            duration: 5000,
+          });
+          // Clean up invalid data
+          localStorage.removeItem("currentPracticeSession");
+          setShouldRestoreSession(false);
+          // Force redirect to normal onboarding by removing the session parameter
+          const url = new URL(window.location.href);
+          url.searchParams.delete("session");
+          window.history.replaceState({}, "", url.toString());
+          return;
+        }
+
+        // Additional validation: check session status
+        if (sessionData.status === SessionStatus.COMPLETED) {
+          console.warn(
+            "Found completed session, cannot continue. Falling back to onboarding"
+          );
+          toast.error("Session Already Completed", {
+            description:
+              "This practice session has already been completed. Please start a new practice session.",
+            duration: 5000,
+          });
+          // Clean up completed session
+          localStorage.removeItem("currentPracticeSession");
+          setShouldRestoreSession(false);
+          // Force redirect to normal onboarding by removing the session parameter
+          const url = new URL(window.location.href);
+          url.searchParams.delete("session");
+          window.history.replaceState({}, "", url.toString());
+          return;
+        }
+
+        if (sessionData.status === SessionStatus.ABANDONED) {
+          console.warn(
+            "Found abandoned session, cannot continue. Falling back to onboarding"
+          );
+          toast.error("Session Was Abandoned", {
+            description:
+              "This practice session was previously abandoned. Please start a new practice session.",
+            duration: 5000,
+          });
+          setShouldRestoreSession(false);
+          // Force redirect to normal onboarding by removing the session parameter
+          const url = new URL(window.location.href);
+          url.searchParams.delete("session");
+          window.history.replaceState({}, "", url.toString());
+          return;
+        }
+
+        // Validate practice selections structure
+        if (!isValidPracticeSelections(sessionData.practiceSelections)) {
+          console.error(
+            "Invalid practice selections found in session:",
+            sessionData.practiceSelections
+          );
+          toast.error("Invalid Practice Configuration", {
+            description:
+              "The saved practice configuration is invalid. Please start a new practice session.",
+            duration: 5000,
+          });
+          localStorage.removeItem("currentPracticeSession");
+          setShouldRestoreSession(false);
+          // Force redirect to normal onboarding by removing the session parameter
+          const url = new URL(window.location.href);
+          url.searchParams.delete("session");
+          window.history.replaceState({}, "", url.toString());
+          return;
+        }
+
+        // Handle backward compatibility for missing fields
+        if (!sessionData.answeredQuestionDetails) {
+          console.log(
+            "Adding backward compatibility for answeredQuestionDetails"
+          );
+          sessionData.answeredQuestionDetails = [];
+        }
+
+        // Additional validation: check if session has meaningful data
+        if (!sessionData.sessionId || sessionData.sessionId.trim() === "") {
+          console.error("Session has empty or invalid sessionId");
+          toast.error("Invalid Session ID", {
+            description:
+              "The saved session has an invalid ID. Please start a new practice session.",
+            duration: 5000,
+          });
+          localStorage.removeItem("currentPracticeSession");
+          setShouldRestoreSession(false);
+          // Force redirect to normal onboarding by removing the session parameter
+          const url = new URL(window.location.href);
+          url.searchParams.delete("session");
+          window.history.replaceState({}, "", url.toString());
+          return;
+        }
+
+        // Check if practice selections have required data
+        const selections = sessionData.practiceSelections;
+        if (!selections.domains || selections.domains.length === 0) {
+          console.error("Session has no domains selected");
+          toast.error("Invalid Practice Configuration", {
+            description:
+              "The saved session has no practice domains. Please start a new practice session.",
+            duration: 5000,
+          });
+          localStorage.removeItem("currentPracticeSession");
+          setShouldRestoreSession(false);
+          // Force redirect to normal onboarding by removing the session parameter
+          const url = new URL(window.location.href);
+          url.searchParams.delete("session");
+          window.history.replaceState({}, "", url.toString());
+          return;
+        }
+
+        if (!selections.skills || selections.skills.length === 0) {
+          console.error("Session has no skills selected");
+          toast.error("Invalid Practice Configuration", {
+            description:
+              "The saved session has no practice skills. Please start a new practice session.",
+            duration: 5000,
+          });
+          localStorage.removeItem("currentPracticeSession");
+          setShouldRestoreSession(false);
+          // Force redirect to normal onboarding by removing the session parameter
+          const url = new URL(window.location.href);
+          url.searchParams.delete("session");
+          window.history.replaceState({}, "", url.toString());
+          return;
+        }
+
+        console.log(
+          "Session validation successful, proceeding with restoration:",
+          {
+            sessionId: sessionData.sessionId,
+            status: sessionData.status,
+            currentStep: sessionData.currentQuestionStep,
+            totalQuestions: sessionData.totalQuestions,
+            answeredQuestions: sessionData.answeredQuestions.length,
+            domains: selections.domains.length,
+            skills: selections.skills.length,
+          }
+        );
+
+        // Store the session data to be passed down as props
+        setRestoredSessionData(sessionData);
+        setShouldRestoreSession(true);
+      } catch (error) {
+        console.error("Error validating session data:", error);
+        toast.error("Session Validation Failed", {
+          description:
+            "Failed to validate the saved session. Please start a new practice session.",
+          duration: 5000,
+        });
+        setShouldRestoreSession(false);
+        // Force redirect to normal onboarding by removing the session parameter
+        const url = new URL(window.location.href);
+        url.searchParams.delete("session");
+        window.history.replaceState({}, "", url.toString());
+        return;
+      }
+    }
+  }, [searchParams]);
+
+  // Handle session restoration
+  const handleSessionRestored = (
+    practiceSelections: PracticeSelections,
+    sessionData?: PracticeSession
+  ) => {
+    console.log("Successfully restored practice session:", {
+      sessionId: sessionData?.sessionId,
+      currentStep: sessionData?.currentQuestionStep,
+      subject: practiceSelections.subject,
+      assessment: practiceSelections.assessment,
+    });
+
+    // No need to store in sessionStorage since we're passing it as props
+    setPracticeSelections(practiceSelections);
+    setOnboardingComplete(true);
+    setShouldRestoreSession(false);
+
+    // Play success sound
+    playSound("loading.wav");
+  };
+
+  const handleRestorationFailed = (error: string) => {
+    console.error(
+      "Session restoration failed from PracticeSessionRestorer:",
+      error
+    );
+    setShouldRestoreSession(false);
+    setRestoredSessionData(null); // Clear the restored session data
+
+    // Show user-friendly error message
+    toast.error("Session Restoration Failed", {
+      description:
+        error ||
+        "Could not restore your previous session. Starting fresh practice session.",
+      duration: 5000,
+    });
+
+    // Reset any existing state and continue with normal onboarding flow
+    setOnboardingComplete(false);
+    setPracticeSelections(null);
+    setSessionComplete(false);
+    setSessionData(null);
+
+    // Force redirect to normal onboarding by removing the session parameter
+    const url = new URL(window.location.href);
+    url.searchParams.delete("session");
+    window.history.replaceState({}, "", url.toString());
+
+    console.log(
+      "Redirecting to normal onboarding flow due to restoration failure"
+    );
+  };
+
+  // Check for URL parameters and validate them (skip if restoring session)
+  useEffect(() => {
+    // Skip URL parameter processing if we're restoring a session
+    if (shouldRestoreSession) {
+      console.log(
+        "Skipping URL parameter processing - restoring session instead"
+      );
+      return;
+    }
+
     const assessment = searchParams.get("assessment");
     const urlSubject = searchParams.get("subject");
     const domains = searchParams.get("domains");
@@ -124,6 +423,7 @@ export default function Practice() {
       !type &&
       !randomize
     ) {
+      console.log("No URL parameters found - showing normal onboarding");
       return;
     }
 
@@ -406,7 +706,7 @@ export default function Practice() {
         setShowValidationBanner(true);
       }
     }
-  }, [searchParams]);
+  }, [searchParams, shouldRestoreSession]);
 
   const handleOnboardingComplete = (selections: PracticeSelections) => {
     setPracticeSelections(selections);
@@ -431,12 +731,35 @@ export default function Practice() {
     <React.Fragment>
       <SiteHeader />
 
-      {sessionComplete && sessionData ? (
+      {/* Handle session restoration */}
+      {shouldRestoreSession && (
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">
+              Restoring Your Practice Session
+            </h2>
+            <p className="text-gray-600 mb-2">
+              Validating saved session data and restoring your progress...
+            </p>
+            <p className="text-xs text-gray-500">
+              If this takes too long, you&apos;ll be redirected to start a new
+              session
+            </p>
+          </div>
+          <PracticeSessionRestorer
+            onSessionRestored={handleSessionRestored}
+            onRestorationFailed={handleRestorationFailed}
+          />
+        </div>
+      )}
+
+      {!shouldRestoreSession && sessionComplete && sessionData ? (
         <PracticeRushCelebration
           sessionData={sessionData}
           onContinue={handleContinuePracticing}
         />
-      ) : !onboardingComplete ? (
+      ) : !shouldRestoreSession && !onboardingComplete ? (
         <React.Fragment>
           <PracticeOnboarding onComplete={handleOnboardingComplete} />
           {showValidationBanner && validationErrors.length > 0 && (
@@ -478,14 +801,13 @@ export default function Practice() {
             />
           )}
         </React.Fragment>
-      ) : (
-        practiceSelections && (
-          <PracticeRushMultistep
-            practiceSelections={practiceSelections}
-            onSessionComplete={handleSessionComplete}
-          />
-        )
-      )}
+      ) : !shouldRestoreSession && practiceSelections ? (
+        <PracticeRushMultistep
+          practiceSelections={practiceSelections}
+          onSessionComplete={handleSessionComplete}
+          restoredSessionData={restoredSessionData || undefined}
+        />
+      ) : null}
     </React.Fragment>
   );
 }

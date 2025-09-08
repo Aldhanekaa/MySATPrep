@@ -16,6 +16,8 @@ import {
   ClassStatistics,
 } from "@/types/statistics";
 import { DomainItems, SkillCd_Variants } from "@/types/lookup";
+import { PlainQuestionType } from "@/types/question";
+import { PracticeSession } from "@/types/session";
 
 // localStorage key for practice statistics
 const PRACTICE_STATISTICS_KEY = "practiceStatistics";
@@ -113,11 +115,12 @@ export function addQuestionStatistic(entry: StatisticEntry): void {
     assessmentStats.statistics[entry.primaryClassCd][entry.skillCd] = {};
   }
 
-  // Add the question statistic (including external_id and ibn in the statistic)
+  // Add the question statistic (including external_id, ibn, and plainQuestion in the statistic)
   const statisticWithIds = {
     ...entry.statistic,
     external_id: entry.external_id,
     ibn: entry.ibn,
+    plainQuestion: entry.plainQuestion,
   };
 
   assessmentStats.statistics[entry.primaryClassCd][entry.skillCd][
@@ -136,7 +139,8 @@ export function addAnsweredQuestion(
   questionId: string,
   difficulty: "E" | "M" | "H",
   isCorrect: boolean,
-  timeSpent: number
+  timeSpent: number,
+  plainQuestion?: PlainQuestionType
 ): void {
   console.log("Adding detailed answered question:", questionId);
   const statistics = getPracticeStatistics();
@@ -163,6 +167,7 @@ export function addAnsweredQuestion(
     isCorrect,
     timeSpent,
     timestamp: new Date().toISOString(),
+    plainQuestion,
   };
 
   if (existingIndex !== -1) {
@@ -357,6 +362,38 @@ export function importStatistics(jsonData: string): boolean {
   } catch (error) {
     console.error("Error importing statistics:", error);
     return false;
+  }
+}
+
+/**
+ * Update XP for a specific session in practice history
+ */
+export function updateSessionXP(sessionId: string, xpChange: number): void {
+  try {
+    const existingSessions = localStorage.getItem("practiceHistory");
+    const sessions: PracticeSession[] = existingSessions
+      ? JSON.parse(existingSessions)
+      : [];
+
+    // Find the session and update its totalXPReceived
+    const existingIndex = sessions.findIndex(
+      (session) => session.sessionId === sessionId
+    );
+
+    if (existingIndex !== -1) {
+      const currentXP = sessions[existingIndex].totalXPReceived || 0;
+      sessions[existingIndex].totalXPReceived = currentXP + xpChange;
+      localStorage.setItem("practiceHistory", JSON.stringify(sessions));
+      console.log(
+        `📊 Updated session ${sessionId} XP: ${currentXP} + ${xpChange} = ${
+          currentXP + xpChange
+        }`
+      );
+    } else {
+      console.warn(`Session ${sessionId} not found in practice history`);
+    }
+  } catch (error) {
+    console.error("Error updating session XP:", error);
   }
 }
 

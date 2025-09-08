@@ -4,6 +4,7 @@
  */
 
 import { SkillCd_Variants, DomainItems } from "./lookup";
+import { PlainQuestionType } from "./question";
 
 // Assessment types that match your practice selections
 export type AssessmentType = "SAT" | "PSAT/NMSQT" | "PSAT";
@@ -15,6 +16,7 @@ export interface QuestionStatistic {
   isCorrect: boolean; // whether the answer was correct
   external_id?: string; // external ID of the question
   ibn?: string; // ISBN of the question
+  plainQuestion?: PlainQuestionType; // Full question metadata
 }
 
 // Statistics organized by skill code and question ID
@@ -39,6 +41,7 @@ export interface AnsweredQuestion {
   isCorrect: boolean;
   timeSpent: number; // time in milliseconds
   timestamp: string; // ISO timestamp when answered
+  plainQuestion?: PlainQuestionType; // Full question metadata
 }
 
 // Assessment-level statistics
@@ -65,6 +68,7 @@ export interface StatisticEntry {
   statistic: QuestionStatistic;
   external_id?: string;
   ibn?: string;
+  plainQuestion?: PlainQuestionType; // Full question metadata
 }
 
 // Summary statistics for analysis

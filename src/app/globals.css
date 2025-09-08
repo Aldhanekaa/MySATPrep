@@ -122,6 +122,9 @@
 }
 
 /* styles/globals.css */
+#question_stem img {
+  display: inline-block;
+}
 
 /* Style tables only inside .answer-option */
 .answer-option table {
