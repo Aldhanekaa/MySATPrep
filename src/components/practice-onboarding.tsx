@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useId, useState } from "react";
+import React, { useId, useState, useEffect } from "react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
@@ -42,6 +42,11 @@ export default function PracticeOnboarding({
   const [selectedDifficulties, setSelectedDifficulties] = useState<string[]>(
     []
   );
+
+  // Scroll to top when step changes
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [step]);
 
   const items = [
     {
@@ -174,10 +179,17 @@ export default function PracticeOnboarding({
   };
 
   const selectAllSkills = () => {
+    // Get all skill IDs from all domains (not just selected ones)
     const allSkillIds = getSubjectDomains()
-      .filter((domain) => selectedDomains.includes(domain.id))
       .flatMap((domain) => domain.skill || [])
       .map((skill) => skill.id);
+
+    // Also select all domains that have skills
+    const domainsWithSkills = getSubjectDomains()
+      .filter((domain) => domain.skill && domain.skill.length > 0)
+      .map((domain) => domain.id);
+
+    setSelectedDomains(domainsWithSkills);
     setSelectedSkills(allSkillIds);
   };
 
@@ -638,9 +650,9 @@ export default function PracticeOnboarding({
                     </h2>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       {[
-                        { value: "Easy", label: "Easy" },
-                        { value: "Medium", label: "Medium" },
-                        { value: "Hard", label: "Hard" },
+                        { value: "E", label: "Easy" },
+                        { value: "M", label: "Medium" },
+                        { value: "H", label: "Hard" },
                       ].map((difficulty) => (
                         <div
                           key={`${id}-difficulty-${difficulty.value}`}

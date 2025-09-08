@@ -84,15 +84,16 @@ export async function GET(
         if (questionData.answer.style === "Multiple Choice") {
           api_response = {
             answerOptions: {
-              a: questionData.answer.choices.a.body,
-              b: questionData.answer.choices.b.body,
-              c: questionData.answer.choices.c.body,
-              d: questionData.answer.choices.d.body,
+              A: questionData.answer.choices.a.body,
+              B: questionData.answer.choices.b.body,
+              C: questionData.answer.choices.c.body,
+              D: questionData.answer.choices.d.body,
             },
-            correct_answer: [questionData.answer.correct_choice],
+            correct_answer: [questionData.answer.correct_choice.toUpperCase()],
             rationale: questionData.answer.rationale,
             stem: questionData.prompt,
             type: "mcq",
+            stimulus: questionData.body,
 
             ibn: questionId,
           };
@@ -103,6 +104,7 @@ export async function GET(
             rationale: questionData.answer.rationale,
             stem: questionData.prompt,
             type: "spr",
+            stimulus: questionData.body,
 
             ibn: questionId,
           };
@@ -190,15 +192,21 @@ export async function GET(
         api_response = {
           answerOptions: questionData.answerOptions.reduce(
             (acc, option, idx) => {
-              const key = ["a", "b", "c", "d"][idx] as "a" | "b" | "c" | "d";
-              if (key) acc[key] = option.content;
+              const key = ["a", "b", "c", "d"][idx];
+              if (key)
+                acc[key.toUpperCase() as "A" | "B" | "C" | "D"] =
+                  option.content;
               return acc;
             },
-            {} as { [key in "a" | "b" | "c" | "d"]: string }
+            {} as { [key in "A" | "B" | "C" | "D"]: string }
           ),
-          correct_answer: questionData.correct_answer,
+          correct_answer: questionData.correct_answer.map((e) =>
+            e.toUpperCase()
+          ),
           rationale: questionData.rationale,
           stem: questionData.stem,
+          stimulus: questionData.stimulus,
+
           type: "mcq",
           externalid: questionData.externalid,
         };
@@ -210,6 +218,7 @@ export async function GET(
           stem: questionData.stem,
           type: "spr",
           externalid: questionData.externalid,
+          stimulus: questionData.stimulus,
         };
       }
     }

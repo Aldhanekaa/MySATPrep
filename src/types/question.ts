@@ -15,6 +15,7 @@ export type MultipleChoiceDisclosedQuestion = {
   item_id: string;
   prompt: string;
   section: string;
+  body: null | string;
 };
 
 export type SPRDisclosedQuestion = {
@@ -23,13 +24,15 @@ export type SPRDisclosedQuestion = {
     style: "SPR";
   };
   item_id: string;
+  body: null | string;
+
   prompt: string;
   section: string;
 };
 
 export type ExternalID_ResponseQuestion = {
   answerOptions: Array<{ content: string; id: string }>;
-
+  stimulus: null | string;
   correct_answer: string[];
   keys: string[];
   externalid: string;
@@ -40,7 +43,21 @@ export type ExternalID_ResponseQuestion = {
 
 export type API_Response_Question = {
   answerOptions?: {
-    [key in "a" | "b" | "c" | "d"]: string;
+    [key in "A" | "B" | "C" | "D"]: string;
+  };
+  correct_answer: null | string[];
+  rationale: string;
+  stem: string;
+  type: "mcq" | "spr";
+  stimulus: null | string;
+
+  externalid?: string;
+  ibn?: null | string;
+};
+
+export type Question = {
+  answerOptions?: {
+    [key in "A" | "B" | "C" | "D"]: string;
   };
   correct_answer: string[];
   rationale: string;
@@ -51,7 +68,7 @@ export type API_Response_Question = {
   ibn?: null | string;
 };
 
-export type API_Response_Question_List = Array<{
+export type PlainQuestionType = {
   updateDate: number;
   pPcc: string;
   questionId: string;
@@ -66,4 +83,22 @@ export type API_Response_Question_List = Array<{
   external_id: null | string;
   primary_class_cd: DomainItems;
   difficulty: QuestionDifficulty;
-}>;
+};
+
+export type QuestionState = {
+  answerOptions?: {
+    [key in "A" | "B" | "C" | "D"]: string;
+  };
+  correct_answer: string[];
+  rationale: string;
+  stem: string;
+  type: "mcq" | "spr";
+  stimulus: null | string;
+
+  externalid?: string;
+  ibn?: null | string;
+
+  plainQuestion: PlainQuestionType;
+};
+
+export type API_Response_Question_List = Array<PlainQuestionType>;
