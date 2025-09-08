@@ -41,7 +41,7 @@ export default async function Page({
     JSON.stringify(result.data, null, 2)
   );
 
-  if (!result.success) {
+  if (!result.data) {
     return <div>not found</div>;
   }
 
