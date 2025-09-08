@@ -59,6 +59,7 @@ export interface PracticeSelections {
   skills: Skill[];
   difficulties: QuestionDifficulty[];
   randomize: boolean;
+  questionIds?: string[]; // Optional pre-selected question IDs for shared links
 }
 
 /**
@@ -245,7 +246,9 @@ export const isValidPracticeSelections = (
     Array.isArray((obj as PracticeSelections).domains) &&
     Array.isArray((obj as PracticeSelections).skills) &&
     Array.isArray((obj as PracticeSelections).difficulties) &&
-    typeof (obj as PracticeSelections).randomize === "boolean"
+    typeof (obj as PracticeSelections).randomize === "boolean" &&
+    ((obj as PracticeSelections).questionIds === undefined ||
+      Array.isArray((obj as PracticeSelections).questionIds))
   );
 };
 

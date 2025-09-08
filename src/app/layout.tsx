@@ -6,6 +6,8 @@ import "./globals.css";
 import FooterSection from "@/components/footer";
 import { MathJaxContext } from "better-react-mathjax";
 
+import { Toaster } from "sonner";
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -45,6 +47,7 @@ export default function RootLayout({
         </MathJaxContext>
         <SpeedInsights />
         <FooterSection />
+        <Toaster position="bottom-right" expand={false} closeButton={true} />
       </body>
     </html>
   );

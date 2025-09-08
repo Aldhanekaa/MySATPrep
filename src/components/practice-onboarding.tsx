@@ -229,7 +229,7 @@ export default function PracticeOnboarding({
   };
 
   return (
-    <div className="w-full flex flex-col min-h-screen py-60 items-center justify-center">
+    <div className="w-full flex flex-col min-h-[85vh] py-60 items-center justify-center">
       <motion.h1
         className="text-4xl font-bold"
         initial={{ opacity: 0, y: 20 }}

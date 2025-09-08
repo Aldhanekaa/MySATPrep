@@ -13,6 +13,7 @@ import {
   API_Response_Question_List,
   PlainQuestionType,
   QuestionState,
+  QuestionDifficulty,
 } from "@/types/question";
 import {
   PracticeSelections,
@@ -26,6 +27,7 @@ import {
   addQuestionStatistic,
   addAnsweredQuestion,
 } from "@/lib/practiceStatistics";
+import { toast } from "sonner";
 
 import { MathJax } from "better-react-mathjax";
 import { Pill, PillIndicator } from "@/components/ui/pill";
@@ -444,10 +446,13 @@ function ShareModal({
     const skillCds = practiceSelections.skills.map((s) => s.skill_cd).join(",");
 
     const params = new URLSearchParams({
+      type: practiceSelections.practiceType,
       assessment: practiceSelections.assessment,
+      subject: practiceSelections.subject,
       domains: domainIds,
       skillCds: skillCds,
       questionIds: questionIds,
+      randomize: practiceSelections.randomize.toString(),
     });
 
     const url = `${window.location.origin}/practice?${params.toString()}`;
@@ -475,6 +480,11 @@ function ShareModal({
       setTimeout(() => setIsCopied(false), 3000);
     } catch (error) {
       console.error("Failed to copy to clipboard:", error);
+      toast.error("Failed to Copy Link", {
+        description:
+          "Couldn't copy the link to your clipboard. Please try again or copy manually.",
+        duration: 4000,
+      });
     }
   };
 
@@ -1366,6 +1376,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
       return {
         ...state,
         isLoadingNextBatch: true,
+        questionsProcessedCount: 0, // Reset count when starting new batch
         currentStep: 3, // Show loading screen
       };
     case "FINISH_LOADING_NEXT_BATCH":
@@ -1532,6 +1543,11 @@ export default function PracticeRushMultistep({
       }, 500);
     } catch (error) {
       console.error("Failed to save session:", error);
+      toast.error("Failed to Save Session", {
+        description:
+          "Your progress couldn't be saved. Please check your connection and try again.",
+        duration: 5000,
+      });
       isSavingRef.current = false;
       dispatch({ type: "SET_SAVING_SESSION", payload: false });
     }
@@ -1604,6 +1620,11 @@ export default function PracticeRushMultistep({
         }
       } catch (error) {
         console.error("Error restoring session:", error);
+        toast.error("Failed to Restore Session", {
+          description:
+            "Couldn't restore your previous session. Starting a fresh practice session.",
+          duration: 4000,
+        });
       }
 
       dispatch({
@@ -1839,6 +1860,11 @@ export default function PracticeRushMultistep({
       }
     } catch (error) {
       console.error("Failed to save completed session:", error);
+      toast.error("Failed to Save Session Results", {
+        description:
+          "Your session results couldn't be saved. Your progress is still preserved locally.",
+        duration: 5000,
+      });
     }
   }, [
     state.sessionId,
@@ -1859,6 +1885,98 @@ export default function PracticeRushMultistep({
   }, [state.currentQuestionStep]);
 
   const FetchQuestions = useCallback(async (selections: PracticeSelections) => {
+    // If questionIds are provided in selections, use them directly
+    if (selections.questionIds && selections.questionIds.length > 0) {
+      console.log(
+        "Using pre-selected questions from shared link:",
+        selections.questionIds
+      );
+
+      dispatch({ type: "SET_CURRENT_STEP", payload: 3 });
+
+      // Create mock questionsData from the provided questionIds
+      const questionsData: API_Response_Question_List =
+        selections.questionIds.map((id, index) => ({
+          updateDate: Date.now(),
+          pPcc: "",
+          questionId: id,
+          skill_cd: "CID", // Default skill code (Central Ideas and Details)
+          score_band_range_cd: 1,
+          uId: `shared-${index}`,
+          skill_desc: "Shared Question",
+          createDate: Date.now(),
+          program: "SAT",
+          primary_class_cd_desc: "Shared Questions",
+          ibn: id,
+          external_id: id,
+          primary_class_cd: "INI", // Default domain (Information and Ideas for R&W)
+          difficulty: "M" as QuestionDifficulty,
+        }));
+
+      dispatch({ type: "SET_QUESTIONS_DATA", payload: questionsData });
+
+      const questionsToFetch = questionsData.slice(0, 22); // Limit to first 22 if more provided
+      const questions: {
+        plainQuestion: PlainQuestionType;
+        data: API_Response_Question;
+      }[] = [];
+      const correctQuestions: QuestionState[] = [];
+
+      for (const question of questionsToFetch) {
+        console.log(
+          "Fetching shared question:",
+          question.external_id || question.ibn
+        );
+        const questionsData: API_Response_Question =
+          await fetchQuestionsbyIBN_ExternalId(
+            question.external_id
+              ? question.external_id
+              : question.ibn
+              ? question.ibn
+              : ""
+          );
+
+        if (questionsData)
+          questions.push({ plainQuestion: question, data: questionsData });
+      }
+
+      dispatch({ type: "SET_CURRENT_STEP", payload: 4 });
+
+      for (let i = 0; i < questions.length; i++) {
+        const question = questions[i];
+        const plainQuestion = question.plainQuestion;
+        const questionsData = question.data;
+
+        if (
+          questionsData.correct_answer &&
+          Array.isArray(questionsData.correct_answer) &&
+          questionsData.correct_answer.length > 0
+        ) {
+          correctQuestions.push({
+            ...questionsData,
+            correct_answer: questionsData.correct_answer,
+            plainQuestion: plainQuestion,
+          });
+        }
+      }
+
+      dispatch({ type: "SET_CURRENT_STEP", payload: 5 });
+
+      setTimeout(() => {
+        // Apply randomization if requested
+        const finalQuestions = selections.randomize
+          ? [...correctQuestions].sort(() => Math.random() - 0.5)
+          : correctQuestions;
+
+        dispatch({ type: "SET_QUESTIONS", payload: finalQuestions });
+        dispatch({ type: "SET_CURRENT_STEP", payload: 5 });
+        dispatch({ type: "START_TIMER" });
+      }, 1500);
+
+      return;
+    }
+
+    // Original logic for when no questionIds are provided
     // load practiceStatistics local storage, and get the current assessment statistics
     const practiceStatistics = localStorage.getItem("practiceStatistics");
     const assessmentStatistics: PracticeStatistics = practiceStatistics
@@ -1894,6 +2012,11 @@ export default function PracticeRushMultistep({
       .then((res) => res.json())
       .catch((error) => {
         console.error("Error fetching questions:", error);
+        toast.error("Failed to Fetch Questions", {
+          description:
+            "Unable to load practice questions. Please check your connection and try again.",
+          duration: 5000,
+        });
         return [];
       });
 
@@ -1977,6 +2100,10 @@ export default function PracticeRushMultistep({
       .then((res) => res.json())
       .catch((error) => {
         console.error("Error fetching question:", error);
+        toast.error("Failed to Load Question", {
+          description: `Unable to load question ${id}. This question will be skipped.`,
+          duration: 4000,
+        });
         return null;
       });
 
@@ -2053,6 +2180,11 @@ export default function PracticeRushMultistep({
       });
     } catch (error) {
       console.error("Error loading next batch:", error);
+      toast.error("Failed to Load More Questions", {
+        description:
+          "Unable to load additional questions. You can continue with current questions or try again later.",
+        duration: 5000,
+      });
       // Reset loading state on error
       dispatch({ type: "SET_CURRENT_STEP", payload: 5 });
     }
@@ -2157,6 +2289,11 @@ export default function PracticeRushMultistep({
             );
           } catch (error) {
             console.error("Error saving question statistic:", error);
+            toast.error("Failed to Save Statistics", {
+              description:
+                "Your answer was recorded but statistics couldn't be saved. You can continue practicing.",
+              duration: 4000,
+            });
           }
 
           // Stop the timer when answer is checked
@@ -2317,6 +2454,11 @@ export default function PracticeRushMultistep({
       }
     } catch (error) {
       console.error("Failed to save practice session:", error);
+      toast.error("Failed to Save Session", {
+        description:
+          "Your session couldn't be saved before exiting. Some progress may be lost.",
+        duration: 5000,
+      });
     }
   }
 
@@ -2644,6 +2786,11 @@ export default function PracticeRushMultistep({
                                 "Failed to save/remove question:",
                                 error
                               );
+                              toast.error("Failed to Save Question", {
+                                description:
+                                  "Couldn't save or remove this question from your saved list. Please try again.",
+                                duration: 4000,
+                              });
                             }
                           }}
                         >
@@ -2828,10 +2975,25 @@ export default function PracticeRushMultistep({
                             {canLoadMore && (
                               <Button
                                 variant="default"
-                                className="flex-1 font-bold text-lg py-6 border-b-4 rounded-2xl text-white shadow-lg transform transition-all duration-200 bg-blue-500 hover:bg-blue-600 border-blue-700 hover:border-blue-800 cursor-pointer hover:shadow-xl active:translate-y-0.5 active:border-b-2"
-                                onClick={() => loadNextBatch()}
+                                className={`flex-1 font-bold text-lg py-6 border-b-4 rounded-2xl text-white shadow-lg transform transition-all duration-200 ${
+                                  state.isLoadingNextBatch
+                                    ? "bg-blue-400 border-blue-500 cursor-not-allowed"
+                                    : "bg-blue-500 hover:bg-blue-600 border-blue-700 hover:border-blue-800 cursor-pointer hover:shadow-xl active:translate-y-0.5 active:border-b-2"
+                                }`}
+                                onClick={() =>
+                                  !state.isLoadingNextBatch && loadNextBatch()
+                                }
+                                disabled={state.isLoadingNextBatch}
                               >
-                                LOAD MORE
+                                {state.isLoadingNextBatch ? (
+                                  <span className="flex items-center justify-center gap-2">
+                                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                    LOADING... ({state.questionsProcessedCount}
+                                    /22)
+                                  </span>
+                                ) : (
+                                  "LOAD MORE"
+                                )}
                               </Button>
                             )}
                             <Button
