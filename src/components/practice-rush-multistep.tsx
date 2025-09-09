@@ -1218,6 +1218,7 @@ type AppAction =
       payload: {
         practiceSelections: PracticeSelections;
         totalQuestions: number;
+        restoredSessionData?: PracticeSession;
       };
     }
   | {
@@ -1471,11 +1472,14 @@ function appReducer(state: AppState, action: AppAction): AppState {
         totalQuestionsToFetch: action.payload,
       };
     case "INITIALIZE_SESSION":
+      // Use restored session ID if available, otherwise create new one
+      const sessionId =
+        action.payload.restoredSessionData?.sessionId ||
+        `practice-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
       return {
         ...state,
-        sessionId: `practice-${Date.now()}-${Math.random()
-          .toString(36)
-          .substr(2, 9)}`,
+        sessionId: sessionId,
         sessionStartTime: Date.now(),
       };
     case "SET_SAVING_SESSION":
@@ -1520,6 +1524,15 @@ export default function PracticeRushMultistep({
   const confettiRef = useRef<ConfettiRef>(null);
 
   const [state, dispatch] = useReducer(appReducer, initialState);
+
+  // Check URL parameters to determine if this is a continue session
+  const isContinueSession = useMemo(() => {
+    if (typeof window !== "undefined") {
+      const urlParams = new URLSearchParams(window.location.search);
+      return urlParams.get("session") === "continue";
+    }
+    return false;
+  }, []);
 
   // Track saving status with ref to avoid re-renders
   const isSavingRef = useRef(false);
@@ -1569,17 +1582,25 @@ export default function PracticeRushMultistep({
       }
     });
 
+    // Determine session status - only set to COMPLETED if explicitly completing
+    // For continue sessions or reviewing incomplete sessions, keep as IN_PROGRESS
     const currentSessionStatus =
       restoredSessionData &&
       (restoredSessionData.status as string) === "completed"
         ? SessionStatus.COMPLETED
         : SessionStatus.IN_PROGRESS;
 
+    // Use restored session ID when continuing/reviewing, otherwise use current session ID
+    const sessionIdToUse =
+      (isContinueSession || isReviewMode) && restoredSessionData?.sessionId
+        ? restoredSessionData.sessionId
+        : state.sessionId;
+
     const currentSession: PracticeSession & {
       correctAnswers?: number;
       accuracyPercentage?: number;
     } = {
-      sessionId: state.sessionId,
+      sessionId: sessionIdToUse,
       timestamp: new Date(state.sessionStartTime).toISOString(),
       status: currentSessionStatus,
       practiceSelections,
@@ -1664,6 +1685,8 @@ export default function PracticeRushMultistep({
     state.sessionXPReceived,
     practiceSelections,
     restoredSessionData,
+    isContinueSession,
+    isReviewMode,
   ]);
 
   const currentQuestion = useMemo(
@@ -1803,10 +1826,14 @@ export default function PracticeRushMultistep({
   // Initialize session when practice starts
   useEffect(() => {
     if (practiceSelections) {
-      // If no restored session data, start a new session
+      // Pass restored session data if available
       dispatch({
         type: "INITIALIZE_SESSION",
-        payload: { practiceSelections, totalQuestions: 0 },
+        payload: {
+          practiceSelections,
+          totalQuestions: 0,
+          restoredSessionData,
+        },
       });
     }
   }, [practiceSelections, restoredSessionData]);
@@ -2240,6 +2267,18 @@ export default function PracticeRushMultistep({
       // Prevent multiple simultaneous calls
       if (isFetchingRef.current) {
         console.log("⏳ FetchQuestions already in progress, skipping...");
+        return;
+      }
+
+      // Additional safeguard: Don't fetch if we're in review mode and already have questions
+      if (
+        effectiveReviewMode &&
+        state.questions &&
+        state.questions.length > 0
+      ) {
+        console.log(
+          "🔍 Review mode: Questions already loaded in state, skipping fetch"
+        );
         return;
       }
 
@@ -2723,6 +2762,16 @@ export default function PracticeRushMultistep({
 
   useEffect(() => {
     if (practiceSelections) {
+      // Don't fetch questions if we're in review mode and already have questions loaded
+      if (
+        effectiveReviewMode &&
+        state.questions &&
+        state.questions.length > 0
+      ) {
+        console.log("🔍 Review mode: Questions already loaded, skipping fetch");
+        return;
+      }
+
       // Create a hash of current selections to check if they've changed
       const selectionsKey = JSON.stringify({
         assessment: practiceSelections.assessment,
@@ -2732,6 +2781,9 @@ export default function PracticeRushMultistep({
         difficulties: practiceSelections.difficulties?.sort(),
         skills: practiceSelections.skills?.map((s) => s.skill_cd).sort(),
         questionIds: practiceSelections.questionIds?.sort(),
+        // Include review mode and session ID in hash to prevent fetching for same session
+        effectiveReviewMode: effectiveReviewMode,
+        sessionId: restoredSessionData?.sessionId,
       });
 
       // Reset flags if selections have actually changed
@@ -2748,7 +2800,13 @@ export default function PracticeRushMultistep({
         FetchQuestions(practiceSelections);
       }
     }
-  }, [practiceSelections, FetchQuestions]);
+  }, [
+    practiceSelections,
+    FetchQuestions,
+    effectiveReviewMode,
+    state.questions,
+    restoredSessionData?.sessionId,
+  ]);
 
   async function fetchQuestionsbyIBN_ExternalId(id: string) {
     const questionResponse: { data: API_Response_Question } = await fetch(

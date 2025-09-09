@@ -9,6 +9,8 @@ import {
   CheckCircle2,
   X,
   Settings,
+  Edit3,
+  Check,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
@@ -308,6 +310,8 @@ export function ActivityCard({
     questionsCompleted: number;
     testsCompleted: number;
   } | null>(null);
+  const [editingGoalId, setEditingGoalId] = useState<string | null>(null);
+  const [editingGoalText, setEditingGoalText] = useState<string>("");
 
   // Load user data and calculate metrics on component mount
   useEffect(() => {
@@ -410,7 +414,9 @@ export function ActivityCard({
   const handleAddGoal = () => {
     const newGoal: Goal = {
       id: `goal-${Date.now()}`, // Use timestamp for unique ID
-      title: `New Goal ${goals.length + 1}`,
+      title: `Custom Goal ${
+        goals.filter((g) => g.id.startsWith("goal-")).length + 1
+      }`,
       isCompleted: false,
     };
     setGoals((prev) => {
@@ -419,6 +425,9 @@ export function ActivityCard({
       saveGoalsToStorage(updatedGoals);
       return updatedGoals;
     });
+    // Immediately start editing the new goal
+    setEditingGoalId(newGoal.id);
+    setEditingGoalText(newGoal.title);
   };
 
   const handleRemoveGoal = (goalId: string) => {
@@ -428,6 +437,30 @@ export function ActivityCard({
       saveGoalsToStorage(updatedGoals);
       return updatedGoals;
     });
+  };
+
+  const handleStartEdit = (goal: Goal) => {
+    setEditingGoalId(goal.id);
+    setEditingGoalText(goal.title);
+  };
+
+  const handleSaveEdit = (goalId: string) => {
+    if (editingGoalText.trim()) {
+      setGoals((prev) => {
+        const updatedGoals = prev.map((goal) =>
+          goal.id === goalId ? { ...goal, title: editingGoalText.trim() } : goal
+        );
+        saveGoalsToStorage(updatedGoals);
+        return updatedGoals;
+      });
+    }
+    setEditingGoalId(null);
+    setEditingGoalText("");
+  };
+
+  const handleCancelEdit = () => {
+    setEditingGoalId(null);
+    setEditingGoalText("");
   };
 
   return (
@@ -622,43 +655,100 @@ export function ActivityCard({
                     "transition-all group"
                   )}
                 >
-                  <button
-                    onClick={() => handleGoalToggle(goal.id)}
-                    className="flex-1 flex items-center gap-3"
-                  >
-                    <CheckCircle2
-                      className={cn(
-                        "w-5 h-5",
-                        goal.isCompleted
-                          ? "text-emerald-500"
-                          : "text-zinc-400 dark:text-zinc-600"
-                      )}
-                    />
-                    <span
-                      className={cn(
-                        "text-sm text-left",
-                        goal.isCompleted
-                          ? "text-zinc-500 dark:text-zinc-400 line-through"
-                          : "text-zinc-700 dark:text-zinc-300"
-                      )}
-                    >
-                      {goal.title}
-                    </span>
-                  </button>
+                  {editingGoalId === goal.id ? (
+                    // Edit mode
+                    <>
+                      <CheckCircle2
+                        className={cn(
+                          "w-5 h-5 flex-shrink-0",
+                          goal.isCompleted
+                            ? "text-emerald-500"
+                            : "text-zinc-400 dark:text-zinc-600"
+                        )}
+                      />
+                      <input
+                        type="text"
+                        value={editingGoalText}
+                        onChange={(e) => setEditingGoalText(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            handleSaveEdit(goal.id);
+                          } else if (e.key === "Escape") {
+                            handleCancelEdit();
+                          }
+                        }}
+                        className="flex-1 px-2 py-1 text-sm bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        autoFocus
+                      />
+                      <button
+                        onClick={() => handleSaveEdit(goal.id)}
+                        className="p-1 rounded-full hover:bg-green-100 dark:hover:bg-green-900/20 transition-colors"
+                        title="Save changes"
+                      >
+                        <Check className="w-4 h-4 text-green-500" />
+                      </button>
+                      <button
+                        onClick={handleCancelEdit}
+                        className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-900/20 transition-colors"
+                        title="Cancel editing"
+                      >
+                        <X className="w-4 h-4 text-gray-500" />
+                      </button>
+                    </>
+                  ) : (
+                    // Display mode
+                    <>
+                      <button
+                        onClick={() => handleGoalToggle(goal.id)}
+                        className="flex items-center gap-3 flex-1"
+                      >
+                        <CheckCircle2
+                          className={cn(
+                            "w-5 h-5",
+                            goal.isCompleted
+                              ? "text-emerald-500"
+                              : "text-zinc-400 dark:text-zinc-600"
+                          )}
+                        />
+                        <span
+                          className={cn(
+                            "text-sm text-left",
+                            goal.isCompleted
+                              ? "text-zinc-500 dark:text-zinc-400 line-through"
+                              : "text-zinc-700 dark:text-zinc-300"
+                          )}
+                        >
+                          {goal.title}
+                        </span>
+                      </button>
 
-                  {/* Remove button - only show on hover or for custom goals */}
-                  <button
-                    onClick={() => handleRemoveGoal(goal.id)}
-                    className={cn(
-                      "p-1 rounded-full hover:bg-red-100 dark:hover:bg-red-900/20 transition-colors",
-                      "opacity-0 group-hover:opacity-100",
-                      // Always show for custom goals (goals with timestamp IDs)
-                      goal.id.startsWith("goal-") && "opacity-100"
-                    )}
-                    title="Remove goal"
-                  >
-                    <X className="w-4 h-4 text-red-500 hover:text-red-600" />
-                  </button>
+                      {/* Edit button */}
+                      <button
+                        onClick={() => handleStartEdit(goal)}
+                        className={cn(
+                          "p-1 rounded-full hover:bg-blue-100 dark:hover:bg-blue-900/20 transition-colors",
+                          "opacity-0 group-hover:opacity-100"
+                        )}
+                        title="Edit goal"
+                      >
+                        <Edit3 className="w-4 h-4 text-blue-500" />
+                      </button>
+
+                      {/* Remove button - only show on hover or for custom goals */}
+                      <button
+                        onClick={() => handleRemoveGoal(goal.id)}
+                        className={cn(
+                          "p-1 rounded-full hover:bg-red-100 dark:hover:bg-red-900/20 transition-colors",
+                          "opacity-0 group-hover:opacity-100",
+                          // Always show for custom goals (goals with timestamp IDs)
+                          goal.id.startsWith("goal-") && "opacity-100"
+                        )}
+                        title="Remove goal"
+                      >
+                        <X className="w-4 h-4 text-red-500 hover:text-red-600" />
+                      </button>
+                    </>
+                  )}
                 </div>
               ))}
             </div>
