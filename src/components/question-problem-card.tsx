@@ -822,6 +822,7 @@ export default function QuestionProblemCard({
     if (isAnswerChecked || isQuestionAnswered) return;
 
     setSelectedAnswer(optionKey);
+    setIsQuestionAnswered(true);
 
     // For multiple choice, immediately validate and submit
     if (question.problem.answerOptions) {
@@ -929,6 +930,7 @@ export default function QuestionProblemCard({
   const handleTextInputSubmit = () => {
     if (selectedAnswer && selectedAnswer.trim()) {
       setIsAnswerChecked(true);
+      setIsQuestionAnswered(true);
       submitAnswer(selectedAnswer.trim());
     }
   };

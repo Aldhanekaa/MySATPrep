@@ -737,21 +737,23 @@ const AnswerOptions = React.memo(function AnswerOptions({
                   </div>
                 </div>
                 <Label className="col-span-8" htmlFor={`${key}-${questionId}`}>
-                  <MathJax
-                    className={`inline-block ${
-                      !isReviewMode && "cursor-pointer"
-                    }`}
-                  >
-                    <span
-                      className="text-xl inline-block"
-                      dangerouslySetInnerHTML={{
-                        __html: value.replaceAll(
-                          /\s*style\s*=\s*"[^"]*"/gi,
-                          ""
-                        ),
-                      }}
-                    ></span>
-                  </MathJax>
+                  <MathJaxContext>
+                    <MathJax
+                      className={`inline-block ${
+                        !isReviewMode && "cursor-pointer"
+                      }`}
+                    >
+                      <span
+                        className="text-xl inline-block"
+                        dangerouslySetInnerHTML={{
+                          __html: value.replaceAll(
+                            /\s*style\s*=\s*"[^"]*"/gi,
+                            ""
+                          ),
+                        }}
+                      ></span>
+                    </MathJax>
+                  </MathJaxContext>
                 </Label>
               </div>
             </label>
@@ -1650,6 +1652,76 @@ export default function PracticeRushMultistep({
     [state.questions, state.currentQuestionStep]
   );
 
+  // Use a ref to track the last processed question in review mode to prevent infinite loops
+  const lastProcessedQuestionRef = useRef<string | null>(null);
+
+  // Set selected answer and checked state when in review mode OR when continuing a session with previous answers
+  useEffect(() => {
+    if (currentQuestion && state.questionAnswers) {
+      const questionId = currentQuestion.plainQuestion.questionId;
+
+      // Skip if we've already processed this question
+      if (lastProcessedQuestionRef.current === questionId) {
+        return;
+      }
+
+      const savedAnswer = state.questionAnswers[questionId];
+
+      // Show previous answers in review mode OR when continuing a session (even if not in review mode)
+      if (savedAnswer && (isReviewMode || state.questionAnswers[questionId])) {
+        // Set the selected answer
+        dispatch({ type: "SET_SELECTED_ANSWER", payload: savedAnswer });
+
+        // Check if the answer was correct
+        const correctAnswers = currentQuestion.correct_answer.map((e) =>
+          e.trim()
+        );
+        const isCorrect = correctAnswers.includes(savedAnswer.trim());
+
+        // Set answer as checked with correct status
+        dispatch({
+          type: "SET_ANSWER_CHECKED",
+          payload: {
+            checked: true,
+            correct: isCorrect,
+            questionId,
+            answer: savedAnswer,
+            timeElapsed: state.questionTimes[questionId] || 0,
+            externalId: currentQuestion?.externalid || null,
+            ibn: currentQuestion?.ibn || null,
+            plainQuestion: currentQuestion?.plainQuestion,
+          },
+        });
+      } else if (!savedAnswer && !isReviewMode) {
+        // If no saved answer and not in review mode, reset to allow new answers
+        dispatch({ type: "SET_SELECTED_ANSWER", payload: "" });
+        dispatch({
+          type: "SET_ANSWER_CHECKED",
+          payload: {
+            checked: false,
+            correct: false,
+            questionId,
+            answer: "",
+            timeElapsed: 0,
+            externalId: currentQuestion?.externalid || null,
+            ibn: currentQuestion?.ibn || null,
+            plainQuestion: currentQuestion?.plainQuestion,
+          },
+        });
+      }
+
+      // Mark this question as processed
+      lastProcessedQuestionRef.current = questionId;
+    } else if (!currentQuestion) {
+      // Reset the ref when no current question
+      lastProcessedQuestionRef.current = null;
+    }
+  }, [
+    isReviewMode,
+    currentQuestion,
+    state.questionAnswers,
+    state.questionTimes,
+  ]);
   const steps = useMemo(
     () => [
       {
@@ -2509,11 +2581,11 @@ export default function PracticeRushMultistep({
 
           setTimeout(() => {
             // Apply randomization if requested
-            const finalQuestions = selections.randomize
-              ? [...correctQuestions].sort(() => Math.random() - 0.5)
-              : correctQuestions;
+            // const finalQuestions = selections.randomize
+            //   ? [...correctQuestions].sort(() => Math.random() - 0.5)
+            //   : correctQuestions;
 
-            dispatch({ type: "SET_QUESTIONS", payload: finalQuestions });
+            dispatch({ type: "SET_QUESTIONS", payload: correctQuestions });
             dispatch({ type: "SET_CURRENT_STEP", payload: 5 });
             dispatch({ type: "START_TIMER" });
           }, 1500);
@@ -3551,19 +3623,15 @@ export default function PracticeRushMultistep({
                 >
                   <React.Fragment>
                     {currentQuestion.stimulus && (
-                      <MathJaxContext>
-                        <MathJax>
-                          <span
-                            id="stimulus"
-                            className="text-xl text-justify answer-option"
-                            dangerouslySetInnerHTML={{
-                              __html: currentQuestion.stimulus
-                                ? currentQuestion.stimulus
-                                : "",
-                            }}
-                          ></span>
-                        </MathJax>
-                      </MathJaxContext>
+                      <div
+                        id="stimulus"
+                        className="text-xl text-justify answer-option"
+                        dangerouslySetInnerHTML={{
+                          __html: currentQuestion.stimulus
+                            ? currentQuestion.stimulus
+                            : "",
+                        }}
+                      ></div>
                     )}
 
                     {practiceSelections?.subject !== "reading-writing" &&
