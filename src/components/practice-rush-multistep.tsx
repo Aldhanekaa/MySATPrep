@@ -3853,7 +3853,11 @@ export default function PracticeRushMultistep({
 
               <div className="w-full grid grid-cols-4 lg:grid-cols-8 items-center justify-center gap-8 h-full">
                 <div
-                  className={`col-span-4 lg:col-span-3 flex flex-col gap-6 h-full relative`}
+                  className={`col-span-4 ${
+                    practiceSelections?.subject === "reading-writing"
+                      ? "lg:col-span-5"
+                      : "lg:col-span-3"
+                  }  flex flex-col gap-6 h-full relative`}
                 >
                   <React.Fragment>
                     {currentQuestion.stimulus && (
@@ -4050,6 +4054,11 @@ export default function PracticeRushMultistep({
                               You are reviewing a previously answered question.
                               Your original answer and the explanation are shown
                               below.
+                              <br /> <br />
+                              Please scroll down to bottom to see explanation,{" "}
+                              {
+                                "we've moved it to the bottom for better visibility."
+                              }
                             </p>
                           </div>
                         )}
@@ -4081,30 +4090,18 @@ export default function PracticeRushMultistep({
                             {currentQuestion.correct_answer.join(", ")}
                           </span>
                         </Label>
-
-                        <div className="mt-4">
-                          <Label className="text-lg font-semibold mb-2 block">
-                            Explanation:
-                          </Label>
-                          <MathJax
-                            inline
-                            dynamic
-                            id="question_explanation"
-                            className="text-xl text-justify"
-                          >
-                            <span
-                              dangerouslySetInnerHTML={{
-                                __html: currentQuestion.rationale,
-                              }}
-                            ></span>
-                          </MathJax>
-                        </div>
                       </React.Fragment>
                     )}
                   </React.Fragment>
                 </div>
 
-                <div className="col-span-4 lg:col-span-5 h-full ">
+                <div
+                  className={`col-span-4 ${
+                    practiceSelections?.subject === "reading-writing"
+                      ? "lg:col-span-3"
+                      : "lg:col-span-5"
+                  } h-full `}
+                >
                   {practiceSelections?.subject !== "reading-writing" ? (
                     <div className="border-2 border-gray-200 shadow-lg overflow-hidden rounded-lg">
                       <iframe
@@ -4229,6 +4226,26 @@ export default function PracticeRushMultistep({
                     </React.Fragment>
                   )}
                 </div>
+
+                {state.isAnswerChecked && state.selectedAnswer && (
+                  <div className="mt-4 col-span-4 lg:col-span-8">
+                    <Label className="text-lg font-semibold mb-2 block">
+                      Explanation:
+                    </Label>
+                    <MathJax
+                      inline
+                      dynamic
+                      id="question_explanation"
+                      className="text-xl text-justify"
+                    >
+                      <span
+                        dangerouslySetInnerHTML={{
+                          __html: currentQuestion.rationale,
+                        }}
+                      ></span>
+                    </MathJax>
+                  </div>
+                )}
               </div>
             </div>
           </React.Fragment>

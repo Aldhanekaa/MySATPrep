@@ -96,14 +96,14 @@ export function DuolingoToggle({
   return (
     <div className="flex justify-center">
       <div
-        className={`relative flex items-center gap-4 rounded-2xl border-2 p-4 cursor-pointer transition-all duration-300 transform hover:scale-105 ${
+        className={`relative flex items-start gap-4 rounded-2xl border-2 p-4 cursor-pointer transition-all duration-300 transform hover:scale-105 ${
           isEnabled ? currentColors.enabled : currentColors.disabled
         } active:shadow-[0_2px_0_0_theme(colors.gray.300),0_4px_10px_theme(colors.gray.300/0.15)] active:translate-y-0.5`}
         onClick={handleToggle}
       >
         {/* Duolingo-style toggle switch */}
         <div
-          className={`relative w-12 h-7 rounded-full transition-all duration-300 ${
+          className={`relative flex-shrink-0 w-12 h-7 rounded-full transition-all duration-300 mt-1 ${
             isEnabled ? currentColors.toggle : "bg-gray-300"
           }`}
         >
@@ -114,16 +114,16 @@ export function DuolingoToggle({
           />
         </div>
 
-        <div className="flex flex-col">
+        <div className="flex flex-col flex-grow min-w-0">
           <span className="text-lg font-semibold text-gray-900">{title}</span>
-          <span className="text-sm text-gray-600">
+          <span className="text-sm text-gray-600 break-words">
             {isEnabled ? enabledDescription : disabledDescription}
           </span>
         </div>
 
         {/* Duolingo-style icon */}
         <div
-          className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 ${
+          className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 self-start mt-1 ${
             isEnabled ? currentColors.icon : "bg-gray-200 text-gray-500"
           }`}
         >
