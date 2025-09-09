@@ -805,23 +805,48 @@ export default function QuestionProblemCard({
     }
   };
 
+  // Check if answer is correct without submitting
+  const checkAnswerCorrectness = (answer: string) => {
+    if (!answer) return null;
+
+    return question.problem.answerOptions
+      ? question.problem.correct_answer?.includes(answer) || false
+      : question.problem.correct_answer?.some(
+          (correctAnswer) =>
+            correctAnswer.trim().toLowerCase() === answer.trim().toLowerCase()
+        ) || false;
+  };
+
   // Handle answer selection (for both multiple choice and text input)
   const handleAnswerSelect = (optionKey: string) => {
     if (isAnswerChecked || isQuestionAnswered) return;
 
     setSelectedAnswer(optionKey);
-    setIsAnswerChecked(true);
 
+    // For multiple choice, immediately validate and submit
+    if (question.problem.answerOptions) {
+      setIsAnswerChecked(true);
+      submitAnswer(optionKey);
+    }
+  };
+
+  // Handle text input change with immediate validation
+  const handleTextInputChange = (value: string) => {
+    if (isAnswerChecked || isQuestionAnswered) return;
+    setSelectedAnswer(value);
+  };
+
+  // Submit answer and save statistics
+  const submitAnswer = (answer: string) => {
     const questionId = question.question.questionId;
 
     // For multiple choice questions
     const isCorrect = question.problem.answerOptions
-      ? question.problem.correct_answer?.includes(optionKey) || false
+      ? question.problem.correct_answer?.includes(answer) || false
       : // For text input questions, compare with correct answers (case insensitive, trimmed)
         question.problem.correct_answer?.some(
           (correctAnswer) =>
-            correctAnswer.trim().toLowerCase() ===
-            optionKey.trim().toLowerCase()
+            correctAnswer.trim().toLowerCase() === answer.trim().toLowerCase()
         ) || false;
 
     const timeElapsed = Date.now() - questionStartTime;
@@ -871,7 +896,7 @@ export default function QuestionProblemCard({
       isCorrect,
       timeSpent: timeElapsed,
       timestamp: new Date().toISOString(),
-      selectedAnswer: optionKey, // Store user's selected answer
+      selectedAnswer: answer, // Store user's selected answer
       plainQuestion: question.question,
     });
 
@@ -881,7 +906,7 @@ export default function QuestionProblemCard({
     // Debug logging
     console.log("Question answered and saved to practiceStatistics:", {
       questionId,
-      selectedAnswer: optionKey,
+      selectedAnswer: answer,
       isCorrect,
       assessment,
       questionType: question.problem.answerOptions
@@ -896,428 +921,525 @@ export default function QuestionProblemCard({
       isCorrect,
       timeSpent: timeElapsed,
       timestamp: new Date().toISOString(),
-      selectedAnswer: optionKey, // Store the user's selected answer
+      selectedAnswer: answer, // Store the user's selected answer
     });
   };
 
   // Handle text input submission
   const handleTextInputSubmit = () => {
     if (selectedAnswer && selectedAnswer.trim()) {
-      handleAnswerSelect(selectedAnswer.trim());
+      setIsAnswerChecked(true);
+      submitAnswer(selectedAnswer.trim());
     }
   };
 
   return (
     <React.Fragment>
-      <MathJaxContext>
-        {/* Subject and Skill Headers */}
-        {!hideSubjectHeaders && (
-          <div className="mb-4 space-y-2">
-            <h3 className="text-lg font-bold text-gray-800">
-              {question.question.primary_class_cd_desc}
-            </h3>
-            <h3 className="text-base font-semibold text-gray-600">
-              {question.question.skill_desc}
-            </h3>
-          </div>
-        )}
+      {/* Subject and Skill Headers */}
+      {!hideSubjectHeaders && (
+        <div className="mb-4 space-y-2">
+          <h3 className="text-lg font-bold text-gray-800">
+            {question.question.primary_class_cd_desc}
+          </h3>
+          <h3 className="text-base font-semibold text-gray-600">
+            {question.question.skill_desc}
+          </h3>
+        </div>
+      )}
 
-        <Card
-          variant="accent"
-          className={cn("w-full", "transition-all duration-300")}
-        >
-          <CardHeader>
-            <CardHeading className="w-full">
-              <CardTitle>
-                <div className="grid grid-cols-12 w-full items-center gap-1 py-4 md:py-1 justify-between">
-                  <div className="col-span-12 md:col-span-5 flex text-xl items-center gap-1">
-                    <Pill className="text-md font-semibold">
-                      {question.question.difficulty == "E" ? (
-                        <React.Fragment>
-                          <PillIndicator variant="success" pulse />
-                          Easy
-                        </React.Fragment>
-                      ) : question.question.difficulty == "M" ? (
-                        <React.Fragment>
-                          <PillIndicator variant="warning" pulse />
-                          Medium
-                        </React.Fragment>
-                      ) : (
-                        <React.Fragment>
-                          <PillIndicator variant="error" pulse />
-                          Hard
-                        </React.Fragment>
-                      )}
-                    </Pill>
-                    <div className="h-5 mr-2">
-                      <Separator
-                        orientation="vertical"
-                        className=" border-black h-full"
-                      />
-                    </div>
-                    <span className=" font-bold">Question</span>{" "}
-                    {question.question.questionId}
-                  </div>
-                  <div className="col-span-12 md:col-span-7 flex flex-wrap items-center justify-center md:justify-end gap-2">
-                    {!hideToolsPopup && (
-                      <>
-                        <Button
-                          variant="default"
-                          className="flex group cursor-pointer items-center gap-1 md:gap-2 font-bold py-2 md:py-3 px-3 md:px-6 rounded-xl md:rounded-2xl border-b-4 shadow-md hover:shadow-lg transform transition-all duration-200 active:translate-y-0.5 active:border-b-2 bg-white hover:bg-gray-50 text-gray-700 border-gray-300 hover:border-gray-400 text-xs md:text-sm"
-                          onClick={() => {
-                            playSound("button-pressed.wav");
-                            setIsReferencePopupOpen(
-                              (isReferencePopupOpen) => !isReferencePopupOpen
-                            );
-                          }}
-                        >
-                          <PyramidIcon className="w-3 h-3 md:w-4 md:h-4 group-hover:rotate-12 duration-300" />
-                          <span className="font-medium hidden sm:inline">
-                            Reference
-                          </span>
-                        </Button>
-                        <Button
-                          variant="default"
-                          className="flex group cursor-pointer items-center gap-1 md:gap-2 font-bold py-2 md:py-3 px-3 md:px-6 rounded-xl md:rounded-2xl border-b-4 shadow-md hover:shadow-lg transform transition-all duration-200 active:translate-y-0.5 active:border-b-2 bg-blue-500 hover:bg-blue-600 text-white border-blue-700 hover:border-blue-800 text-xs md:text-sm"
-                          onClick={() => {
-                            playSound("button-pressed.wav");
-                            setIsDesmosPopupOpen(
-                              (isDesmosPopupOpen) => !isDesmosPopupOpen
-                            );
-                          }}
-                        >
-                          <Calculator className="w-3 h-3 md:w-4 md:h-4 group-hover:rotate-12 duration-300" />
-                          <span className="font-medium hidden sm:inline">
-                            Calculator
-                          </span>
-                        </Button>
-                      </>
+      <Card
+        variant="accent"
+        className={cn("w-full", "transition-all duration-300")}
+      >
+        <CardHeader>
+          <CardHeading className="w-full">
+            <CardTitle>
+              <div className="grid grid-cols-12 w-full items-center gap-1 py-4 md:py-1 justify-between">
+                <div className="col-span-12 md:col-span-5 flex text-xl items-center gap-1">
+                  <Pill className="text-md font-semibold">
+                    {question.question.difficulty == "E" ? (
+                      <React.Fragment>
+                        <PillIndicator variant="success" pulse />
+                        Easy
+                      </React.Fragment>
+                    ) : question.question.difficulty == "M" ? (
+                      <React.Fragment>
+                        <PillIndicator variant="warning" pulse />
+                        Medium
+                      </React.Fragment>
+                    ) : (
+                      <React.Fragment>
+                        <PillIndicator variant="error" pulse />
+                        Hard
+                      </React.Fragment>
                     )}
-                    <Button
-                      variant="default"
-                      className={`flex cursor-pointer items-center gap-1 md:gap-2 font-bold py-2 md:py-3 px-3 md:px-6 rounded-xl md:rounded-2xl border-b-4 shadow-md hover:shadow-lg transform transition-all duration-200 active:translate-y-0.5 active:border-b-2 text-xs md:text-sm ${
-                        isQuestionSaved
-                          ? "bg-yellow-500 hover:bg-yellow-600 text-white border-yellow-700 hover:border-yellow-800"
-                          : "bg-yellow-500 hover:bg-yellow-600 text-white border-yellow-700 hover:border-yellow-800"
-                      }`}
-                      onClick={() => {
-                        try {
-                          const questionId = question.question.questionId;
-                          const updatedSavedQuestions = { ...savedQuestions };
-
-                          // Initialize array if it doesn't exist
-                          if (!updatedSavedQuestions[assessment]) {
-                            updatedSavedQuestions[assessment] = [];
-                          }
-
-                          // Check if question is already saved
-                          const questionIndex = updatedSavedQuestions[
-                            assessment
-                          ].findIndex(
-                            (q: SavedQuestion) => q.questionId === questionId
-                          );
-
-                          if (questionIndex === -1) {
-                            // Question not saved, so save it
-                            playSound("tap-checkbox-checked.wav");
-                            const newSavedQuestion: SavedQuestion = {
-                              questionId: questionId,
-                              externalId: question.question.external_id || null,
-                              ibn: question.question.ibn || null,
-                              plainQuestion: question.question, // Include full question data
-                              timestamp: new Date().toISOString(),
-                            };
-                            updatedSavedQuestions[assessment].push(
-                              newSavedQuestion
-                            );
-                            console.log("Question saved successfully!");
-                          } else {
-                            // Question already saved, so remove it
-                            playSound("tap-checkbox-unchecked.wav");
-                            updatedSavedQuestions[assessment].splice(
-                              questionIndex,
-                              1
-                            );
-                            console.log("Question removed from saved!");
-                          }
-
-                          // Update the localStorage through the hook
-                          setSavedQuestions(updatedSavedQuestions);
-                        } catch (error) {
-                          console.error(
-                            "Failed to save/remove question:",
-                            error
-                          );
-                        }
-                      }}
-                    >
-                      <BookmarkIcon
-                        className={`w-3 h-3 md:w-4 md:h-4 duration-300 group-hover:rotate-12 ${
-                          isQuestionSaved ? "fill-current" : ""
-                        }`}
-                      />
-                      <span className="font-medium hidden sm:inline">
-                        {isQuestionSaved ? "Saved" : "Save"}
-                      </span>
-                    </Button>
-                    <Button
-                      variant="default"
-                      className="flex cursor-pointer items-center gap-1 md:gap-2 font-bold py-2 md:py-3 px-3 md:px-6 rounded-xl md:rounded-2xl border-b-4 shadow-md hover:shadow-lg transform transition-all duration-200 active:translate-y-0.5 active:border-b-2 bg-neutral-500 hover:bg-neutral-600 text-white border-neutral-700 hover:border-neutral-800 text-xs md:text-sm"
-                      onClick={() => {
-                        playSound("button-pressed.wav");
-                        setIsShareModalOpen(true);
-                      }}
-                    >
-                      <SendIcon className="w-3 h-3 md:w-4 md:h-4 duration-300 group-hover:rotate-12" />
-                    </Button>
-
-                    {!hideViewQuestionButton && (
+                  </Pill>
+                  <div className="h-5 mr-2">
+                    <Separator
+                      orientation="vertical"
+                      className=" border-black h-full"
+                    />
+                  </div>
+                  <span className=" font-bold">Question</span>{" "}
+                  {question.question.questionId}
+                </div>
+                <div className="col-span-12 md:col-span-7 flex flex-wrap items-center justify-center md:justify-end gap-2">
+                  {!hideToolsPopup && (
+                    <>
                       <Button
                         variant="default"
-                        className="flex cursor-pointer items-center gap-1 md:gap-2 font-bold py-2 md:py-3 px-3 md:px-6 rounded-xl md:rounded-2xl border-b-4 shadow-md hover:shadow-lg transform transition-all duration-200 active:translate-y-0.5 active:border-b-2 bg-blue-500 hover:bg-blue-600 text-white border-blue-700 hover:border-blue-800 text-xs md:text-sm"
+                        className="flex group cursor-pointer items-center gap-1 md:gap-2 font-bold py-2 md:py-3 px-3 md:px-6 rounded-xl md:rounded-2xl border-b-4 shadow-md hover:shadow-lg transform transition-all duration-200 active:translate-y-0.5 active:border-b-2 bg-white hover:bg-gray-50 text-gray-700 border-gray-300 hover:border-gray-400 text-xs md:text-sm"
                         onClick={() => {
                           playSound("button-pressed.wav");
-                          const toastId = toast.loading(
-                            "Redirecting to question page",
-                            {
-                              position: "top-center",
-                            }
+                          setIsReferencePopupOpen(
+                            (isReferencePopupOpen) => !isReferencePopupOpen
                           );
-
-                          router.push(
-                            `/question/${question.question.questionId}`
-                          );
-
-                          // Dismiss the toast after 2 seconds
-                          setTimeout(() => {
-                            toast.dismiss(toastId);
-                          }, 2000);
                         }}
                       >
-                        <Maximize2Icon className="w-3 h-3 md:w-4 md:h-4 duration-300 group-hover:rotate-12" />
+                        <PyramidIcon className="w-3 h-3 md:w-4 md:h-4 group-hover:rotate-12 duration-300" />
+                        <span className="font-medium hidden sm:inline">
+                          Reference
+                        </span>
                       </Button>
-                    )}
-                  </div>
-                </div>
-              </CardTitle>
-            </CardHeading>
-          </CardHeader>
+                      <Button
+                        variant="default"
+                        className="flex group cursor-pointer items-center gap-1 md:gap-2 font-bold py-2 md:py-3 px-3 md:px-6 rounded-xl md:rounded-2xl border-b-4 shadow-md hover:shadow-lg transform transition-all duration-200 active:translate-y-0.5 active:border-b-2 bg-blue-500 hover:bg-blue-600 text-white border-blue-700 hover:border-blue-800 text-xs md:text-sm"
+                        onClick={() => {
+                          playSound("button-pressed.wav");
+                          setIsDesmosPopupOpen(
+                            (isDesmosPopupOpen) => !isDesmosPopupOpen
+                          );
+                        }}
+                      >
+                        <Calculator className="w-3 h-3 md:w-4 md:h-4 group-hover:rotate-12 duration-300" />
+                        <span className="font-medium hidden sm:inline">
+                          Calculator
+                        </span>
+                      </Button>
+                    </>
+                  )}
+                  <Button
+                    variant="default"
+                    className={`flex cursor-pointer items-center gap-1 md:gap-2 font-bold py-2 md:py-3 px-3 md:px-6 rounded-xl md:rounded-2xl border-b-4 shadow-md hover:shadow-lg transform transition-all duration-200 active:translate-y-0.5 active:border-b-2 text-xs md:text-sm ${
+                      isQuestionSaved
+                        ? "bg-yellow-500 hover:bg-yellow-600 text-white border-yellow-700 hover:border-yellow-800"
+                        : "bg-yellow-500 hover:bg-yellow-600 text-white border-yellow-700 hover:border-yellow-800"
+                    }`}
+                    onClick={() => {
+                      try {
+                        const questionId = question.question.questionId;
+                        const updatedSavedQuestions = { ...savedQuestions };
 
-          <CardContent className="p-6">
-            <MathJax>
-              {question.problem.stimulus && (
-                <div
-                  id="stimulus"
+                        // Initialize array if it doesn't exist
+                        if (!updatedSavedQuestions[assessment]) {
+                          updatedSavedQuestions[assessment] = [];
+                        }
+
+                        // Check if question is already saved
+                        const questionIndex = updatedSavedQuestions[
+                          assessment
+                        ].findIndex(
+                          (q: SavedQuestion) => q.questionId === questionId
+                        );
+
+                        if (questionIndex === -1) {
+                          // Question not saved, so save it
+                          playSound("tap-checkbox-checked.wav");
+                          const newSavedQuestion: SavedQuestion = {
+                            questionId: questionId,
+                            externalId: question.question.external_id || null,
+                            ibn: question.question.ibn || null,
+                            plainQuestion: question.question, // Include full question data
+                            timestamp: new Date().toISOString(),
+                          };
+                          updatedSavedQuestions[assessment].push(
+                            newSavedQuestion
+                          );
+                          console.log("Question saved successfully!");
+                        } else {
+                          // Question already saved, so remove it
+                          playSound("tap-checkbox-unchecked.wav");
+                          updatedSavedQuestions[assessment].splice(
+                            questionIndex,
+                            1
+                          );
+                          console.log("Question removed from saved!");
+                        }
+
+                        // Update the localStorage through the hook
+                        setSavedQuestions(updatedSavedQuestions);
+                      } catch (error) {
+                        console.error("Failed to save/remove question:", error);
+                      }
+                    }}
+                  >
+                    <BookmarkIcon
+                      className={`w-3 h-3 md:w-4 md:h-4 duration-300 group-hover:rotate-12 ${
+                        isQuestionSaved ? "fill-current" : ""
+                      }`}
+                    />
+                    <span className="font-medium hidden sm:inline">
+                      {isQuestionSaved ? "Saved" : "Save"}
+                    </span>
+                  </Button>
+                  <Button
+                    variant="default"
+                    className="flex cursor-pointer items-center gap-1 md:gap-2 font-bold py-2 md:py-3 px-3 md:px-6 rounded-xl md:rounded-2xl border-b-4 shadow-md hover:shadow-lg transform transition-all duration-200 active:translate-y-0.5 active:border-b-2 bg-neutral-500 hover:bg-neutral-600 text-white border-neutral-700 hover:border-neutral-800 text-xs md:text-sm"
+                    onClick={() => {
+                      playSound("button-pressed.wav");
+                      setIsShareModalOpen(true);
+                    }}
+                  >
+                    <SendIcon className="w-3 h-3 md:w-4 md:h-4 duration-300 group-hover:rotate-12" />
+                  </Button>
+
+                  {!hideViewQuestionButton && (
+                    <Button
+                      variant="default"
+                      className="flex cursor-pointer items-center gap-1 md:gap-2 font-bold py-2 md:py-3 px-3 md:px-6 rounded-xl md:rounded-2xl border-b-4 shadow-md hover:shadow-lg transform transition-all duration-200 active:translate-y-0.5 active:border-b-2 bg-blue-500 hover:bg-blue-600 text-white border-blue-700 hover:border-blue-800 text-xs md:text-sm"
+                      onClick={() => {
+                        playSound("button-pressed.wav");
+                        const toastId = toast.loading(
+                          "Redirecting to question page",
+                          {
+                            position: "top-center",
+                          }
+                        );
+
+                        router.push(
+                          `/question/${question.question.questionId}`
+                        );
+
+                        // Dismiss the toast after 2 seconds
+                        setTimeout(() => {
+                          toast.dismiss(toastId);
+                        }, 2000);
+                      }}
+                    >
+                      <Maximize2Icon className="w-3 h-3 md:w-4 md:h-4 duration-300 group-hover:rotate-12" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </CardTitle>
+          </CardHeading>
+        </CardHeader>
+
+        <CardContent className="p-6">
+          {question.problem.stimulus && (
+            <MathJaxContext>
+              <MathJax className=" text-justify">
+                <span
+                  id="question_explanation"
                   className="text-lg text-justify"
                   dangerouslySetInnerHTML={{
                     __html: question.problem.stimulus
                       ? question.problem.stimulus
                       : "",
                   }}
-                ></div>
-              )}
-              {question.problem.stem && (
-                <div
-                  id="stimulus"
+                ></span>
+              </MathJax>
+            </MathJaxContext>
+          )}
+          {question.problem.stem && (
+            <MathJaxContext>
+              <MathJax>
+                <span
+                  id="question_explanation"
                   className="text-lg text-justify"
                   dangerouslySetInnerHTML={{
                     __html: question.problem.stem ? question.problem.stem : "",
                   }}
-                ></div>
-              )}
-            </MathJax>
+                ></span>
+              </MathJax>
+            </MathJaxContext>
+          )}
 
-            {/* Answer Section - Multiple Choice or Text Input */}
-            {question.problem.answerOptions ? (
-              // Multiple Choice Questions
-              <div className="space-y-3 mt-6">
-                <RadioGroup className="flex flex-col gap-3" disabled>
-                  {Object.entries(question.problem.answerOptions).map(
-                    ([optionKey, optionText], index) => {
-                      const isCorrect =
-                        question.problem.correct_answer?.includes(optionKey) ||
-                        false;
+          {/* Answer Section - Multiple Choice or Text Input */}
+          {question.problem.answerOptions ? (
+            // Multiple Choice Questions
+            <div className="space-y-3 mt-6">
+              <RadioGroup className="flex flex-col gap-3" disabled>
+                {Object.entries(question.problem.answerOptions).map(
+                  ([optionKey, optionText], index) => {
+                    const isCorrect =
+                      question.problem.correct_answer?.includes(optionKey) ||
+                      false;
 
-                      // For current session answers
-                      const isSelected = selectedAnswer === optionKey;
-                      const isSelectedWrongAnswer =
-                        isAnswerChecked && isSelected && !isCorrect;
+                    // For current session answers
+                    const isSelected = selectedAnswer === optionKey;
+                    const isSelectedWrongAnswer =
+                      isAnswerChecked && isSelected && !isCorrect;
 
-                      // For previously answered questions - check if this was the user's choice
-                      const isPreviousUserAnswer =
-                        isQuestionAnswered &&
-                        !isAnswerChecked &&
-                        questionStats?.selectedAnswer === optionKey;
+                    // For previously answered questions - check if this was the user's choice
+                    const isPreviousUserAnswer =
+                      isQuestionAnswered &&
+                      !isAnswerChecked &&
+                      questionStats?.selectedAnswer === optionKey;
 
-                      // Show correct answers when question is answered (either current session or previous)
-                      const showCorrectAnswer =
-                        (isAnswerChecked || isQuestionAnswered) && isCorrect;
+                    // Show correct answers when question is answered (either current session or previous)
+                    const showCorrectAnswer =
+                      (isAnswerChecked || isQuestionAnswered) && isCorrect;
 
-                      // Show user's wrong answer from previous session
-                      const isPreviousWrongAnswer =
-                        isQuestionAnswered &&
-                        !isAnswerChecked &&
-                        isPreviousUserAnswer &&
-                        !isCorrect;
+                    // Show user's wrong answer from previous session
+                    const isPreviousWrongAnswer =
+                      isQuestionAnswered &&
+                      !isAnswerChecked &&
+                      isPreviousUserAnswer &&
+                      !isCorrect;
 
-                      return (
-                        <div
-                          key={optionKey}
-                          onMouseEnter={() => {
+                    return (
+                      <div
+                        key={optionKey}
+                        onMouseEnter={() => {
+                          if (!isAnswerChecked && !isQuestionAnswered) {
+                            playSound("on-hover.wav");
+                          }
+                        }}
+                        className="flex z-20 items-center gap-2 answer-option"
+                      >
+                        <label
+                          onClick={() => {
                             if (!isAnswerChecked && !isQuestionAnswered) {
-                              playSound("on-hover.wav");
+                              handleAnswerSelect(optionKey);
                             }
                           }}
-                          className="flex z-20 items-center gap-2 answer-option"
+                          className={`relative ${
+                            !isAnswerChecked && !isQuestionAnswered
+                              ? "cursor-pointer"
+                              : "cursor-default"
+                          } w-full transition duration-500 ${
+                            showCorrectAnswer
+                              ? "border-2 border-green-500 bg-green-500/10"
+                              : isSelectedWrongAnswer || isPreviousWrongAnswer
+                              ? "border-2 border-red-500 bg-red-500/10"
+                              : isSelected || isPreviousUserAnswer
+                              ? "border-2 border-blue-500 bg-blue-500/10"
+                              : "border-2 border-input"
+                          } has-[[data-disabled]]:opacity-50 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-ring/70 flex flex-col items-start gap-4 rounded-lg p-3 shadow-sm shadow-black/5`}
                         >
-                          <label
-                            onClick={() => {
-                              if (!isAnswerChecked && !isQuestionAnswered) {
-                                handleAnswerSelect(optionKey);
-                              }
-                            }}
-                            className={`relative ${
-                              !isAnswerChecked && !isQuestionAnswered
-                                ? "cursor-pointer"
-                                : "cursor-default"
-                            } w-full transition duration-500 ${
-                              showCorrectAnswer
-                                ? "border-2 border-green-500 bg-green-500/10"
-                                : isSelectedWrongAnswer || isPreviousWrongAnswer
-                                ? "border-2 border-red-500 bg-red-500/10"
-                                : isSelected || isPreviousUserAnswer
-                                ? "border-2 border-blue-500 bg-blue-500/10"
-                                : "border-2 border-input"
-                            } has-[[data-disabled]]:opacity-50 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-ring/70 flex flex-col items-start gap-4 rounded-lg p-3 shadow-sm shadow-black/5`}
-                          >
-                            <div className="grid grid-cols-9 items-center gap-3">
-                              <div className="col-span-1 flex items-center justify-center">
-                                <div
-                                  className={`w-8 h-8 rounded-full border-2 flex items-center justify-center text-sm font-semibold ${
-                                    showCorrectAnswer
-                                      ? "border-green-500 bg-green-500 text-white"
-                                      : isSelectedWrongAnswer ||
-                                        isPreviousWrongAnswer
-                                      ? "border-red-500 bg-red-500 text-white"
-                                      : isSelected || isPreviousUserAnswer
-                                      ? "border-blue-500 bg-blue-500 text-white"
-                                      : "border-gray-300 bg-gray-50 text-gray-600"
-                                  }`}
-                                >
-                                  {showCorrectAnswer ? (
-                                    <CheckCircle className="h-4 w-4" />
-                                  ) : isSelectedWrongAnswer ||
-                                    isPreviousWrongAnswer ? (
-                                    <X className="h-4 w-4" />
-                                  ) : (
-                                    String.fromCharCode(65 + index)
-                                  )}
-                                </div>
+                          <div className="grid grid-cols-9 items-center gap-3">
+                            <div className="col-span-1 flex items-center justify-center">
+                              <div
+                                className={`w-8 h-8 rounded-full border-2 flex items-center justify-center text-sm font-semibold ${
+                                  showCorrectAnswer
+                                    ? "border-green-500 bg-green-500 text-white"
+                                    : isSelectedWrongAnswer ||
+                                      isPreviousWrongAnswer
+                                    ? "border-red-500 bg-red-500 text-white"
+                                    : isSelected || isPreviousUserAnswer
+                                    ? "border-blue-500 bg-blue-500 text-white"
+                                    : "border-gray-300 bg-gray-50 text-gray-600"
+                                }`}
+                              >
+                                {showCorrectAnswer ? (
+                                  <CheckCircle className="h-4 w-4" />
+                                ) : isSelectedWrongAnswer ||
+                                  isPreviousWrongAnswer ? (
+                                  <X className="h-4 w-4" />
+                                ) : (
+                                  String.fromCharCode(65 + index)
+                                )}
                               </div>
-                              <Label className="col-span-8">
-                                <MathJax className="inline-block">
-                                  <span
-                                    className="text-xl inline-block"
-                                    dangerouslySetInnerHTML={{
-                                      __html: optionText.replaceAll(
-                                        /\s*style\s*=\s*"[^"]*"/gi,
-                                        ""
-                                      ),
-                                    }}
-                                  ></span>
-                                </MathJax>
-                              </Label>
                             </div>
-                          </label>
-                        </div>
-                      );
-                    }
-                  )}
-                </RadioGroup>
-              </div>
-            ) : (
-              // Text Input Questions (like fill-in-the-blank, numerical answers, etc.)
-              <div className="space-y-4 mt-6">
-                <DuolingoInput
-                  value={
-                    // If question was previously answered, show the previous answer
-                    isQuestionAnswered &&
-                    !isAnswerChecked &&
-                    questionStats?.selectedAnswer
-                      ? questionStats.selectedAnswer
-                      : selectedAnswer || ""
+                            <Label className="col-span-8">
+                              <MathJax className="inline-block">
+                                <span
+                                  className="text-xl inline-block"
+                                  dangerouslySetInnerHTML={{
+                                    __html: optionText.replaceAll(
+                                      /\s*style\s*=\s*"[^"]*"/gi,
+                                      ""
+                                    ),
+                                  }}
+                                ></span>
+                              </MathJax>
+                            </Label>
+                          </div>
+                        </label>
+                      </div>
+                    );
                   }
-                  onChange={(value) => setSelectedAnswer(value)}
-                  onSubmit={handleTextInputSubmit}
-                  disabled={isAnswerChecked || isQuestionAnswered}
-                  placeholder="Type your answer here..."
-                />
+                )}
+              </RadioGroup>
 
-                {/* Show status indicator for previously answered text input questions */}
-                {isQuestionAnswered &&
+              {/* Show immediate feedback for current session multiple choice answers */}
+              {isAnswerChecked &&
+                questionStats &&
+                question.problem.answerOptions && (
+                  <div
+                    className={`mt-4 p-3 rounded-lg border-2 ${
+                      questionStats.isCorrect
+                        ? "border-green-500 bg-green-500/10"
+                        : "border-red-500 bg-red-500/10"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <div
+                        className={`w-6 h-6 rounded-full flex items-center justify-center ${
+                          questionStats.isCorrect
+                            ? "bg-green-500"
+                            : "bg-red-500"
+                        }`}
+                      >
+                        <span className="text-white text-sm font-semibold">
+                          {questionStats.isCorrect ? "✓" : "✗"}
+                        </span>
+                      </div>
+                      <span
+                        className={`text-sm font-medium ${
+                          questionStats.isCorrect
+                            ? "text-green-700"
+                            : "text-red-700"
+                        }`}
+                      >
+                        Your answer is{" "}
+                        {questionStats.isCorrect ? "correct!" : "incorrect."}
+                      </span>
+                    </div>
+                  </div>
+                )}
+            </div>
+          ) : (
+            // Text Input Questions (like fill-in-the-blank, numerical answers, etc.)
+            <div className="space-y-4 mt-6">
+              <DuolingoInput
+                value={
+                  // If question was previously answered, show the previous answer
+                  isQuestionAnswered &&
                   !isAnswerChecked &&
-                  questionStats?.selectedAnswer && (
-                    <div
-                      className={`mt-2 p-3 rounded-lg border-2 ${
-                        questionStats.isCorrect
-                          ? "border-green-500 bg-green-500/10"
-                          : "border-red-500 bg-red-500/10"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <div
-                          className={`w-6 h-6 rounded-full flex items-center justify-center ${
-                            questionStats.isCorrect
-                              ? "bg-green-500"
-                              : "bg-red-500"
-                          }`}
-                        >
-                          <span className="text-white text-sm font-semibold">
-                            {questionStats.isCorrect ? "✓" : "✗"}
+                  questionStats?.selectedAnswer
+                    ? questionStats.selectedAnswer
+                    : selectedAnswer || ""
+                }
+                onChange={handleTextInputChange}
+                onSubmit={handleTextInputSubmit}
+                disabled={isAnswerChecked || isQuestionAnswered}
+                placeholder="Type your answer here..."
+              />
+
+              {/* Show real-time validation for text input */}
+              {selectedAnswer &&
+                selectedAnswer.trim() &&
+                !isAnswerChecked &&
+                !isQuestionAnswered && (
+                  <div className="mt-2">
+                    {checkAnswerCorrectness(selectedAnswer) && (
+                      <div className="p-2 rounded-lg border-2 border-green-500 bg-green-500/10">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle className="h-4 w-4 text-green-600" />
+                          <span className="text-sm font-medium text-green-700">
+                            Looks correct! Press Enter to submit.
                           </span>
                         </div>
-                        <span
-                          className={`text-sm font-medium ${
-                            questionStats.isCorrect
-                              ? "text-green-700"
-                              : "text-red-700"
-                          }`}
-                        >
-                          Your previous answer was{" "}
-                          {questionStats.isCorrect ? "correct" : "incorrect"}
-                        </span>
                       </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
+                )}
 
-                {/* Show correct answers for text input after answering */}
-                {(isAnswerChecked || isQuestionAnswered) &&
-                  question.problem.correct_answer && (
-                    <div className="mt-2 p-3 rounded-lg border-2 border-green-500 bg-green-500/10">
-                      <div className="flex items-center gap-2">
-                        <CheckCircle className="h-5 w-5 text-green-600" />
-                        <span className="text-sm font-medium text-green-700">
-                          Correct answer
-                          {question.problem.correct_answer.length > 1
-                            ? "s"
-                            : ""}
-                          :{" "}
-                          <strong>
-                            {question.problem.correct_answer.join(", ")}
-                          </strong>
+              {/* Show status indicator for previously answered text input questions */}
+              {isQuestionAnswered &&
+                !isAnswerChecked &&
+                questionStats?.selectedAnswer && (
+                  <div
+                    className={`mt-2 p-3 rounded-lg border-2 ${
+                      questionStats.isCorrect
+                        ? "border-green-500 bg-green-500/10"
+                        : "border-red-500 bg-red-500/10"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <div
+                        className={`w-6 h-6 rounded-full flex items-center justify-center ${
+                          questionStats.isCorrect
+                            ? "bg-green-500"
+                            : "bg-red-500"
+                        }`}
+                      >
+                        <span className="text-white text-sm font-semibold">
+                          {questionStats.isCorrect ? "✓" : "✗"}
                         </span>
                       </div>
+                      <span
+                        className={`text-sm font-medium ${
+                          questionStats.isCorrect
+                            ? "text-green-700"
+                            : "text-red-700"
+                        }`}
+                      >
+                        Your previous answer was{" "}
+                        {questionStats.isCorrect ? "correct" : "incorrect"}
+                      </span>
                     </div>
-                  )}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-        {isQuestionAnswered && (
-          <div className="mt-4 w-full md:w-3xl lg:w-5xl px-4">
-            <Label className="text-lg font-semibold mb-2 block">
-              Explanation:
-            </Label>
+                  </div>
+                )}
+
+              {/* Show immediate feedback for current session answers */}
+              {isAnswerChecked &&
+                !isQuestionAnswered &&
+                selectedAnswer &&
+                questionStats && (
+                  <div
+                    className={`mt-2 p-3 rounded-lg border-2 ${
+                      questionStats.isCorrect
+                        ? "border-green-500 bg-green-500/10"
+                        : "border-red-500 bg-red-500/10"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <div
+                        className={`w-6 h-6 rounded-full flex items-center justify-center ${
+                          questionStats.isCorrect
+                            ? "bg-green-500"
+                            : "bg-red-500"
+                        }`}
+                      >
+                        <span className="text-white text-sm font-semibold">
+                          {questionStats.isCorrect ? "✓" : "✗"}
+                        </span>
+                      </div>
+                      <span
+                        className={`text-sm font-medium ${
+                          questionStats.isCorrect
+                            ? "text-green-700"
+                            : "text-red-700"
+                        }`}
+                      >
+                        Your answer is{" "}
+                        {questionStats.isCorrect ? "correct!" : "incorrect."}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+              {/* Show correct answers for text input after answering */}
+              {(isAnswerChecked || isQuestionAnswered) &&
+                question.problem.correct_answer && (
+                  <div className="mt-2 p-3 rounded-lg border-2 border-green-500 bg-green-500/10">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="h-5 w-5 text-green-600" />
+                      <span className="text-sm font-medium text-green-700">
+                        Correct answer
+                        {question.problem.correct_answer.length > 1
+                          ? "s"
+                          : ""}:{" "}
+                        <strong>
+                          {question.problem.correct_answer.join(", ")}
+                        </strong>
+                      </span>
+                    </div>
+                  </div>
+                )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+      {isQuestionAnswered && (
+        <div className="mt-4 w-full md:w-3xl lg:w-5xl px-4">
+          <Label className="text-lg font-semibold mb-2 block">
+            Explanation:
+          </Label>
+          <MathJaxContext>
             <MathJax id="question_explanation" className=" text-justify">
               <span
                 className="text-xl"
@@ -1326,9 +1448,9 @@ export default function QuestionProblemCard({
                 }}
               ></span>
             </MathJax>
-          </div>
-        )}
-      </MathJaxContext>
+          </MathJaxContext>
+        </div>
+      )}
 
       {/* Share Modal */}
       {isShareModalOpen && (
