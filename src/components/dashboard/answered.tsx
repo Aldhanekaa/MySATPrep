@@ -16,7 +16,9 @@ import {
   CheckIcon,
   CircleOffIcon,
   ListFilterIcon,
+  PencilRuler,
   SearchCheckIcon,
+  SigmaIcon,
   User,
 } from "lucide-react";
 
@@ -27,6 +29,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { mathDomains, rwDomains } from "@/static-data/validation";
 
 // Simple skeleton component
 const Skeleton = ({
@@ -52,6 +55,7 @@ interface State {
   isInitialized: boolean;
   fetchedQuestionIds: Set<string>;
   filterValue: string; // Add this new state property
+  filterSubject: string; // Add this new state property for subject filter
 }
 
 type Action =
@@ -64,7 +68,8 @@ type Action =
   | { type: "SET_LOADING_MORE"; payload: boolean }
   | { type: "MARK_AS_FETCHED"; payload: string }
   | { type: "RETRY_QUESTION"; payload: number }
-  | { type: "SET_FILTER"; payload: string }; // Add this new action type
+  | { type: "SET_FILTER"; payload: string } // Add this new action type
+  | { type: "SET_FILTER_SUBJECT"; payload: string }; // Add this new action type
 
 const initialState: State = {
   questionsWithData: [],
@@ -74,6 +79,7 @@ const initialState: State = {
   isInitialized: false,
   fetchedQuestionIds: new Set(),
   filterValue: "all",
+  filterSubject: "all", // Default filter value for subject
 };
 
 function questionsReducer(state: State, action: Action): State {
@@ -145,6 +151,11 @@ function questionsReducer(state: State, action: Action): State {
       return {
         ...state,
         filterValue: action.payload,
+      };
+    case "SET_FILTER_SUBJECT":
+      return {
+        ...state,
+        filterSubject: action.payload,
       };
 
     case "RETRY_QUESTION":
@@ -420,44 +431,54 @@ export function AnsweredTab({ selectedAssessment }: AnsweredTabProps) {
       <div className="px-2 lg:px-28">
         <h2 className="text-lg font-semibold">Answered Questions</h2>
         <div className="grid grid-cols-12">
-          <div className="col-span-12 md:col-span-8 flex flex-wrap gap-2 items-center text-sm text-muted-foreground">
+          <div className="col-span-12 md:col-span-8 flex flex-col flex-wrap gap-2 items-start text-sm text-muted-foreground">
             <span>
               {totalQuestions} answered question
               {totalQuestions !== 1 ? "s" : ""} for {assessmentName}
             </span>
-            <span>•</span>
-            <span className="flex items-center gap-1">
-              Accuracy:{" "}
-              <Badge
-                variant={parseFloat(accuracy) >= 70 ? "default" : "destructive"}
-              >
-                {accuracy}%
-              </Badge>
-            </span>
-            <span>•</span>
-            <span className="flex items-center gap-1">
-              Correct:{" "}
-              <Badge variant="default" className="bg-green-500">
-                {correctQuestions}
-              </Badge>
-            </span>
-            <span>•</span>
-            <span className="flex items-center gap-1">
-              Incorrect:{" "}
-              <Badge variant="destructive">
-                {totalQuestions - correctQuestions}
-              </Badge>
-            </span>
+
+            <div className="flex gap-1 mt-2 md:mt-4">
+              <span className="flex items-center gap-1">
+                Accuracy:{" "}
+                <Badge
+                  variant={
+                    parseFloat(accuracy) >= 70 ? "default" : "destructive"
+                  }
+                >
+                  {accuracy}%
+                </Badge>
+              </span>
+              <span>•</span>
+              <span className="flex items-center gap-1">
+                Correct:{" "}
+                <Badge variant="default" className="bg-green-500">
+                  {correctQuestions}
+                </Badge>
+              </span>
+              <span>•</span>
+              <span className="flex items-center gap-1">
+                Incorrect:{" "}
+                <Badge variant="destructive">
+                  {totalQuestions - correctQuestions}
+                </Badge>
+              </span>
+            </div>
           </div>
-          <div className="mt-10 md:mt-0 col-span-12 md:col-span-4 flex justify-end">
+          <div className="mt-10 md:mt-0 col-span-12 md:col-span-4 flex flex-col items-end justify-end gap-3">
             <Select
               onValueChange={(value) =>
                 dispatch({ type: "SET_FILTER", payload: value })
               }
             >
               <SelectTrigger
-                icon={ListFilterIcon}
-                className="w-full lg:w-[80%]"
+                icon={
+                  state.filterValue == "all"
+                    ? ListFilterIcon
+                    : state.filterValue == "correct"
+                    ? CheckIcon
+                    : CircleOffIcon
+                }
+                className="w-full lg:w-[80%] bg-background"
               >
                 <SelectValue placeholder="Sort by Validity" />
               </SelectTrigger>
@@ -473,6 +494,36 @@ export function AnsweredTab({ selectedAssessment }: AnsweredTabProps) {
                 </SelectItem>
               </SelectContent>
             </Select>
+
+            <Select
+              onValueChange={(value) =>
+                dispatch({ type: "SET_FILTER_SUBJECT", payload: value })
+              }
+            >
+              <SelectTrigger
+                icon={
+                  state.filterSubject === "all"
+                    ? ListFilterIcon
+                    : state.filterSubject == "math"
+                    ? SigmaIcon
+                    : PencilRuler
+                }
+                className="w-full lg:w-[80%] bg-background"
+              >
+                <SelectValue placeholder="Sort by subject" />
+              </SelectTrigger>
+              <SelectContent className="font-medium absolute">
+                <SelectItem value="all" icon={AlignJustifyIcon}>
+                  All Subjects
+                </SelectItem>
+                <SelectItem value="math" icon={SigmaIcon}>
+                  Maths
+                </SelectItem>
+                <SelectItem value="reading" icon={PencilRuler}>
+                  Reading & Writing
+                </SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
       </div>
@@ -483,6 +534,38 @@ export function AnsweredTab({ selectedAssessment }: AnsweredTabProps) {
             if (state.filterValue === "all") return true;
             if (state.filterValue === "correct") return question.isCorrect;
             if (state.filterValue === "incorrect") return !question.isCorrect;
+            return true;
+          })
+          .filter((question) => {
+            console.log("state.filterSubject", state.filterSubject);
+            // Apply subject filter
+            if (state.filterSubject !== "all") {
+              console.log("question.questionData", question.questionData);
+              const subject = question.questionData?.question.primary_class_cd;
+
+              if (subject && question.questionData?.question.primary_class_cd) {
+                if (
+                  state.filterSubject === "math" &&
+                  mathDomains.includes(
+                    question.questionData?.question.primary_class_cd
+                  )
+                ) {
+                  return true;
+                }
+
+                if (
+                  state.filterSubject === "reading" &&
+                  rwDomains.includes(
+                    question.questionData?.question.primary_class_cd
+                  )
+                ) {
+                  return true;
+                }
+              }
+
+              return false;
+            }
+
             return true;
           })
           .map((question, index) => (
