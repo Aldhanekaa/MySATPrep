@@ -128,7 +128,7 @@ function DuolingoTimer({
   startTime,
   isActive,
   isVisible,
-  onToggleVisibility,
+  // onToggleVisibility,
   fixedTime,
   savedElapsedTime = 0,
 }: DuolingoTimerProps) {
@@ -167,7 +167,13 @@ function DuolingoTimer({
   };
 
   return (
-    <div className="flex flex-col items-center gap-2">
+    <div className="flex flex-row items-center py-3 gap-2">
+      {/* <button
+        onClick={onToggleVisibility}
+        className="px-8 h-12 text-xs text-gray-500 hover:text-gray-700 underline cursor-pointer transition-colors duration-200"
+      >
+        {isVisible ? "Hide" : "Show"}
+      </button> */}
       <div
         className={`${
           isVisible ? "block" : "hidden"
@@ -181,13 +187,6 @@ function DuolingoTimer({
           <span className="text-xs text-gray-500 ml-1">(completed)</span>
         )}
       </div>
-
-      <button
-        onClick={onToggleVisibility}
-        className="px-8 text-xs text-gray-500 hover:text-gray-700 underline cursor-pointer transition-colors duration-200"
-      >
-        {isVisible ? "Hide" : "Show"}
-      </button>
     </div>
   );
 }
@@ -1529,6 +1528,14 @@ export default function PracticeRushMultistep({
 
   // Auto-save session data to localStorage
   const saveCurrentSession = useCallback(() => {
+    // Don't save if session is already completed (in full review mode)
+    if (
+      restoredSessionData &&
+      (restoredSessionData.status as string) === "completed"
+    ) {
+      return;
+    }
+
     if (!state.questions || state.questions.length === 0 || isSavingRef.current)
       return;
 
@@ -1564,16 +1571,19 @@ export default function PracticeRushMultistep({
       }
     });
 
+    const currentSessionStatus =
+      restoredSessionData &&
+      (restoredSessionData.status as string) === "completed"
+        ? SessionStatus.COMPLETED
+        : SessionStatus.IN_PROGRESS;
+
     const currentSession: PracticeSession & {
       correctAnswers?: number;
       accuracyPercentage?: number;
     } = {
       sessionId: state.sessionId,
       timestamp: new Date(state.sessionStartTime).toISOString(),
-      status:
-        state.currentQuestionStep === 0
-          ? SessionStatus.IN_PROGRESS
-          : SessionStatus.IN_PROGRESS,
+      status: currentSessionStatus,
       practiceSelections,
       currentQuestionStep: state.currentQuestionStep,
       questionAnswers: state.questionAnswers,
@@ -1655,12 +1665,25 @@ export default function PracticeRushMultistep({
     state.answeredQuestionDetails,
     state.sessionXPReceived,
     practiceSelections,
+    restoredSessionData,
   ]);
 
   const currentQuestion = useMemo(
     () => (state.questions ? state.questions[state.currentQuestionStep] : null),
     [state.questions, state.currentQuestionStep]
   );
+
+  // Determine if we're effectively in review mode (either explicitly or session is completed)
+  const effectiveReviewMode = useMemo(
+    () =>
+      isReviewMode ||
+      (restoredSessionData &&
+        (restoredSessionData.status as string) === "completed"),
+    [isReviewMode, restoredSessionData]
+  );
+
+  console.log("Effective Review Mode:", effectiveReviewMode);
+  console.log("Current restoredSessionData:", restoredSessionData);
 
   // Use a ref to track the last processed question in review mode to prevent infinite loops
   const lastProcessedQuestionRef = useRef<string | null>(null);
@@ -1678,7 +1701,10 @@ export default function PracticeRushMultistep({
       const savedAnswer = state.questionAnswers[questionId];
 
       // Show previous answers in review mode OR when continuing a session (even if not in review mode)
-      if (savedAnswer && (isReviewMode || state.questionAnswers[questionId])) {
+      if (
+        savedAnswer &&
+        (effectiveReviewMode || state.questionAnswers[questionId])
+      ) {
         // Set the selected answer
         dispatch({ type: "SET_SELECTED_ANSWER", payload: savedAnswer });
 
@@ -1702,7 +1728,7 @@ export default function PracticeRushMultistep({
             plainQuestion: currentQuestion?.plainQuestion,
           },
         });
-      } else if (!savedAnswer && !isReviewMode) {
+      } else if (!savedAnswer && !effectiveReviewMode) {
         // If no saved answer and not in review mode, reset to allow new answers
         dispatch({ type: "SET_SELECTED_ANSWER", payload: "" });
         dispatch({
@@ -1727,7 +1753,7 @@ export default function PracticeRushMultistep({
       lastProcessedQuestionRef.current = null;
     }
   }, [
-    isReviewMode,
+    effectiveReviewMode,
     currentQuestion,
     state.questionAnswers,
     state.questionTimes,
@@ -1860,7 +1886,11 @@ export default function PracticeRushMultistep({
           } = {
             sessionId: state.sessionId,
             timestamp: new Date(state.sessionStartTime).toISOString(),
-            status: SessionStatus.IN_PROGRESS,
+            status:
+              restoredSessionData &&
+              (restoredSessionData.status as string) === "completed"
+                ? SessionStatus.COMPLETED
+                : SessionStatus.IN_PROGRESS,
             practiceSelections,
             currentQuestionStep: state.currentQuestionStep,
             questionAnswers: state.questionAnswers,
@@ -1888,7 +1918,6 @@ export default function PracticeRushMultistep({
             ),
             totalXPReceived: state.sessionXPReceived, // Include session XP tracking
           };
-
           try {
             localStorage.setItem(
               "currentPracticeSession",
@@ -1913,6 +1942,7 @@ export default function PracticeRushMultistep({
     state.answeredQuestionDetails,
     state.sessionXPReceived,
     practiceSelections,
+    restoredSessionData,
   ]);
 
   // Function to handle session completion
@@ -2219,7 +2249,8 @@ export default function PracticeRushMultistep({
 
       try {
         // Handle review mode - only fetch previously answered questions
-        if (isReviewMode && restoredSessionData) {
+        // This includes: explicit review mode OR sessions with COMPLETED status
+        if (effectiveReviewMode && restoredSessionData) {
           console.log(
             "🔍 Review mode detected - loading only answered questions..."
           );
@@ -2686,7 +2717,7 @@ export default function PracticeRushMultistep({
     [
       state.questionsData,
       restoredSessionData,
-      isReviewMode,
+      effectiveReviewMode,
       fetchAndProcessQuestions,
       fetchQuestionDetails,
     ]
@@ -2892,7 +2923,7 @@ export default function PracticeRushMultistep({
         if (!currentQuestion) return;
 
         // In review mode, only allow navigation - no answer changes
-        if (isReviewMode) {
+        if (effectiveReviewMode) {
           playSound("button-pressed.wav");
 
           // Just move to next question if available
@@ -3113,7 +3144,7 @@ export default function PracticeRushMultistep({
       state.inProgressQuestionTimes,
       state.sessionId,
       practiceSelections,
-      isReviewMode,
+      effectiveReviewMode,
     ]
   );
 
@@ -3262,7 +3293,7 @@ export default function PracticeRushMultistep({
         ) : (
           <React.Fragment>
             <div className="min-h-screen items-center justify-center pt-32 pb-10">
-              {isReviewMode && (
+              {effectiveReviewMode && (
                 <div className="mb-6 p-4 bg-blue-100 border-2 border-blue-300 rounded-lg text-center">
                   <h4 className="text-lg font-bold text-blue-800 mb-1">
                     📚 Review Mode - Session ID: {state.sessionId}
@@ -3273,28 +3304,32 @@ export default function PracticeRushMultistep({
                   </p>
                 </div>
               )}
+              <div className="w-full flex justify-start">
+                {" "}
+                <DuolingoTimer
+                  startTime={state.questionStartTime}
+                  isActive={state.isTimerActive}
+                  isVisible={state.isTimerVisible}
+                  onToggleVisibility={() => {
+                    dispatch({ type: "TOGGLE_TIMER_VISIBILITY" });
+                    playSound("button-pressed.wav");
+                  }}
+                  fixedTime={
+                    state.questionAnswers[
+                      currentQuestion.plainQuestion.questionId
+                    ]
+                      ? state.questionTimes[
+                          currentQuestion.plainQuestion.questionId
+                        ]
+                      : undefined
+                  }
+                  savedElapsedTime={state.currentQuestionElapsedTime}
+                />
+              </div>
+
               <div className="grid grid-cols-12 justify-between mb-10">
                 <div className="col-span-12 xl:col-span-7">
                   <div className="flex flex-col lg:flex-row gap-4 items-center">
-                    <DuolingoTimer
-                      startTime={state.questionStartTime}
-                      isActive={state.isTimerActive}
-                      isVisible={state.isTimerVisible}
-                      onToggleVisibility={() => {
-                        dispatch({ type: "TOGGLE_TIMER_VISIBILITY" });
-                        playSound("button-pressed.wav");
-                      }}
-                      fixedTime={
-                        state.questionAnswers[
-                          currentQuestion.plainQuestion.questionId
-                        ]
-                          ? state.questionTimes[
-                              currentQuestion.plainQuestion.questionId
-                            ]
-                          : undefined
-                      }
-                      savedElapsedTime={state.currentQuestionElapsedTime}
-                    />
                     <div className="h-full flex gap-2 justify-center items-center">
                       <div>
                         <h5 className="font-black text-2xl">
@@ -3490,7 +3525,7 @@ export default function PracticeRushMultistep({
                     </Tooltip>
 
                     {Object.keys(state.questionAnswers).length > 0 &&
-                      !isReviewMode && (
+                      !effectiveReviewMode && (
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Button

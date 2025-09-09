@@ -404,7 +404,11 @@ function Practice() {
         // Set up review mode
         setReviewSessionData(targetSession);
         setPracticeSelections(targetSession.practiceSelections);
-        setIsReviewMode(true);
+
+        if (targetSession.status === SessionStatus.COMPLETED) {
+          setIsReviewMode(true);
+        }
+
         setOnboardingComplete(true);
 
         toast.success("Session Loaded for Review", {
