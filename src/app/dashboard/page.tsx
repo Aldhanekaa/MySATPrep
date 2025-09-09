@@ -3,57 +3,57 @@ import React from "react";
 import { SiteHeader } from "../navbar";
 import type { Metadata } from "next";
 
-// Metadata for the dashboard page
-export const metadata: Metadata = {
-  title: "SAT Dashboard - Track Progress & Manage Practice",
-  description:
-    "Your personalized SAT practice dashboard. Track answered questions, manage saved questions, review practice sessions, and monitor your progress across SAT, PSAT/NMSQT, and PSAT 8/9 assessments.",
-  keywords: [
-    "SAT dashboard",
-    "SAT progress tracker",
-    "practice session history",
-    "saved SAT questions",
-    "answered questions tracker",
-    "SAT performance analytics",
-    "PSAT dashboard",
-    "SAT study progress",
-    "practice statistics",
-    "SAT prep dashboard",
-    "question bank management",
-    "standardized test progress",
-    "SAT score tracking",
-    "practice session review",
-  ],
-  openGraph: {
-    title: "SAT Dashboard - Track Progress & Manage Practice - PracticeSAT",
-    description:
-      "Your personalized SAT practice dashboard. Track answered questions, manage saved questions, and monitor your progress across all assessments.",
-    type: "website",
-    url: "/dashboard",
-    images: [
-      {
-        url: "/og-dashboard.png",
-        width: 1200,
-        height: 630,
-        alt: "SAT Dashboard - Progress Tracking and Practice Management - PracticeSAT",
-      },
-    ],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "SAT Dashboard - Track Progress & Manage Practice - PracticeSAT",
-    description:
-      "Your personalized SAT practice dashboard. Track answered questions, manage saved questions, and monitor your progress.",
-    images: ["/og-dashboard.png"],
-  },
-  alternates: {
-    canonical: "/dashboard",
-  },
-  robots: {
-    index: true,
-    follow: true,
-  },
-};
+// // Metadata for the dashboard page
+// export const metadata: Metadata = {
+//   title: "SAT Dashboard - Track Progress & Manage Practice",
+//   description:
+//     "Your personalized SAT practice dashboard. Track answered questions, manage saved questions, review practice sessions, and monitor your progress across SAT, PSAT/NMSQT, and PSAT 8/9 assessments.",
+//   keywords: [
+//     "SAT dashboard",
+//     "SAT progress tracker",
+//     "practice session history",
+//     "saved SAT questions",
+//     "answered questions tracker",
+//     "SAT performance analytics",
+//     "PSAT dashboard",
+//     "SAT study progress",
+//     "practice statistics",
+//     "SAT prep dashboard",
+//     "question bank management",
+//     "standardized test progress",
+//     "SAT score tracking",
+//     "practice session review",
+//   ],
+//   openGraph: {
+//     title: "SAT Dashboard - Track Progress & Manage Practice - PracticeSAT",
+//     description:
+//       "Your personalized SAT practice dashboard. Track answered questions, manage saved questions, and monitor your progress across all assessments.",
+//     type: "website",
+//     url: "/dashboard",
+//     images: [
+//       {
+//         url: "/og-dashboard.png",
+//         width: 1200,
+//         height: 630,
+//         alt: "SAT Dashboard - Progress Tracking and Practice Management - PracticeSAT",
+//       },
+//     ],
+//   },
+//   twitter: {
+//     card: "summary_large_image",
+//     title: "SAT Dashboard - Track Progress & Manage Practice - PracticeSAT",
+//     description:
+//       "Your personalized SAT practice dashboard. Track answered questions, manage saved questions, and monitor your progress.",
+//     images: ["/og-dashboard.png"],
+//   },
+//   alternates: {
+//     canonical: "/dashboard",
+//   },
+//   robots: {
+//     index: true,
+//     follow: true,
+//   },
+// };
 
 import {
   Workspaces,
