@@ -2259,6 +2259,7 @@ export default function PracticeRushMultistep({
         });
 
         questionsToFetch = selectedQuestions;
+        console.log("THIS IS A NEW VERSION (should be)");
         console.log(
           `Total questions after difficulty-based selection: ${questionsToFetch.length}`
         );
