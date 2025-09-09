@@ -1131,7 +1131,7 @@ export default function QuestionProblemCard({
           {question.problem.stimulus && (
             <MathJaxContext>
               <MathJax className=" text-justify">
-                <span
+                <div
                   id="question_explanation"
                   className="text-lg text-justify"
                   dangerouslySetInnerHTML={{
@@ -1139,20 +1139,20 @@ export default function QuestionProblemCard({
                       ? question.problem.stimulus
                       : "",
                   }}
-                ></span>
+                ></div>
               </MathJax>
             </MathJaxContext>
           )}
           {question.problem.stem && (
             <MathJaxContext>
               <MathJax>
-                <span
+                <div
                   id="question_explanation"
                   className="text-lg text-justify"
                   dangerouslySetInnerHTML={{
                     __html: question.problem.stem ? question.problem.stem : "",
                   }}
-                ></span>
+                ></div>
               </MathJax>
             </MathJaxContext>
           )}
@@ -1443,12 +1443,12 @@ export default function QuestionProblemCard({
           </Label>
           <MathJaxContext>
             <MathJax id="question_explanation" className=" text-justify">
-              <span
+              <div
                 className="text-xl"
                 dangerouslySetInnerHTML={{
                   __html: question.problem.rationale,
                 }}
-              ></span>
+              ></div>
             </MathJax>
           </MathJaxContext>
         </div>

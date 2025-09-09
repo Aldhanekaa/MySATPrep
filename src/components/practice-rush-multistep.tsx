@@ -743,7 +743,7 @@ const AnswerOptions = React.memo(function AnswerOptions({
                         !isReviewMode && "cursor-pointer"
                       }`}
                     >
-                      <span
+                      <div
                         className="text-xl inline-block"
                         dangerouslySetInnerHTML={{
                           __html: value.replaceAll(
@@ -751,7 +751,7 @@ const AnswerOptions = React.memo(function AnswerOptions({
                             ""
                           ),
                         }}
-                      ></span>
+                      ></div>
                     </MathJax>
                   </MathJaxContext>
                 </Label>
@@ -3985,15 +3985,12 @@ export default function PracticeRushMultistep({
                               id="question_explanation"
                               className=" text-justify"
                             >
-                              <span
+                              <div
                                 className="text-xl"
                                 dangerouslySetInnerHTML={{
-                                  __html: currentQuestion.rationale.replaceAll(
-                                    /\s*style\s*=\s*"[^"]*"/gi,
-                                    ""
-                                  ),
+                                  __html: currentQuestion.rationale,
                                 }}
-                              ></span>
+                              ></div>
                             </MathJax>
                           </MathJaxContext>
                         </div>
@@ -4015,12 +4012,12 @@ export default function PracticeRushMultistep({
                     <React.Fragment>
                       <MathJaxContext>
                         <MathJax>
-                          <span
+                          <div
                             className="text-xl"
                             dangerouslySetInnerHTML={{
                               __html: currentQuestion.stem,
                             }}
-                          ></span>
+                          ></div>
                         </MathJax>
                       </MathJaxContext>
                       <Separator className="my-4" />
