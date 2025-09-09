@@ -33,6 +33,8 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import ReferenceSheet from "@/src/sat-math-refrence-sheet.webp";
 import { toast, useSonner } from "sonner";
+import { Pill, PillIndicator } from "./ui/pill";
+import { Separator } from "./ui/separator";
 
 // Reference Popup State Management
 interface PopupState {
@@ -929,6 +931,30 @@ export default function QuestionProblemCard({
               <CardTitle>
                 <div className="grid grid-cols-12 w-full items-center gap-1 py-4 md:py-1 justify-between">
                   <div className="col-span-12 md:col-span-5 flex text-xl items-center gap-1">
+                    <Pill className="text-md font-semibold">
+                      {question.question.difficulty == "E" ? (
+                        <React.Fragment>
+                          <PillIndicator variant="success" pulse />
+                          Easy
+                        </React.Fragment>
+                      ) : question.question.difficulty == "M" ? (
+                        <React.Fragment>
+                          <PillIndicator variant="warning" pulse />
+                          Medium
+                        </React.Fragment>
+                      ) : (
+                        <React.Fragment>
+                          <PillIndicator variant="error" pulse />
+                          Hard
+                        </React.Fragment>
+                      )}
+                    </Pill>
+                    <div className="h-5 mr-2">
+                      <Separator
+                        orientation="vertical"
+                        className=" border-black h-full"
+                      />
+                    </div>
                     <span className=" font-bold">Question</span>{" "}
                     {question.question.questionId}
                   </div>

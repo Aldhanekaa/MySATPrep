@@ -263,18 +263,6 @@ export function HomeTab({ selectedAssessment }: HomeTabProps) {
             )}
           </div>
         )}
-
-        {selectedAssessment && (
-          <div className="space-y-2">
-            <p className="text-sm">
-              Current Assessment: <strong>{selectedAssessment.name}</strong>
-            </p>
-            <div className="flex gap-2">
-              <Button>Start Practice</Button>
-              <Button variant="outline">View Question Bank</Button>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

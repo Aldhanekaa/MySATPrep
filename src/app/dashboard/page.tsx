@@ -67,7 +67,7 @@ const TabContentComponents = {
   home: HomeTab,
   saved: SavedTab,
   answered: AnsweredTab,
-  tracker: TrackerTab,
+  // tracker: TrackerTab,
   sessions: SessionsTab,
 };
 
@@ -150,12 +150,12 @@ export default function DashboardPage() {
         tooltip: "Answered Questions",
         badge: answeredQuestionsCount > 0 ? answeredQuestionsCount : undefined,
       },
-      {
-        value: "tracker",
-        label: "Tracker",
-        icon: TrendingUp,
-        tooltip: "Progress Tracker",
-      },
+      // {
+      //   value: "tracker",
+      //   label: "Tracker",
+      //   icon: TrendingUp,
+      //   tooltip: "Progress Tracker",
+      // },
       {
         value: "sessions",
         label: "Sessions",
