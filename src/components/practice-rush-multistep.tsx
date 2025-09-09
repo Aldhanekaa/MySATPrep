@@ -2375,37 +2375,35 @@ export default function PracticeRushMultistep({
 
             dispatch({ type: "SET_CURRENT_STEP", payload: 5 });
 
-            setTimeout(() => {
-              dispatch({ type: "SET_QUESTIONS", payload: reviewQuestions });
-              dispatch({ type: "SET_CURRENT_STEP", payload: 5 });
+            dispatch({ type: "SET_QUESTIONS", payload: reviewQuestions });
+            dispatch({ type: "SET_CURRENT_STEP", payload: 5 });
 
-              // Don't start timer in review mode
-              console.log("✅ Review session loaded - questions are read-only");
+            // Don't start timer in review mode
+            console.log("✅ Review session loaded - questions are read-only");
 
-              const answeredCount = Object.keys(
-                restoredSessionData.questionAnswers || {}
-              ).length;
-              const correctAnswers = Object.keys(
-                restoredSessionData.questionAnswers || {}
-              ).filter((questionId) => {
-                const userAnswer =
-                  restoredSessionData.questionAnswers?.[questionId];
-                const question = reviewQuestions.find(
-                  (q) => q.plainQuestion.questionId === questionId
-                );
-                return (
-                  userAnswer &&
-                  question?.correct_answer
-                    ?.map((a) => a.trim())
-                    .includes(userAnswer)
-                );
-              }).length;
+            const answeredCount = Object.keys(
+              restoredSessionData.questionAnswers || {}
+            ).length;
+            const correctAnswers = Object.keys(
+              restoredSessionData.questionAnswers || {}
+            ).filter((questionId) => {
+              const userAnswer =
+                restoredSessionData.questionAnswers?.[questionId];
+              const question = reviewQuestions.find(
+                (q) => q.plainQuestion.questionId === questionId
+              );
+              return (
+                userAnswer &&
+                question?.correct_answer
+                  ?.map((a) => a.trim())
+                  .includes(userAnswer)
+              );
+            }).length;
 
-              toast.success("Review Session Loaded! 👁️", {
-                description: `Reviewing ${answeredCount} answered questions (${correctAnswers} correct). Answers are read-only.`,
-                duration: 6000,
-              });
-            }, 1500);
+            toast.success("Review Session Loaded! 👁️", {
+              description: `Reviewing ${answeredCount} answered questions (${correctAnswers} correct). Answers are read-only.`,
+              duration: 6000,
+            });
 
             return;
           } else {

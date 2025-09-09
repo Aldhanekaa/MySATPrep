@@ -8,6 +8,7 @@ import FooterSection from "@/components/footer";
 import { MathJaxContext } from "better-react-mathjax";
 
 import { Toaster } from "sonner";
+import { Banner } from "@/components/ui/banner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -118,6 +119,13 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <MathJaxContext version={3} config={config}>
+          <Banner
+            message="🎉 Maintenance is in progress! If it takes a long time to continue or review your session, please start a new Practice Rush"
+            height="2rem"
+            variant="rainbow"
+            className="mb-4"
+          />
+
           {children}
         </MathJaxContext>
         <GoogleAnalytics gaId="GTM-T9GFVBPJ" />
