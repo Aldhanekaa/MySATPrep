@@ -2264,10 +2264,7 @@ export default function PracticeRushMultistep({
         );
       } else {
         // Original behavior for non-randomized or when no difficulties specified
-        const questionsNeeded = Math.min(
-          22 - existingQuestions.length,
-          questionsData.length
-        );
+        const questionsNeeded = Math.min(22, 22 - existingQuestions.length);
         questionsToFetch = questionsData.slice(0, questionsNeeded);
       }
 
