@@ -1,4 +1,6 @@
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { Analytics } from "@vercel/analytics/next";
+
 import { GoogleAnalytics } from "@next/third-parties/google";
 
 import type { Metadata } from "next";
@@ -131,6 +133,7 @@ export default function RootLayout({
         <GoogleAnalytics gaId="GTM-T9GFVBPJ" />
 
         <SpeedInsights />
+        <Analytics />
         <FooterSection />
         <Toaster position="bottom-right" expand={false} closeButton={true} />
       </body>

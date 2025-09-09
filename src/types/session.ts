@@ -64,6 +64,7 @@ export interface PracticeSelections {
   randomize: boolean;
   questionIds?: string[]; // Optional pre-selected question IDs for shared links
   excludeBluebook: boolean;
+  duplicateSession?: boolean;
 }
 
 /**
