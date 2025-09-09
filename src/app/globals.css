@@ -133,6 +133,10 @@
   display: inline-block;
 }
 
+#question_explanation span img {
+  display: inline-block;
+}
+
 /* Style tables only inside .answer-option */
 .answer-option table {
   width: 100%;
