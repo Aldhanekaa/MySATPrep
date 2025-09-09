@@ -2230,6 +2230,8 @@ export default function PracticeRushMultistep({
           const benchmarkQuestionsLength = existingQuestions.length % 22;
           // console.log(`benchmarkQuestionsLength ${benchmarkQuestionsLength}`);
           totalQuestions = Math.min(22 - benchmarkQuestionsLength, 22);
+        } else {
+          totalQuestions = 22; // Default to 22 if no existing questions
         }
 
         const questionsPerDifficulty = Math.floor(
@@ -2734,6 +2736,8 @@ export default function PracticeRushMultistep({
           );
 
           dispatch({ type: "SET_CURRENT_STEP", payload: 3 });
+
+          console.log("selections", selections);
 
           // Use the helper function to fetch and process questions
           const correctQuestions = await fetchAndProcessQuestions(
