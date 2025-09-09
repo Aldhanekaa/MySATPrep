@@ -12,6 +12,7 @@ import { getPracticeStatistics } from "@/lib/practiceStatistics";
 import { AnsweredQuestion } from "@/types/statistics";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 interface QuestionResult {
   questionId: string;
@@ -173,7 +174,9 @@ export function SessionsTab() {
           <p className="text-muted-foreground mb-4">
             No practice sessions found.
           </p>
-          <Button variant="outline">Start Your First Practice Session</Button>
+          <Link href={"/practice"}>
+            <Button variant="outline">Start Your First Practice Session</Button>
+          </Link>
         </div>
       ) : (
         <div className="space-y-3">

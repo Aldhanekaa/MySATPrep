@@ -6,6 +6,58 @@ import { SiteHeader } from "../navbar";
 import PracticeOnboarding from "@/components/practice-onboarding";
 import PracticeRushMultistep from "@/components/practice-rush-multistep";
 import PracticeRushCelebration from "@/components/celebrating-section/practice-rush-celebration";
+import type { Metadata } from "next";
+
+// Metadata for the practice page
+export const metadata: Metadata = {
+  title: "SAT Practice Session - Interactive Question Practice",
+  description:
+    "Start your personalized SAT practice session with real College Board questions. Choose your subjects, difficulty levels, and practice format. Track your progress and improve your SAT scores with targeted practice.",
+  keywords: [
+    "SAT practice session",
+    "interactive SAT practice",
+    "personalized SAT prep",
+    "SAT question practice",
+    "College Board practice questions",
+    "SAT math practice",
+    "SAT reading writing practice",
+    "adaptive SAT practice",
+    "SAT score improvement",
+    "standardized test practice",
+    "custom SAT practice",
+    "SAT practice rush",
+    "timed SAT practice",
+  ],
+  openGraph: {
+    title: "SAT Practice Session - Interactive Question Practice - PracticeSAT",
+    description:
+      "Start your personalized SAT practice session with real College Board questions. Choose subjects, difficulty levels, and track your progress.",
+    type: "website",
+    url: "/practice",
+    images: [
+      {
+        url: "/og-practice.png",
+        width: 1200,
+        height: 630,
+        alt: "SAT Practice Session - Interactive Learning with PracticeSAT",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "SAT Practice Session - Interactive Question Practice - PracticeSAT",
+    description:
+      "Start your personalized SAT practice session with real College Board questions. Choose subjects, difficulty levels, and track progress.",
+    images: ["/og-practice.png"],
+  },
+  alternates: {
+    canonical: "/practice",
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
+};
 import {
   PracticeSelections,
   PracticeSession,
