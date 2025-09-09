@@ -1703,8 +1703,8 @@ export default function PracticeRushMultistep({
     [isReviewMode, restoredSessionData]
   );
 
-  console.log("Effective Review Mode:", effectiveReviewMode);
-  console.log("Current restoredSessionData:", restoredSessionData);
+  // console.log("Effective Review Mode:", effectiveReviewMode);
+  // console.log("Current restoredSessionData:", restoredSessionData);
 
   // Use a ref to track the last processed question in review mode to prevent infinite loops
   const lastProcessedQuestionRef = useRef<string | null>(null);
@@ -2297,6 +2297,8 @@ export default function PracticeRushMultistep({
           const benchmarkQuestionsLength = existingQuestions.length % 22;
           // console.log(`benchmarkQuestionsLength ${benchmarkQuestionsLength}`);
           questionsNeeded = Math.min(22 - benchmarkQuestionsLength, 22);
+        } else {
+          questionsNeeded = 22; // Default to 22 if no existing questions
         }
 
         questionsToFetch = questionsData.slice(0, questionsNeeded);
@@ -2751,8 +2753,11 @@ export default function PracticeRushMultistep({
           setTimeout(() => {
             // if (correctQuestions && !state.questions)
             //   playSound("start-session.wav");
+            const finalQuestions = selections.randomize
+              ? [...correctQuestions].sort(() => Math.random() - 0.5)
+              : correctQuestions;
 
-            dispatch({ type: "SET_QUESTIONS", payload: correctQuestions });
+            dispatch({ type: "SET_QUESTIONS", payload: finalQuestions });
 
             dispatch({ type: "SET_CURRENT_STEP", payload: 5 });
 
