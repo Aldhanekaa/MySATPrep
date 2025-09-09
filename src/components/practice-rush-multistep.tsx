@@ -55,6 +55,7 @@ import {
   CheckCircle,
   Clock,
   GripHorizontal,
+  LinkIcon,
   PyramidIcon,
   SendIcon,
   Strikethrough,
@@ -3490,24 +3491,6 @@ export default function PracticeRushMultistep({
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Button
-                          variant="default"
-                          className="justify-center items-center cursor-pointer bg-neutral-500 hover:bg-neutral-600 text-white font-bold py-3 px-6 rounded-2xl border-b-4 border-neutral-700 hover:border-neutral-800 shadow-md hover:shadow-lg transform transition-all duration-200 active:translate-y-0.5 active:border-b-2"
-                          onClick={() => {
-                            dispatch({ type: "TOGGLE_SHARE_MODAL" });
-                            playSound("button-pressed.wav");
-                          }}
-                        >
-                          <SendIcon className="group-hover:rotate-12 duration-300 mr-1" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Share this practice session</p>
-                      </TooltipContent>
-                    </Tooltip>
-
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
                           variant={"outline"}
                           className="cursor-pointer group bg-white hover:bg-gray-50 text-gray-700 font-bold py-3 px-6 rounded-2xl border-2 border-b-4 border-gray-300 hover:border-gray-400 shadow-md hover:shadow-lg transform transition-all duration-200 active:translate-y-0.5 active:border-b-2"
                           onClick={() => {
@@ -3541,6 +3524,63 @@ export default function PracticeRushMultistep({
                           </TooltipContent>
                         </Tooltip>
                       )}
+
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="default"
+                          className="justify-center items-center cursor-pointer bg-neutral-500 hover:bg-neutral-600 text-white font-bold py-3 px-6 rounded-2xl border-b-4 border-neutral-700 hover:border-neutral-800 shadow-md hover:shadow-lg transform transition-all duration-200 active:translate-y-0.5 active:border-b-2"
+                          onClick={() => {
+                            dispatch({ type: "TOGGLE_SHARE_MODAL" });
+                            playSound("button-pressed.wav");
+                          }}
+                        >
+                          <SendIcon className="group-hover:rotate-12 duration-300 mr-1" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Share this practice session</p>
+                      </TooltipContent>
+                    </Tooltip>
+
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="default"
+                          className="justify-center items-center cursor-pointer bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-3 px-6 rounded-2xl border-b-4 border-indigo-700 hover:border-indigo-800 shadow-md hover:shadow-lg transform transition-all duration-200 active:translate-y-0.5 active:border-b-2"
+                          onClick={() => {
+                            const questionId =
+                              currentQuestion?.plainQuestion.questionId;
+                            if (questionId) {
+                              const questionUrl = `${window.location.origin}/question/${questionId}`;
+                              navigator.clipboard
+                                .writeText(questionUrl)
+                                .then(() => {
+                                  toast.success("Link Copied!", {
+                                    position: "top-center",
+                                    description:
+                                      "Question link has been copied to your clipboard.",
+                                    duration: 3000,
+                                  });
+                                  playSound("button-pressed.wav");
+                                })
+                                .catch(() => {
+                                  toast.error("Failed to Copy", {
+                                    description:
+                                      "Unable to copy link to clipboard. Please try again.",
+                                    duration: 3000,
+                                  });
+                                });
+                            }
+                          }}
+                        >
+                          <LinkIcon className="group-hover:rotate-12 duration-300 mr-1" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Copy link to this question</p>
+                      </TooltipContent>
+                    </Tooltip>
 
                     <Tooltip>
                       <TooltipTrigger asChild>
