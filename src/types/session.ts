@@ -63,6 +63,7 @@ export interface PracticeSelections {
   difficulties: QuestionDifficulty[];
   randomize: boolean;
   questionIds?: string[]; // Optional pre-selected question IDs for shared links
+  excludeBluebook: boolean;
 }
 
 /**

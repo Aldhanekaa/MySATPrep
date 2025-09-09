@@ -11,6 +11,7 @@ import { domains } from "@/static-data/domains";
 import { PracticeSelections } from "@/types/session";
 import { QuestionDifficulty } from "@/types/question";
 import { playSound } from "@/lib/playSound";
+import { DuolingoToggle } from "@/components/ui/duolingo-toggle";
 
 interface PracticeOnboardingProps {
   onComplete: (selections: PracticeSelections) => void;
@@ -30,6 +31,7 @@ export default function PracticeOnboarding({
     QuestionDifficulty[]
   >([]);
   const [randomize, setRandomize] = useState<boolean>(true);
+  const [excludeBluebook, setExcludeBluebook] = useState<boolean>(true);
 
   // Scroll to top when step changes
   useEffect(() => {
@@ -120,6 +122,7 @@ export default function PracticeOnboarding({
         skills: selectedSkillObjects,
         difficulties: selectedDifficulties,
         randomize: randomize,
+        excludeBluebook: excludeBluebook,
       });
     }
   };
@@ -737,83 +740,57 @@ export default function PracticeOnboarding({
                     <h2 className="text-xl font-semibold text-gray-900 text-center">
                       Question Order
                     </h2>
-                    <div className="flex justify-center">
-                      <div
-                        className={`relative flex items-center gap-4 rounded-2xl border-2 p-4 cursor-pointer transition-all duration-300 transform hover:scale-105 ${
-                          randomize
-                            ? "border-blue-500 bg-blue-50 shadow-[0_4px_0_0_theme(colors.blue.500),0_8px_20px_theme(colors.blue.500/0.25)]"
-                            : "border-gray-300 bg-white shadow-[0_4px_0_0_theme(colors.gray.300),0_8px_20px_theme(colors.gray.300/0.15)] hover:shadow-[0_6px_0_0_theme(colors.gray.400),0_10px_25px_theme(colors.gray.300/0.2)]"
-                        } active:shadow-[0_2px_0_0_theme(colors.gray.300),0_4px_10px_theme(colors.gray.300/0.15)] active:translate-y-0.5`}
-                        onClick={() => {
-                          const newValue = !randomize;
-                          if (newValue) {
-                            playSound("tap-checkbox-checked.wav");
-                          } else {
-                            playSound("tap-checkbox-unchecked.wav");
-                          }
-                          setRandomize(newValue);
-                        }}
-                      >
-                        {/* Duolingo-style toggle switch */}
-                        <div
-                          className={`relative w-12 h-7 rounded-full transition-all duration-300 ${
-                            randomize ? "bg-blue-500" : "bg-gray-300"
-                          }`}
+                    <DuolingoToggle
+                      isEnabled={randomize}
+                      onToggle={setRandomize}
+                      title="Randomize Questions"
+                      description="Control the order of questions"
+                      enabledDescription="Questions will appear in random order"
+                      disabledDescription="Questions will appear in their original order"
+                      color="blue"
+                      enabledIcon={
+                        <svg
+                          className="w-5 h-5"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
                         >
-                          <div
-                            className={`absolute top-1 w-5 h-5 bg-white rounded-full transition-all duration-300 transform shadow-sm ${
-                              randomize ? "translate-x-6" : "translate-x-1"
-                            }`}
+                          <path
+                            fillRule="evenodd"
+                            d="M5 2a1 1 0 011 1v1h1a1 1 0 010 2H6v1a1 1 0 01-2 0V6H3a1 1 0 010-2h1V3a1 1 0 011-1zm0 10a1 1 0 011 1v1h1a1 1 0 110 2H6v1a1 1 0 11-2 0v-1H3a1 1 0 110-2h1v-1a1 1 0 011-1zM12 2a1 1 0 01.967.744L14.146 7.2 17.5 9.134a1 1 0 010 1.732L14.146 12.8l-1.179 4.456a1 1 0 01-1.934 0L9.854 12.8 6.5 10.866a1 1 0 010-1.732L9.854 7.2l1.179-4.456A1 1 0 0112 2z"
+                            clipRule="evenodd"
                           />
-                        </div>
-
-                        <div className="flex flex-col">
-                          <span className="text-lg font-semibold text-gray-900">
-                            Randomize Questions
-                          </span>
-                          <span className="text-sm text-gray-600">
-                            {randomize
-                              ? "Questions will appear in random order"
-                              : "Questions will appear in their original order"}
-                          </span>
-                        </div>
-
-                        {/* Duolingo-style icon */}
-                        <div
-                          className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 ${
-                            randomize
-                              ? "bg-blue-500 text-white"
-                              : "bg-gray-200 text-gray-500"
-                          }`}
+                        </svg>
+                      }
+                      disabledIcon={
+                        <svg
+                          className="w-5 h-5"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
                         >
-                          {randomize ? (
-                            <svg
-                              className="w-5 h-5"
-                              fill="currentColor"
-                              viewBox="0 0 20 20"
-                            >
-                              <path
-                                fillRule="evenodd"
-                                d="M5 2a1 1 0 011 1v1h1a1 1 0 010 2H6v1a1 1 0 01-2 0V6H3a1 1 0 010-2h1V3a1 1 0 011-1zm0 10a1 1 0 011 1v1h1a1 1 0 110 2H6v1a1 1 0 11-2 0v-1H3a1 1 0 110-2h1v-1a1 1 0 011-1zM12 2a1 1 0 01.967.744L14.146 7.2 17.5 9.134a1 1 0 010 1.732L14.146 12.8l-1.179 4.456a1 1 0 01-1.934 0L9.854 12.8 6.5 10.866a1 1 0 010-1.732L9.854 7.2l1.179-4.456A1 1 0 0112 2z"
-                                clipRule="evenodd"
-                              />
-                            </svg>
-                          ) : (
-                            <svg
-                              className="w-5 h-5"
-                              fill="currentColor"
-                              viewBox="0 0 20 20"
-                            >
-                              <path
-                                fillRule="evenodd"
-                                d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z"
-                                clipRule="evenodd"
-                              />
-                            </svg>
-                          )}
-                        </div>
-                      </div>
-                    </div>
+                          <path
+                            fillRule="evenodd"
+                            d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                      }
+                    />
+                  </div>
+
+                  {/* Bluebook Questions Selection */}
+                  <div className="space-y-4 mt-8">
+                    <h2 className="text-xl font-semibold text-gray-900 text-center">
+                      Question Source
+                    </h2>
+                    <DuolingoToggle
+                      isEnabled={excludeBluebook}
+                      onToggle={setExcludeBluebook}
+                      title="Exclude Bluebook Questions"
+                      description="Control which question sources to include"
+                      enabledDescription="Questions from College Board's Bluebook will be excluded"
+                      disabledDescription="College Board's Bluebook questions will be included"
+                      color="green"
+                    />
                   </div>
                 </div>
               </motion.div>

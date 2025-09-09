@@ -500,6 +500,14 @@ function Practice() {
     const questionIds = searchParams.get("questionIds");
     const type = searchParams.get("type");
     const randomize = searchParams.get("randomize");
+    const excludeBluebookParam = searchParams.get("excludeBluebook");
+    let excludeBluebook = false;
+
+    if (excludeBluebookParam == "true") {
+      excludeBluebook = true;
+    } else if (excludeBluebookParam == "false") {
+      excludeBluebook = false;
+    }
 
     // If no parameters are present, proceed normally
     if (
@@ -762,6 +770,7 @@ function Practice() {
           assessment: assessment,
           subject: subject,
           domains: selectedDomains,
+          excludeBluebook: excludeBluebook,
           skills: selectedSkills,
           difficulties: ["E", "M", "H"] as QuestionDifficulty[], // Default to all difficulties
           randomize: randomizeQuestions,

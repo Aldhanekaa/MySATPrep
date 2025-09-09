@@ -2336,6 +2336,7 @@ export default function PracticeRushMultistep({
       isFetchingRef.current = true;
 
       try {
+        console.log("Selections : ", selections);
         // Handle review mode - only fetch previously answered questions
         // This includes: explicit review mode OR sessions with COMPLETED status
         if (effectiveReviewMode && restoredSessionData) {
@@ -2531,7 +2532,22 @@ export default function PracticeRushMultistep({
           // Don't include questionIds in hash as those are for shared links
         });
 
-        if (questionsData) {
+        if (questionsData && !state.questionsData) {
+          console.log(`questionsData before excluding ${questionsData.length}`);
+
+          // if user want to exluce Bluebook questions
+          if (selections.excludeBluebook) {
+            questionsData = questionsData.filter(
+              (item) =>
+                (item.ibn == null && item.external_id) ||
+                (item.ibn && item.external_id == null)
+            );
+          }
+
+          console.log(
+            `selections.excludeBluebook ${selections.excludeBluebook} : ${questionsData.length}`
+          );
+
           dispatch({
             type: "SET_QUESTIONS_DATA",
             payload: questionsData,
