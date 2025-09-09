@@ -3151,7 +3151,7 @@ export default function PracticeRushMultistep({
               )}
               <div className="grid grid-cols-12 justify-between mb-10">
                 <div className="col-span-12 xl:col-span-7">
-                  <div className="flex gap-4 items-center">
+                  <div className="flex flex-col lg:flex-row gap-4 items-center">
                     <DuolingoTimer
                       startTime={state.questionStartTime}
                       isActive={state.isTimerActive}
@@ -3192,18 +3192,18 @@ export default function PracticeRushMultistep({
                             </span>
                           )}
                         </h6>
-                        {state.questionsData && (
+                        {/* {state.questionsData && (
                           <p className="text-sm text-gray-600 mt-1">
-                            {/* Question {state.currentQuestionStep + 1} of{" "}
+                            Question {state.currentQuestionStep + 1} of{" "}
                             {state.questions?.length || 0} •{" "}
                             {Math.max(
                               0,
                               state.questionsData.length -
                                 state.questionsLoadedCount
                             )}{" "}
-                            questions remaining */}
+                            questions remaining
                           </p>
-                        )}
+                        )} */}
                       </div>
 
                       <Pill className="text-md font-semibold">
@@ -3227,7 +3227,7 @@ export default function PracticeRushMultistep({
                     </div>
                   </div>
                 </div>
-                <div className="col-span-12 xl:col-span-5 flex gap-2 items-center justify-center md:justify-start mt-6 xl:mt-0 lg:justify-end  xl:justify-end">
+                <div className="col-span-12 xl:col-span-5 flex flex-wrap gap-2 items-center justify-center md:justify-start mt-6 xl:mt-0 lg:justify-end  xl:justify-end">
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
