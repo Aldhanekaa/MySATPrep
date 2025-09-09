@@ -98,14 +98,11 @@ export const metadata: Metadata = {
 };
 
 const config = {
-  "fast-preview": {
-    disabled: true,
-  },
   /* in theory, the MathML input processor should be activated if we add
   an "mml" block to the config OR if "input/mml" (NOT "input/mathml" as stated 
   in the docs) is in the load array. However, this is not necessary as MathML is 
   ALWAYS enabled in MathJax */
-  loader: { load: ["tex-mml-svg"] },
+  loader: { load: ["input/mml", "output/chtml"] },
   mml: {},
 };
 
