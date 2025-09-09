@@ -3750,15 +3750,19 @@ export default function PracticeRushMultistep({
                 >
                   <React.Fragment>
                     {currentQuestion.stimulus && (
-                      <div
-                        id="stimulus"
-                        className="text-xl text-justify answer-option"
-                        dangerouslySetInnerHTML={{
-                          __html: currentQuestion.stimulus
-                            ? currentQuestion.stimulus
-                            : "",
-                        }}
-                      ></div>
+                      <MathJaxContext>
+                        <MathJax>
+                          <div
+                            id="stimulus"
+                            className="text-xl text-justify answer-option"
+                            dangerouslySetInnerHTML={{
+                              __html: currentQuestion.stimulus
+                                ? currentQuestion.stimulus
+                                : "",
+                            }}
+                          ></div>
+                        </MathJax>
+                      </MathJaxContext>
                     )}
 
                     {practiceSelections?.subject !== "reading-writing" &&
