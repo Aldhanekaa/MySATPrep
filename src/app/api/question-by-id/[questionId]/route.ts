@@ -54,13 +54,13 @@ export async function GET(
       const questionData = questionsData.find(
         (q) => q.questionId === questionId
       );
-      console.log(
-        `Fetched  ${questionsData.length} questions for assessment: ${
-          assessmentData.text
-        } {questionData: ${
-          questionData ? "found" : "not found"
-        }} ${JSON.stringify(questionData)}`
-      );
+      // console.log(
+      //   `Fetched  ${questionsData.length} questions for assessment: ${
+      //     assessmentData.text
+      //   } {questionData: ${
+      //     questionData ? "found" : "not found"
+      //   }} ${JSON.stringify(questionData)}`
+      // );
 
       if (questionData) {
         // Use shared question fetching function

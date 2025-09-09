@@ -1,66 +1,13 @@
 "use client";
 import React from "react";
 import { SiteHeader } from "../navbar";
-import type { Metadata } from "next";
-
-// // Metadata for the dashboard page
-// export const metadata: Metadata = {
-//   title: "SAT Dashboard - Track Progress & Manage Practice",
-//   description:
-//     "Your personalized SAT practice dashboard. Track answered questions, manage saved questions, review practice sessions, and monitor your progress across SAT, PSAT/NMSQT, and PSAT 8/9 assessments.",
-//   keywords: [
-//     "SAT dashboard",
-//     "SAT progress tracker",
-//     "practice session history",
-//     "saved SAT questions",
-//     "answered questions tracker",
-//     "SAT performance analytics",
-//     "PSAT dashboard",
-//     "SAT study progress",
-//     "practice statistics",
-//     "SAT prep dashboard",
-//     "question bank management",
-//     "standardized test progress",
-//     "SAT score tracking",
-//     "practice session review",
-//   ],
-//   openGraph: {
-//     title: "SAT Dashboard - Track Progress & Manage Practice - PracticeSAT",
-//     description:
-//       "Your personalized SAT practice dashboard. Track answered questions, manage saved questions, and monitor your progress across all assessments.",
-//     type: "website",
-//     url: "/dashboard",
-//     images: [
-//       {
-//         url: "/og-dashboard.png",
-//         width: 1200,
-//         height: 630,
-//         alt: "SAT Dashboard - Progress Tracking and Practice Management - PracticeSAT",
-//       },
-//     ],
-//   },
-//   twitter: {
-//     card: "summary_large_image",
-//     title: "SAT Dashboard - Track Progress & Manage Practice - PracticeSAT",
-//     description:
-//       "Your personalized SAT practice dashboard. Track answered questions, manage saved questions, and monitor your progress.",
-//     images: ["/og-dashboard.png"],
-//   },
-//   alternates: {
-//     canonical: "/dashboard",
-//   },
-//   robots: {
-//     index: true,
-//     follow: true,
-//   },
-// };
 
 import {
   Workspaces,
   WorkspaceTrigger,
   WorkspaceContent,
 } from "@/components/ui/workspaces";
-import { Home, BookMarked, TrendingUp, Clock, CheckCircle } from "lucide-react";
+import { Home, BookMarked, Clock, CheckCircle } from "lucide-react";
 import { Assessments } from "@/static-data/assessment";
 import { useLocalStorage } from "@/lib/useLocalStorage";
 import { SavedQuestions } from "@/types/savedQuestions";
@@ -70,7 +17,6 @@ import {
   HomeTab,
   SavedTab,
   AnsweredTab,
-  TrackerTab,
   SessionsTab,
 } from "@/components/dashboard";
 import { AssessmentWorkspace } from "./types";
@@ -82,7 +28,7 @@ import {
   TabsTrigger as VerticalTabsTrigger,
 } from "@/components/ui/vertical-tabs";
 
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ExpandableTabs } from "@/components/ui/expandable-tabs";
 import {
   Tooltip,
   TooltipContent,
@@ -130,6 +76,9 @@ export default function DashboardPage() {
     "preferred-assessment-id",
     assessmentWorkspaces[0]?.id || "99"
   );
+
+  // Active tab state for mobile expandable tabs
+  const [activeTab, setActiveTab] = React.useState<string>("home");
 
   // Load saved questions to calculate badge count
   const [savedQuestions] = useLocalStorage<SavedQuestions>(
@@ -219,6 +168,18 @@ export default function DashboardPage() {
     [savedQuestionsCount, answeredQuestionsCount]
   );
 
+  // Convert TAB_ITEMS to ExpandableTabs format
+  const EXPANDABLE_TAB_ITEMS = React.useMemo(
+    () =>
+      TAB_ITEMS.map((item) => ({
+        title: item.label,
+        icon: item.icon,
+        value: item.value,
+        badge: item.badge,
+      })),
+    [TAB_ITEMS]
+  );
+
   // Get time-based greeting
   const getTimeBasedGreeting = () => {
     const hour = new Date().getHours();
@@ -267,52 +228,24 @@ export default function DashboardPage() {
           </section>
         </section>
         <main className="space-y-4 max-w-7xl w-full mx-auto px-3">
-          {/* Mobile Tabs - shown only on mobile */}
+          {/* Mobile Expandable Tabs - shown only on mobile */}
           <div className="lg:hidden md:pl-13">
-            <Tabs defaultValue="home" className="text-sm text-muted-foreground">
-              <TabsList className="grid w-full grid-cols-5">
-                {TAB_ITEMS.map((tab) => {
-                  const IconComponent = tab.icon;
-                  return (
-                    <TabsTrigger key={tab.value} value={tab.value}>
-                      {tab.badge ? (
-                        <div className="flex items-center relative">
-                          <IconComponent className="w-4 h-4 mr-1" />
-                          {tab.label}
-                          <Badge className="ml-1 px-1.5 py-0.5 text-xs bg-primary text-primary-foreground">
-                            {tab.badge}
-                          </Badge>
-                        </div>
-                      ) : (
-                        <>
-                          <IconComponent className="w-4 h-4 mr-1" />
-                          {tab.label}
-                        </>
-                      )}
-                    </TabsTrigger>
-                  );
-                })}
-              </TabsList>
-              {TAB_ITEMS.map((tab) => {
+            <ExpandableTabs
+              tabs={EXPANDABLE_TAB_ITEMS}
+              defaultValue="home"
+              onTabChange={setActiveTab}
+              className="text-sm text-muted-foreground"
+            >
+              {(() => {
                 const ContentComponent =
                   TabContentComponents[
-                    tab.value as keyof typeof TabContentComponents
+                    activeTab as keyof typeof TabContentComponents
                   ];
-                return (
-                  <TabsContent
-                    key={tab.value}
-                    value={tab.value}
-                    className="mt-4"
-                  >
-                    <div className="rounded-lg bg-card">
-                      <ContentComponent
-                        selectedAssessment={selectedAssessment}
-                      />
-                    </div>
-                  </TabsContent>
-                );
-              })}
-            </Tabs>
+                return ContentComponent ? (
+                  <ContentComponent selectedAssessment={selectedAssessment} />
+                ) : null;
+              })()}
+            </ExpandableTabs>
           </div>
 
           {/* Desktop Vertical Tabs - shown only on lg screens and above */}

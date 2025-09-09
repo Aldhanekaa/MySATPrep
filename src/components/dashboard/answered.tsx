@@ -424,7 +424,7 @@ export function AnsweredTab({ selectedAssessment }: AnsweredTabProps) {
         </div>
       </div>
 
-      <div className="space-y-4 max-w-full mx-auto px-6 lg:px-22">
+      <div className="space-y-4 max-w-full mx-auto lg:px-22">
         {state.questionsWithData.map((question, index) => (
           <div key={`${question.questionId}-${index}`} className="mb-32">
             <OptimizedQuestionCard
