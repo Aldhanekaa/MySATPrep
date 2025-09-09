@@ -1,5 +1,5 @@
 "use client";
-import React from "react";
+import React, { useState } from "react";
 import { SiteHeader } from "../navbar";
 
 import {
@@ -35,6 +35,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import ButtonsGroup from "@/components/dashboard/buttons-group";
 
 // Convert assessments to workspace format
 const assessmentWorkspaces: AssessmentWorkspace[] = Object.entries(
@@ -212,6 +213,8 @@ export default function DashboardPage() {
                   Select an assessment type to get started with practice
                   questions.
                 </p>
+
+                <ButtonsGroup />
               </div>
 
               <div className="space-y-4">
