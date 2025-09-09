@@ -1817,8 +1817,7 @@ export default function PracticeRushMultistep({
           state.questionsProcessedCount <=
             Math.floor(state.totalQuestionsToFetch / 2)
             ? `Verifying Questions... (${
-                state.questionsProcessedCount -
-                Math.floor(state.totalQuestionsToFetch / 2)
+                state.questionsProcessedCount
               }/${Math.floor(state.totalQuestionsToFetch / 2)})`
             : "Verifying Questions...",
       },
