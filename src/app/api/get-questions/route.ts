@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
   const assessment = searchParams.get("assessment");
   const excludeQuestionIdsParam = searchParams.get("excludeIds");
   const difficultiesParam = searchParams.get("difficulties");
-  const skillCdsParam = searchParams.get("skillCds");
+  const skillCdsParam = searchParams.get("skills");
 
   const random = searchParams.get("random");
 
@@ -142,9 +142,9 @@ export async function GET(request: NextRequest) {
     }
 
     if (skillCds.length > 0) {
-      questions = questions.filter((question) =>
-        skillCds.includes(question.skill_cd as SkillCd_Variants)
-      );
+      questions = questions.filter((question) => {
+        return skillCds.includes(question.skill_cd as SkillCd_Variants);
+      });
     }
 
     if (difficulties.length > 0) {
