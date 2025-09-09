@@ -2226,10 +2226,7 @@ export default function PracticeRushMultistep({
         });
 
         // Calculate how many questions to take from each difficulty
-        const totalQuestions = Math.min(
-          22 - existingQuestions.length,
-          questionsData.length
-        );
+        const totalQuestions = Math.min(22 - existingQuestions.length, 22);
         const questionsPerDifficulty = Math.floor(
           totalQuestions / difficultiesChosen.length
         );
@@ -2417,6 +2414,109 @@ export default function PracticeRushMultistep({
           }
         }
 
+        // Normal flow for new sessions or when no restored data is available
+        console.log(
+          "🔄 No restored session data found, fetching from /api/get-questions..."
+        );
+
+        let excludeQuestionsIds: string[] = [];
+        let otherParams = "";
+
+        if (!selections.questionIds) {
+          // load practiceStatistics local storage, and get the current assessment statistics
+          const practiceStatistics = localStorage.getItem("practiceStatistics");
+          const assessmentStatistics: PracticeStatistics = practiceStatistics
+            ? JSON.parse(practiceStatistics)
+            : {};
+
+          if (selections.assessment in assessmentStatistics) {
+            const currentAssessmentStatistics =
+              assessmentStatistics[selections.assessment];
+            console.log(currentAssessmentStatistics);
+
+            if (currentAssessmentStatistics?.answeredQuestions) {
+              excludeQuestionsIds =
+                currentAssessmentStatistics.answeredQuestions;
+              otherParams = `&excludeIds=${excludeQuestionsIds.join(",")}`;
+            }
+          }
+        }
+
+        // filter questions that already answered in the session
+        if (restoredSessionData && restoredSessionData.answeredQuestions) {
+          // Filter out questions that were already answered in the session
+          const answeredQuestionIds =
+            restoredSessionData.answeredQuestionDetails.map(
+              (e) => e.questionId
+            );
+
+          // Combine already answered questions from both sources
+          const allAnsweredQuestions = [
+            ...excludeQuestionsIds,
+            ...answeredQuestionIds,
+          ];
+          excludeQuestionsIds = [...new Set(allAnsweredQuestions)]; // Remove duplicates
+          otherParams = `&excludeIds=${excludeQuestionsIds.join(",")}`;
+        }
+
+        let questionsData: API_Response_Question_List | null =
+          state.questionsData;
+
+        if (!questionsData) {
+          const questionsResponse = await fetch(
+            `/api/get-questions?assessment=${
+              selections.assessment
+            }&domains=${selections.domains
+              .map((d) => d.primaryClassCd)
+              .join(",")}&difficulties=${selections.difficulties.join(
+              ","
+            )}&skills=${selections.skills
+              .map((s) => s.skill_cd)
+              .join(",")}${otherParams}`
+          )
+            .then((res) => res.json())
+            .catch((error) => {
+              console.error("Error fetching questions:", error);
+              toast.error("Failed to Fetch Questions", {
+                description:
+                  "Unable to load practice questions. Please check your connection and try again.",
+                duration: 5000,
+              });
+              return [];
+            });
+          questionsData = questionsResponse.data || null;
+
+          // Cache the questions data with the selections hash for future reuse
+        }
+
+        // Create a hash of the practice selections to check cache compatibility
+        const selectionsHash = JSON.stringify({
+          assessment: selections.assessment,
+          domains: selections.domains?.map((d) => d.primaryClassCd).sort(),
+          difficulties: selections.difficulties?.sort(),
+          skills: selections.skills?.map((s) => s.skill_cd).sort(),
+          // Don't include questionIds in hash as those are for shared links
+        });
+
+        if (questionsData) {
+          dispatch({
+            type: "SET_QUESTIONS_DATA",
+            payload: questionsData,
+            selectionsHash: selectionsHash,
+          });
+        }
+
+        if (!questionsData) {
+          console.error("No questions data available after fetching");
+          toast.error("No Questions Available", {
+            description:
+              "The server didn't return any questions. Please try again later.",
+            duration: 5000,
+          });
+          isFetchingRef.current = false;
+          return;
+        }
+
         // Check if we have restored session data with previously answered questions
         if (
           restoredSessionData?.answeredQuestionDetails &&
@@ -2496,73 +2596,16 @@ export default function PracticeRushMultistep({
               restoredSelections
             );
 
-            let excludeQuestionsIds: string[] = answeredQuestionIds;
-            let otherParams = `&excludeIds=${excludeQuestionsIds.join(",")}`;
-
-            // Also load practiceStatistics and add those to exclude list
-            const practiceStatistics =
-              localStorage.getItem("practiceStatistics");
-            const assessmentStatistics: PracticeStatistics = practiceStatistics
-              ? JSON.parse(practiceStatistics)
-              : {};
-
-            if (restoredSelections.assessment in assessmentStatistics) {
-              const currentAssessmentStatistics =
-                assessmentStatistics[restoredSelections.assessment];
-
-              if (currentAssessmentStatistics?.answeredQuestions) {
-                // Combine already answered questions from both sources
-                const allAnsweredQuestions = [
-                  ...excludeQuestionsIds,
-                  ...currentAssessmentStatistics.answeredQuestions,
-                ];
-                excludeQuestionsIds = [...new Set(allAnsweredQuestions)]; // Remove duplicates
-                otherParams = `&excludeIds=${excludeQuestionsIds.join(",")}`;
-              }
-            }
-
-            // Fetch new questions from API
-            const questionsResponse = await fetch(
-              `/api/get-questions?assessment=${
-                restoredSelections.assessment
-              }&domains=${restoredSelections.domains
-                .map((d) => d.primaryClassCd)
-                .join(",")}&difficulties=${restoredSelections.difficulties.join(
-                ","
-              )}&skills=${restoredSelections.skills
-                .map((s) => s.skill_cd)
-                .join(",")}${otherParams}`
-            )
-              .then((res) => res.json())
-              .catch((error) => {
-                console.error("Error fetching new questions:", error);
-                toast.error("Failed to Fetch New Questions", {
-                  description:
-                    "Unable to load new practice questions. You can continue with restored questions.",
-                  duration: 5000,
-                });
-                return { data: [] };
-              });
-
-            const newQuestionsData = questionsResponse.data || [];
-
-            if (newQuestionsData) {
-              dispatch({
-                type: "SET_QUESTIONS_DATA",
-                payload: newQuestionsData,
-              });
-            }
-
             let finalQuestions = restoredQuestions;
 
-            if (newQuestionsData.length > 0) {
+            if (questionsData.length > 0) {
               console.log(
-                `✅ Fetched ${newQuestionsData.length} new questions to add to restored session`
+                `✅ Fetched ${questionsData.length} new questions to add to restored session`
               );
 
               // Use the helper function to process new questions and combine with restored ones
               finalQuestions = await fetchAndProcessQuestions(
-                newQuestionsData,
+                questionsData,
                 restoredSelections,
                 restoredQuestions
               );
@@ -2578,37 +2621,37 @@ export default function PracticeRushMultistep({
 
             dispatch({ type: "SET_CURRENT_STEP", payload: 5 });
 
-            setTimeout(() => {
-              dispatch({ type: "SET_QUESTIONS", payload: finalQuestions });
-              dispatch({ type: "SET_CURRENT_STEP", payload: 5 });
+            // setTimeout(() => {
+            dispatch({ type: "SET_QUESTIONS", payload: finalQuestions });
+            dispatch({ type: "SET_CURRENT_STEP", payload: 5 });
 
-              // Don't start timer immediately - user is reviewing restored session
-              console.log(
-                "🎯 Session restored - user can review previous answers"
-              );
+            // Don't start timer immediately - user is reviewing restored session
+            console.log(
+              "🎯 Session restored - user can review previous answers"
+            );
 
-              // Show a toast to inform user about restored session
-              const answeredCount = Object.keys(restoredAnswers).length;
-              const correctAnswers = Object.keys(restoredAnswers).filter(
-                (questionId) => {
-                  const userAnswer = restoredAnswers[questionId];
-                  const question = finalQuestions.find(
-                    (q) => q.plainQuestion.questionId === questionId
-                  );
-                  return (
-                    userAnswer &&
-                    question?.correct_answer
-                      ?.map((a) => a.trim())
-                      .includes(userAnswer)
-                  );
-                }
-              ).length;
+            // Show a toast to inform user about restored session
+            const answeredCount = Object.keys(restoredAnswers).length;
+            const correctAnswers = Object.keys(restoredAnswers).filter(
+              (questionId) => {
+                const userAnswer = restoredAnswers[questionId];
+                const question = finalQuestions.find(
+                  (q) => q.plainQuestion.questionId === questionId
+                );
+                return (
+                  userAnswer &&
+                  question?.correct_answer
+                    ?.map((a) => a.trim())
+                    .includes(userAnswer)
+                );
+              }
+            ).length;
 
-              toast.success("Session Restored Successfully! 🎯", {
-                description: `Restored ${answeredCount} previously answered questions (${correctAnswers} correct). You can review your answers and continue practicing.`,
-                duration: 8000,
-              });
-            }, 1500);
+            toast.success("Session Restored Successfully! 🎯", {
+              description: `Restored ${answeredCount} previously answered questions (${correctAnswers} correct). You can review your answers and continue practicing.`,
+              duration: 8000,
+            });
+            // }, 1500);
 
             return;
           } else {
@@ -2616,81 +2659,6 @@ export default function PracticeRushMultistep({
               "No valid questions found in restored session data, proceeding with normal fetch"
             );
           }
-        }
-
-        // Normal flow for new sessions or when no restored data is available
-        console.log(
-          "🔄 No restored session data found, fetching from /api/get-questions..."
-        );
-
-        let excludeQuestionsIds: string[] = [];
-        let otherParams = "";
-
-        if (!selections.questionIds) {
-          // load practiceStatistics local storage, and get the current assessment statistics
-          const practiceStatistics = localStorage.getItem("practiceStatistics");
-          const assessmentStatistics: PracticeStatistics = practiceStatistics
-            ? JSON.parse(practiceStatistics)
-            : {};
-
-          if (selections.assessment in assessmentStatistics) {
-            const currentAssessmentStatistics =
-              assessmentStatistics[selections.assessment];
-            console.log(currentAssessmentStatistics);
-
-            if (currentAssessmentStatistics?.answeredQuestions) {
-              excludeQuestionsIds =
-                currentAssessmentStatistics.answeredQuestions;
-              otherParams = `&excludeIds=${excludeQuestionsIds.join(",")}`;
-            }
-          }
-        }
-
-        let questionsData: API_Response_Question_List | null =
-          state.questionsData;
-
-        if (!questionsData) {
-          const questionsResponse = await fetch(
-            `/api/get-questions?assessment=${
-              selections.assessment
-            }&domains=${selections.domains
-              .map((d) => d.primaryClassCd)
-              .join(",")}&difficulties=${selections.difficulties.join(
-              ","
-            )}&skills=${selections.skills
-              .map((s) => s.skill_cd)
-              .join(",")}${otherParams}`
-          )
-            .then((res) => res.json())
-            .catch((error) => {
-              console.error("Error fetching questions:", error);
-              toast.error("Failed to Fetch Questions", {
-                description:
-                  "Unable to load practice questions. Please check your connection and try again.",
-                duration: 5000,
-              });
-              return [];
-            });
-          questionsData = questionsResponse.data || null;
-
-          // Cache the questions data with the selections hash for future reuse
-        }
-
-        // Create a hash of the practice selections to check cache compatibility
-        const selectionsHash = JSON.stringify({
-          assessment: selections.assessment,
-          domains: selections.domains?.map((d) => d.primaryClassCd).sort(),
-          difficulties: selections.difficulties?.sort(),
-          skills: selections.skills?.map((s) => s.skill_cd).sort(),
-          // Don't include questionIds in hash as those are for shared links
-        });
-
-        if (questionsData) {
-          dispatch({
-            type: "SET_QUESTIONS_DATA",
-            payload: questionsData,
-            selectionsHash: selectionsHash,
-          });
         }
 
         // If questionIds are provided in selections, use them directly
@@ -3409,7 +3377,7 @@ export default function PracticeRushMultistep({
 
               <div className="grid grid-cols-12 justify-between mb-10">
                 <div className="col-span-12 xl:col-span-7">
-                  <div className="flex flex-col lg:flex-row gap-4 items-center">
+                  <div className="flex flex-col lg:flex-row gap-4 items-start">
                     <div className="h-full flex gap-2 justify-center items-center">
                       <div>
                         <h5 className="font-black text-2xl">
