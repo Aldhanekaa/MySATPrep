@@ -129,7 +129,7 @@ function DuolingoTimer({
   startTime,
   isActive,
   isVisible,
-  // onToggleVisibility,
+  onToggleVisibility,
   fixedTime,
   savedElapsedTime = 0,
 }: DuolingoTimerProps) {
@@ -169,12 +169,6 @@ function DuolingoTimer({
 
   return (
     <div className="flex flex-row items-center py-3 gap-2">
-      {/* <button
-        onClick={onToggleVisibility}
-        className="px-8 h-12 text-xs text-gray-500 hover:text-gray-700 underline cursor-pointer transition-colors duration-200"
-      >
-        {isVisible ? "Hide" : "Show"}
-      </button> */}
       <div
         className={`${
           isVisible ? "block" : "hidden"
@@ -188,6 +182,12 @@ function DuolingoTimer({
           <span className="text-xs text-gray-500 ml-1">(completed)</span>
         )}
       </div>
+      <button
+        onClick={onToggleVisibility}
+        className=" h-12 text-xs text-gray-500 hover:text-gray-700 underline cursor-pointer transition-colors duration-200"
+      >
+        {isVisible ? "Hide Timer" : "Show Timer"}
+      </button>
     </div>
   );
 }
@@ -3912,9 +3912,7 @@ export default function PracticeRushMultistep({
                               },
                             });
                           }}
-                          showStrikethrough={
-                            practiceSelections?.subject !== "reading-writing"
-                          }
+                          showStrikethrough={true}
                           correctAnswers={currentQuestion.correct_answer.map(
                             (answer) => answer.trim()
                           )}
@@ -4141,9 +4139,7 @@ export default function PracticeRushMultistep({
                               },
                             });
                           }}
-                          showStrikethrough={
-                            practiceSelections?.subject !== "reading-writing"
-                          }
+                          showStrikethrough={true}
                           correctAnswers={currentQuestion.correct_answer.map(
                             (answer) => answer.trim()
                           )}
