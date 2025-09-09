@@ -8,6 +8,20 @@ import {
   OptimizedQuestionCard,
   BaseQuestionWithData,
 } from "./shared/OptimizedQuestionCard";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
+import {
+  AlignJustifyIcon,
+  ListFilterIcon,
+  PencilRuler,
+  SigmaIcon,
+} from "lucide-react";
+import { mathDomains, rwDomains } from "@/static-data/validation";
 
 // Simple skeleton component
 const Skeleton = ({
@@ -36,6 +50,7 @@ interface SavedTabState {
   questionsWithData: QuestionWithData[];
   fetchedQuestionIds: Set<string>;
   isInitialized: boolean;
+  filterSubject: string; // Add this new state property for subject filter
 }
 
 type SavedTabAction =
@@ -54,7 +69,8 @@ type SavedTabAction =
     }
   | { type: "ADD_FETCHED_ID"; payload: string }
   | { type: "REMOVE_FETCHED_ID"; payload: string }
-  | { type: "RESET_FETCHED_IDS" };
+  | { type: "RESET_FETCHED_IDS" }
+  | { type: "SET_FILTER_SUBJECT"; payload: string }; // Add this new action type
 
 const savedTabReducer = (
   state: SavedTabState,
@@ -117,6 +133,11 @@ const savedTabReducer = (
           action.payload,
         ]),
       };
+    case "SET_FILTER_SUBJECT":
+      return {
+        ...state,
+        filterSubject: action.payload,
+      };
     case "REMOVE_FETCHED_ID":
       const newFetchedIds = new Set(state.fetchedQuestionIds);
       newFetchedIds.delete(action.payload);
@@ -146,6 +167,7 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
     questionsWithData: [],
     fetchedQuestionIds: new Set<string>(),
     isInitialized: false,
+    filterSubject: "all", // Default filter value for subject
   });
 
   // Get the assessment key from selectedAssessment (memoized)
@@ -346,25 +368,92 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
 
   return (
     <div className="space-y-6 px-2">
-      <div className="px-8 lg:px-28">
-        <h2 className="text-lg font-semibold">Saved Questions</h2>
-        <p className="text-sm text-muted-foreground">
-          {state.questionsWithData.length} saved question
-          {state.questionsWithData.length !== 1 ? "s" : ""} for {assessmentName}
-        </p>
+      <div className="px-8 lg:px-28 grid grid-cols-12">
+        <div className="col-span-12 md:col-span-8 flex flex-col flex-wrap gap-2 items-start text-sm ">
+          <h2 className="text-lg font-semibold">Saved Questions</h2>
+          <p className="text-sm text-muted-foreground">
+            {state.questionsWithData.length} saved question
+            {state.questionsWithData.length !== 1 ? "s" : ""} for{" "}
+            {assessmentName}
+          </p>
+        </div>
+        <div className="mt-10 md:mt-0 col-span-12 md:col-span-4 flex flex-col items-end justify-end gap-3">
+          <Select
+            onValueChange={(value) =>
+              dispatch({ type: "SET_FILTER_SUBJECT", payload: value })
+            }
+          >
+            <SelectTrigger
+              icon={
+                state.filterSubject === "all"
+                  ? ListFilterIcon
+                  : state.filterSubject == "math"
+                  ? SigmaIcon
+                  : PencilRuler
+              }
+              className="w-full lg:w-[80%] bg-background"
+            >
+              <SelectValue placeholder="Sort by subject" />
+            </SelectTrigger>
+            <SelectContent className="font-medium absolute">
+              <SelectItem value="all" icon={AlignJustifyIcon}>
+                All Subjects
+              </SelectItem>
+              <SelectItem value="math" icon={SigmaIcon}>
+                Maths
+              </SelectItem>
+              <SelectItem value="reading" icon={PencilRuler}>
+                Reading & Writing
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       <div className="space-y-4 max-w-full mx-auto lg:px-22">
-        {state.questionsWithData.map((question, index) => (
-          <div key={`${question.questionId}-${index}`} className=" mb-32">
-            <OptimizedQuestionCard
-              question={question}
-              index={index}
-              onRetry={handleRetry}
-              type="saved"
-            />
-          </div>
-        ))}
+        {state.questionsWithData
+          .filter((question) => {
+            console.log("state.filterSubject", state.filterSubject);
+            // Apply subject filter
+            if (state.filterSubject !== "all") {
+              console.log("question.questionData", question.questionData);
+              const subject = question.questionData?.question.primary_class_cd;
+
+              if (subject && question.questionData?.question.primary_class_cd) {
+                if (
+                  state.filterSubject === "math" &&
+                  mathDomains.includes(
+                    question.questionData?.question.primary_class_cd
+                  )
+                ) {
+                  return true;
+                }
+
+                if (
+                  state.filterSubject === "reading" &&
+                  rwDomains.includes(
+                    question.questionData?.question.primary_class_cd
+                  )
+                ) {
+                  return true;
+                }
+              }
+
+              return false;
+            }
+
+            return true;
+          })
+          .map((question, index) => (
+            <div key={`${question.questionId}-${index}`} className=" mb-32">
+              <OptimizedQuestionCard
+                question={question}
+                index={index}
+                onRetry={handleRetry}
+                type="saved"
+              />
+            </div>
+          ))}
       </div>
 
       {loadingIndicator}
