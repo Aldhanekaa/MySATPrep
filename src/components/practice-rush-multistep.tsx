@@ -2247,9 +2247,9 @@ export default function PracticeRushMultistep({
           const questionsToTakeFromThisDifficulty =
             questionsPerDifficulty + (index < remainder ? 1 : 0);
 
-          console.log(
-            `Selecting ${questionsToTakeFromThisDifficulty} questions from difficulty ${difficulty}`
-          );
+          // console.log(
+          //   `Selecting ${questionsToTakeFromThisDifficulty} questions from difficulty ${difficulty}`
+          // );
 
           // Shuffle questions for this difficulty and take the required amount
           const shuffledQuestions = [...questionsForThisDifficulty].sort(
@@ -2262,22 +2262,22 @@ export default function PracticeRushMultistep({
 
           selectedQuestions.push(...selectedFromThisDifficulty);
 
-          console.log(
-            `Selected ${selectedFromThisDifficulty.length} questions from difficulty ${difficulty}`
-          );
+          // console.log(
+          //   `Selected ${selectedFromThisDifficulty.length} questions from difficulty ${difficulty}`
+          // );
         });
 
-        console.log(
-          `existingQuestions ${existingQuestions} ${existingQuestions.length}`
-        );
-        console.log(
-          `Total Questions totalQuestions ${totalQuestions}: (from ${difficultiesChosen.length} difficulties)`
-        );
+        // console.log(
+        //   `existingQuestions ${existingQuestions} ${existingQuestions.length}`
+        // );
+        // console.log(
+        //   `Total Questions totalQuestions ${totalQuestions}: (from ${difficultiesChosen.length} difficulties)`
+        // );
 
-        console.log(`REMAINDER ${remainder} questions`);
+        // console.log(`REMAINDER ${remainder} questions`);
 
         questionsToFetch = selectedQuestions;
-        console.log("THIS IS A NEW VERSION (should be)");
+        // console.log("THIS IS A NEW VERSION (should be)");
 
         dispatch({
           type: "SET_TOTAL_QUESTIONS_TO_FETCH",
