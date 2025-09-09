@@ -737,23 +737,21 @@ const AnswerOptions = React.memo(function AnswerOptions({
                   </div>
                 </div>
                 <Label className="col-span-8" htmlFor={`${key}-${questionId}`}>
-                  <MathJaxContext>
-                    <MathJax
-                      className={`inline-block ${
-                        !isReviewMode && "cursor-pointer"
-                      }`}
-                    >
-                      <div
-                        className="text-xl inline-block"
-                        dangerouslySetInnerHTML={{
-                          __html: value.replaceAll(
-                            /\s*style\s*=\s*"[^"]*"/gi,
-                            ""
-                          ),
-                        }}
-                      ></div>
-                    </MathJax>
-                  </MathJaxContext>
+                  <MathJax
+                    className={`inline-block ${
+                      !isReviewMode && "cursor-pointer"
+                    }`}
+                  >
+                    <div
+                      className="text-xl inline-block"
+                      dangerouslySetInnerHTML={{
+                        __html: value.replaceAll(
+                          /\s*style\s*=\s*"[^"]*"/gi,
+                          ""
+                        ),
+                      }}
+                    ></div>
+                  </MathJax>
                 </Label>
               </div>
             </label>
@@ -3750,34 +3748,30 @@ export default function PracticeRushMultistep({
                 >
                   <React.Fragment>
                     {currentQuestion.stimulus && (
-                      <MathJaxContext>
-                        <MathJax>
-                          <div
-                            id="stimulus"
-                            className="text-xl text-justify answer-option"
-                            dangerouslySetInnerHTML={{
-                              __html: currentQuestion.stimulus
-                                ? currentQuestion.stimulus
-                                : "",
-                            }}
-                          ></div>
-                        </MathJax>
-                      </MathJaxContext>
+                      <MathJax>
+                        <div
+                          id="stimulus"
+                          className="text-xl text-justify answer-option"
+                          dangerouslySetInnerHTML={{
+                            __html: currentQuestion.stimulus
+                              ? currentQuestion.stimulus
+                              : "",
+                          }}
+                        ></div>
+                      </MathJax>
                     )}
 
                     {practiceSelections?.subject !== "reading-writing" &&
                       currentQuestion.stem && (
-                        <MathJaxContext>
-                          <MathJax>
-                            <div
-                              id="question_stem"
-                              className="text-xl answer-option"
-                              dangerouslySetInnerHTML={{
-                                __html: currentQuestion.stem,
-                              }}
-                            ></div>
-                          </MathJax>
-                        </MathJaxContext>
+                        <MathJax>
+                          <div
+                            id="question_stem"
+                            className="text-xl answer-option"
+                            dangerouslySetInnerHTML={{
+                              __html: currentQuestion.stem,
+                            }}
+                          ></div>
+                        </MathJax>
                       )}
 
                     {practiceSelections?.subject !== "reading-writing" &&
@@ -3980,19 +3974,17 @@ export default function PracticeRushMultistep({
                           <Label className="text-lg font-semibold mb-2 block">
                             Explanation:
                           </Label>
-                          <MathJaxContext>
-                            <MathJax
-                              id="question_explanation"
-                              className=" text-justify"
-                            >
-                              <div
-                                className="text-xl"
-                                dangerouslySetInnerHTML={{
-                                  __html: currentQuestion.rationale,
-                                }}
-                              ></div>
-                            </MathJax>
-                          </MathJaxContext>
+                          <MathJax
+                            id="question_explanation"
+                            className=" text-justify"
+                          >
+                            <div
+                              className="text-xl"
+                              dangerouslySetInnerHTML={{
+                                __html: currentQuestion.rationale,
+                              }}
+                            ></div>
+                          </MathJax>
                         </div>
                       </React.Fragment>
                     )}
@@ -4010,16 +4002,14 @@ export default function PracticeRushMultistep({
                     </div>
                   ) : (
                     <React.Fragment>
-                      <MathJaxContext>
-                        <MathJax>
-                          <div
-                            className="text-xl"
-                            dangerouslySetInnerHTML={{
-                              __html: currentQuestion.stem,
-                            }}
-                          ></div>
-                        </MathJax>
-                      </MathJaxContext>
+                      <MathJax>
+                        <div
+                          className="text-xl"
+                          dangerouslySetInnerHTML={{
+                            __html: currentQuestion.stem,
+                          }}
+                        ></div>
+                      </MathJax>
                       <Separator className="my-4" />
                       {currentQuestion.answerOptions ? (
                         <AnswerOptions

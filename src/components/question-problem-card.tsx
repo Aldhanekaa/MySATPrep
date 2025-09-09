@@ -1129,32 +1129,28 @@ export default function QuestionProblemCard({
 
         <CardContent className="p-6">
           {question.problem.stimulus && (
-            <MathJaxContext>
-              <MathJax className=" text-justify">
-                <div
-                  id="question_explanation"
-                  className="text-lg text-justify"
-                  dangerouslySetInnerHTML={{
-                    __html: question.problem.stimulus
-                      ? question.problem.stimulus
-                      : "",
-                  }}
-                ></div>
-              </MathJax>
-            </MathJaxContext>
+            <MathJax id="question_explanation" className="text-lg text-justify">
+              <div
+                id="question_explanation"
+                className="text-lg text-justify"
+                dangerouslySetInnerHTML={{
+                  __html: question.problem.stimulus
+                    ? question.problem.stimulus
+                    : "",
+                }}
+              ></div>
+            </MathJax>
           )}
           {question.problem.stem && (
-            <MathJaxContext>
-              <MathJax>
-                <div
-                  id="question_explanation"
-                  className="text-lg text-justify"
-                  dangerouslySetInnerHTML={{
-                    __html: question.problem.stem ? question.problem.stem : "",
-                  }}
-                ></div>
-              </MathJax>
-            </MathJaxContext>
+            <MathJax>
+              <div
+                id="question_explanation"
+                className="text-lg text-justify"
+                dangerouslySetInnerHTML={{
+                  __html: question.problem.stem ? question.problem.stem : "",
+                }}
+              ></div>
+            </MathJax>
           )}
 
           {/* Answer Section - Multiple Choice or Text Input */}
@@ -1441,16 +1437,14 @@ export default function QuestionProblemCard({
           <Label className="text-lg font-semibold mb-2 block">
             Explanation:
           </Label>
-          <MathJaxContext>
-            <MathJax id="question_explanation" className=" text-justify">
-              <div
-                className="text-xl"
-                dangerouslySetInnerHTML={{
-                  __html: question.problem.rationale,
-                }}
-              ></div>
-            </MathJax>
-          </MathJaxContext>
+          <MathJax id="question_explanation" className=" text-justify">
+            <div
+              className="text-xl"
+              dangerouslySetInnerHTML={{
+                __html: question.problem.rationale,
+              }}
+            ></div>
+          </MathJax>
         </div>
       )}
 
