@@ -2,13 +2,14 @@
 
 import * as React from "react";
 import { CheckIcon, ChevronsUpDownIcon } from "lucide-react";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+
+// import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 // Generic workspace interface - can be extended
 export interface Workspace {
@@ -146,7 +147,7 @@ function WorkspaceTrigger({
         {...props}
       >
         <div className="flex min-w-0 flex-1 items-center gap-2">
-          <Avatar className="h-6 w-6">
+          {/* <Avatar className="h-6 w-6">
             <AvatarImage
               src={selectedWorkspace.logo}
               alt={getWorkspaceName(selectedWorkspace)}
@@ -154,7 +155,7 @@ function WorkspaceTrigger({
             <AvatarFallback className="text-xs">
               {getWorkspaceName(selectedWorkspace).charAt(0).toUpperCase()}
             </AvatarFallback>
-          </Avatar>
+          </Avatar> */}
           <span className="truncate">
             {getWorkspaceName(selectedWorkspace)}
           </span>
@@ -212,12 +213,12 @@ function WorkspaceContent({
     isSelected: boolean
   ) => (
     <div className="flex min-w-0 flex-1 items-center gap-2">
-      <Avatar className="h-6 w-6">
+      {/* <Avatar className="h-6 w-6">
         <AvatarImage src={workspace.logo} alt={getWorkspaceName(workspace)} />
         <AvatarFallback className="text-xs">
           {getWorkspaceName(workspace).charAt(0).toUpperCase()}
         </AvatarFallback>
-      </Avatar>
+      </Avatar> */}
       <div className="flex min-w-0 flex-1 flex-col items-start">
         <span className="truncate text-sm">{getWorkspaceName(workspace)}</span>
         {workspace.plan && (

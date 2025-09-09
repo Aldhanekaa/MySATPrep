@@ -100,8 +100,8 @@ export default function DashboardPage() {
       // Map assessment names to keys used in localStorage
       const assessmentMap: Record<string, string> = {
         SAT: "SAT",
-        "PSAT/NMSQT": "P10",
-        "PSAT 8/9": "P89",
+        "PSAT/NMSQT & PSAT 10": "PSAT/NMSQT",
+        "PSAT 8/9": "PSAT",
       };
 
       return assessmentMap[assessment.name] || "SAT";
@@ -116,6 +116,7 @@ export default function DashboardPage() {
   // Calculate saved questions count for current assessment
   const savedQuestionsCount = React.useMemo(() => {
     const assessmentKey = getAssessmentKey(selectedAssessment);
+    console.log("assessmentKey", assessmentKey, selectedAssessment);
     const assessmentSavedQuestions = savedQuestions[assessmentKey] || [];
     return assessmentSavedQuestions.length;
   }, [savedQuestions, selectedAssessment, getAssessmentKey]);

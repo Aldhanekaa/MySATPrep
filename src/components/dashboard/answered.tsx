@@ -166,8 +166,8 @@ export function AnsweredTab({ selectedAssessment }: AnsweredTabProps) {
       // Map assessment names to keys used in localStorage
       const assessmentMap: Record<string, string> = {
         SAT: "SAT",
-        "PSAT/NMSQT": "P10",
-        "PSAT 8/9": "P89",
+        "PSAT/NMSQT & PSAT 10": "PSAT/NMSQT",
+        "PSAT 8/9": "PSAT",
       };
 
       return assessmentMap[assessment.name] || "SAT";
