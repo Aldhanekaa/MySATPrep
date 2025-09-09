@@ -1129,8 +1129,13 @@ export default function QuestionProblemCard({
 
         <CardContent className="p-6">
           {question.problem.stimulus && (
-            <MathJax id="question_explanation" className="text-lg text-justify">
-              <div
+            <MathJax
+              inline
+              dynamic
+              id="question_explanation"
+              className="text-lg text-justify"
+            >
+              <span
                 id="question_explanation"
                 className="text-lg text-justify"
                 dangerouslySetInnerHTML={{
@@ -1138,18 +1143,18 @@ export default function QuestionProblemCard({
                     ? question.problem.stimulus
                     : "",
                 }}
-              ></div>
+              ></span>
             </MathJax>
           )}
           {question.problem.stem && (
-            <MathJax>
-              <div
+            <MathJax inline dynamic>
+              <span
                 id="question_explanation"
                 className="text-lg text-justify"
                 dangerouslySetInnerHTML={{
                   __html: question.problem.stem ? question.problem.stem : "",
                 }}
-              ></div>
+              ></span>
             </MathJax>
           )}
 
@@ -1241,7 +1246,7 @@ export default function QuestionProblemCard({
                               </div>
                             </div>
                             <Label className="col-span-8">
-                              <MathJax className="inline-block">
+                              <MathJax inline dynamic className="inline-block">
                                 <span
                                   className="text-xl inline-block"
                                   dangerouslySetInnerHTML={{
@@ -1437,13 +1442,18 @@ export default function QuestionProblemCard({
           <Label className="text-lg font-semibold mb-2 block">
             Explanation:
           </Label>
-          <MathJax id="question_explanation" className=" text-justify">
-            <div
+          <MathJax
+            inline
+            dynamic
+            id="question_explanation"
+            className=" text-justify"
+          >
+            <span
               className="text-xl"
               dangerouslySetInnerHTML={{
                 __html: question.problem.rationale,
               }}
-            ></div>
+            ></span>
           </MathJax>
         </div>
       )}

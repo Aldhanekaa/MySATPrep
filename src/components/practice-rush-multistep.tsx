@@ -741,16 +741,15 @@ const AnswerOptions = React.memo(function AnswerOptions({
                     className={`inline-block ${
                       !isReviewMode && "cursor-pointer"
                     }`}
+                    inline
+                    dynamic
                   >
-                    <div
+                    <span
                       className="text-xl inline-block"
                       dangerouslySetInnerHTML={{
-                        __html: value.replaceAll(
-                          /\s*style\s*=\s*"[^"]*"/gi,
-                          ""
-                        ),
+                        __html: value,
                       }}
-                    ></div>
+                    ></span>
                   </MathJax>
                 </Label>
               </div>
@@ -3748,29 +3747,32 @@ export default function PracticeRushMultistep({
                 >
                   <React.Fragment>
                     {currentQuestion.stimulus && (
-                      <MathJax>
-                        <div
-                          id="stimulus"
-                          className="text-xl text-justify answer-option"
+                      <MathJax
+                        inline
+                        dynamic
+                        id="stimulus"
+                        className="text-xl text-justify answer-option"
+                      >
+                        <span
                           dangerouslySetInnerHTML={{
                             __html: currentQuestion.stimulus
                               ? currentQuestion.stimulus
                               : "",
                           }}
-                        ></div>
+                        ></span>
                       </MathJax>
                     )}
 
                     {practiceSelections?.subject !== "reading-writing" &&
                       currentQuestion.stem && (
-                        <MathJax>
-                          <div
+                        <MathJax inline dynamic>
+                          <span
                             id="question_stem"
                             className="text-xl answer-option"
                             dangerouslySetInnerHTML={{
                               __html: currentQuestion.stem,
                             }}
-                          ></div>
+                          ></span>
                         </MathJax>
                       )}
 
@@ -3975,15 +3977,16 @@ export default function PracticeRushMultistep({
                             Explanation:
                           </Label>
                           <MathJax
+                            inline
+                            dynamic
                             id="question_explanation"
-                            className=" text-justify"
+                            className="text-xl text-justify"
                           >
-                            <div
-                              className="text-xl"
+                            <span
                               dangerouslySetInnerHTML={{
                                 __html: currentQuestion.rationale,
                               }}
-                            ></div>
+                            ></span>
                           </MathJax>
                         </div>
                       </React.Fragment>
@@ -4002,13 +4005,12 @@ export default function PracticeRushMultistep({
                     </div>
                   ) : (
                     <React.Fragment>
-                      <MathJax>
-                        <div
-                          className="text-xl"
+                      <MathJax inline dynamic className="text-xl">
+                        <span
                           dangerouslySetInnerHTML={{
                             __html: currentQuestion.stem,
                           }}
-                        ></div>
+                        ></span>
                       </MathJax>
                       <Separator className="my-4" />
                       {currentQuestion.answerOptions ? (
