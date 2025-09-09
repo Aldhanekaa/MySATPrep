@@ -1797,7 +1797,15 @@ export default function PracticeRushMultistep({
         content: state.isLoadingNextBatch
           ? `Loading Next Batch... (${state.questionsProcessedCount}/22)`
           : state.questionsProcessedCount > 0 && state.totalQuestionsToFetch > 0
-          ? `Fetching Questions... (${state.questionsProcessedCount}/${state.totalQuestionsToFetch})`
+          ? state.questionsProcessedCount <=
+            Math.floor(state.totalQuestionsToFetch / 2)
+            ? `Fetching Questions... (${
+                state.questionsProcessedCount
+              }/${Math.floor(state.totalQuestionsToFetch / 2)})`
+            : `Verifying Questions... (${
+                state.questionsProcessedCount -
+                Math.floor(state.totalQuestionsToFetch / 2)
+              }/${Math.floor(state.totalQuestionsToFetch / 2)})`
           : "Fetching Each Question 🔍",
       },
       {
@@ -1806,8 +1814,12 @@ export default function PracticeRushMultistep({
         content:
           state.questionsProcessedCount > 0 &&
           state.totalQuestionsToFetch > 0 &&
-          state.questionsProcessedCount === state.totalQuestionsToFetch
-            ? `Verifying Questions... (${state.questionsProcessedCount}/${state.totalQuestionsToFetch})`
+          state.questionsProcessedCount >=
+            Math.floor(state.totalQuestionsToFetch / 2)
+            ? `Verifying Questions... (${
+                state.questionsProcessedCount -
+                Math.floor(state.totalQuestionsToFetch / 2)
+              }/${Math.floor(state.totalQuestionsToFetch / 2)})`
             : "Verifying Questions...",
       },
       {
@@ -2119,10 +2131,11 @@ export default function PracticeRushMultistep({
       const correctQuestions: QuestionState[] = [...existingQuestions];
 
       // Set total questions to fetch if showing progress
+      // Double the count to account for both fetching and verifying phases
       if (showProgress) {
         dispatch({
           type: "SET_TOTAL_QUESTIONS_TO_FETCH",
-          payload: questionsToFetch.length,
+          payload: questionsToFetch.length * 2,
         });
         dispatch({ type: "SET_QUESTIONS_PROCESSED_COUNT", payload: 0 });
       }
@@ -2130,9 +2143,9 @@ export default function PracticeRushMultistep({
       for (let i = 0; i < questionsToFetch.length; i++) {
         const question = questionsToFetch[i];
 
-        // Update progress if showing progress
+        // Update progress if showing progress (fetching phase)
         if (showProgress) {
-          dispatch({ type: "SET_QUESTIONS_PROCESSED_COUNT", payload: i });
+          dispatch({ type: "SET_QUESTIONS_PROCESSED_COUNT", payload: i + 1 });
         }
 
         const questionData: API_Response_Question =
@@ -2160,6 +2173,14 @@ export default function PracticeRushMultistep({
         const question = questions[i];
         const plainQuestion = question.plainQuestion;
         const questionsData = question.data;
+
+        // Update progress during verification phase if showing progress
+        if (showProgress) {
+          dispatch({
+            type: "SET_QUESTIONS_PROCESSED_COUNT",
+            payload: questionsToFetch.length + i + 1,
+          });
+        }
 
         if (
           questionsData.correct_answer &&
@@ -2326,7 +2347,9 @@ export default function PracticeRushMultistep({
           if (validPlainQuestions.length > 0) {
             // Use the helper function to fetch only the answered questions
             const reviewQuestions = await fetchQuestionDetails(
-              validPlainQuestions
+              validPlainQuestions,
+              [],
+              true // Enable progress tracking for review sessions
             );
 
             dispatch({ type: "SET_CURRENT_STEP", payload: 4 });
@@ -2419,7 +2442,9 @@ export default function PracticeRushMultistep({
           if (validPlainQuestions.length > 0) {
             // Use the helper function to fetch the restored questions
             const restoredQuestions = await fetchQuestionDetails(
-              validPlainQuestions
+              validPlainQuestions,
+              [],
+              true // Enable progress tracking for restored sessions
             );
 
             dispatch({ type: "SET_CURRENT_STEP", payload: 4 });
@@ -2753,6 +2778,7 @@ export default function PracticeRushMultistep({
     },
     [
       state.questionsData,
+      state.questions,
       restoredSessionData,
       effectiveReviewMode,
       fetchAndProcessQuestions,
