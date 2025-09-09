@@ -1,6 +1,6 @@
 # PracticeSAT — Free Practice Platform for SAT
 
-Open source platform to learn and practice tests that are directly fetched from https://satsuitequestionbank.collegeboard.org. Collegeboard's digital questionbank has a digital interface until now, users require to select the question manually and even download it as PDF and everytime you open up a question, there is already the answer; What if you could practice SAT without having need to download a PDF file, and you could review your past mistakes or even make a bookmark to a question!
+Open source platform to learn and practice tests that are directly fetched from https://satsuitequestionbank.collegeboard.org. Collegeboard's digital questionbank has a digital interface, however, users require to select the question manually and even download it as PDF and everytime you open up a question, there is already the answer; What if you could practice SAT without having need to download a PDF file, and you could review your past mistakes or even make a bookmark to a question!
 
 ## Current Features
 
