@@ -2228,7 +2228,8 @@ export default function PracticeRushMultistep({
         let totalQuestions = 0;
 
         if (existingQuestions && existingQuestions.length > 0) {
-          const benchmarkQuestionsLength = existingQuestions.length % 2;
+          const benchmarkQuestionsLength = existingQuestions.length % 22;
+          // console.log(`benchmarkQuestionsLength ${benchmarkQuestionsLength}`);
           totalQuestions = Math.min(22 - benchmarkQuestionsLength, 22);
         }
         const questionsPerDifficulty = Math.floor(
@@ -2601,11 +2602,6 @@ export default function PracticeRushMultistep({
 
             // Now fetch new questions to continue the session
             const restoredSelections = restoredSessionData.practiceSelections;
-
-            // Get already answered question IDs to exclude them from new fetch
-            const answeredQuestionIds = questionDetails.map(
-              (item) => item.questionId
-            );
 
             console.log(
               "🔄 Fetching new questions with restored selections...",
