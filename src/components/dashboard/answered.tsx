@@ -11,6 +11,23 @@ import {
   AnsweredQuestionWithData,
 } from "./shared/OptimizedQuestionCard";
 
+import {
+  AlignJustifyIcon,
+  CheckIcon,
+  CircleOffIcon,
+  ListFilterIcon,
+  SearchCheckIcon,
+  User,
+} from "lucide-react";
+
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
 // Simple skeleton component
 const Skeleton = ({
   className,
@@ -34,6 +51,7 @@ interface State {
   isLoadingMore: boolean;
   isInitialized: boolean;
   fetchedQuestionIds: Set<string>;
+  filterValue: string; // Add this new state property
 }
 
 type Action =
@@ -45,7 +63,8 @@ type Action =
   | { type: "LOAD_MORE" }
   | { type: "SET_LOADING_MORE"; payload: boolean }
   | { type: "MARK_AS_FETCHED"; payload: string }
-  | { type: "RETRY_QUESTION"; payload: number };
+  | { type: "RETRY_QUESTION"; payload: number }
+  | { type: "SET_FILTER"; payload: string }; // Add this new action type
 
 const initialState: State = {
   questionsWithData: [],
@@ -54,6 +73,7 @@ const initialState: State = {
   isLoadingMore: false,
   isInitialized: false,
   fetchedQuestionIds: new Set(),
+  filterValue: "all",
 };
 
 function questionsReducer(state: State, action: Action): State {
@@ -119,6 +139,12 @@ function questionsReducer(state: State, action: Action): State {
           ...state.fetchedQuestionIds,
           action.payload,
         ]),
+      };
+
+    case "SET_FILTER":
+      return {
+        ...state,
+        filterValue: action.payload,
       };
 
     case "RETRY_QUESTION":
@@ -391,50 +417,84 @@ export function AnsweredTab({ selectedAssessment }: AnsweredTabProps) {
 
   return (
     <div className="space-y-6 px-2">
-      <div className="px-8 lg:px-28">
+      <div className="px-2 lg:px-28">
         <h2 className="text-lg font-semibold">Answered Questions</h2>
-        <div className="flex flex-wrap gap-2 items-center text-sm text-muted-foreground">
-          <span>
-            {totalQuestions} answered question{totalQuestions !== 1 ? "s" : ""}{" "}
-            for {assessmentName}
-          </span>
-          <span>•</span>
-          <span className="flex items-center gap-1">
-            Accuracy:{" "}
-            <Badge
-              variant={parseFloat(accuracy) >= 70 ? "default" : "destructive"}
+        <div className="grid grid-cols-12">
+          <div className="col-span-12 md:col-span-8 flex flex-wrap gap-2 items-center text-sm text-muted-foreground">
+            <span>
+              {totalQuestions} answered question
+              {totalQuestions !== 1 ? "s" : ""} for {assessmentName}
+            </span>
+            <span>•</span>
+            <span className="flex items-center gap-1">
+              Accuracy:{" "}
+              <Badge
+                variant={parseFloat(accuracy) >= 70 ? "default" : "destructive"}
+              >
+                {accuracy}%
+              </Badge>
+            </span>
+            <span>•</span>
+            <span className="flex items-center gap-1">
+              Correct:{" "}
+              <Badge variant="default" className="bg-green-500">
+                {correctQuestions}
+              </Badge>
+            </span>
+            <span>•</span>
+            <span className="flex items-center gap-1">
+              Incorrect:{" "}
+              <Badge variant="destructive">
+                {totalQuestions - correctQuestions}
+              </Badge>
+            </span>
+          </div>
+          <div className="mt-10 md:mt-0 col-span-12 md:col-span-4 flex justify-end">
+            <Select
+              onValueChange={(value) =>
+                dispatch({ type: "SET_FILTER", payload: value })
+              }
             >
-              {accuracy}%
-            </Badge>
-          </span>
-          <span>•</span>
-          <span className="flex items-center gap-1">
-            Correct:{" "}
-            <Badge variant="default" className="bg-green-500">
-              {correctQuestions}
-            </Badge>
-          </span>
-          <span>•</span>
-          <span className="flex items-center gap-1">
-            Incorrect:{" "}
-            <Badge variant="destructive">
-              {totalQuestions - correctQuestions}
-            </Badge>
-          </span>
+              <SelectTrigger
+                icon={ListFilterIcon}
+                className="w-full lg:w-[80%]"
+              >
+                <SelectValue placeholder="Sort by Validity" />
+              </SelectTrigger>
+              <SelectContent className="font-medium absolute">
+                <SelectItem value="all" icon={AlignJustifyIcon}>
+                  Both Correct & Incorrect
+                </SelectItem>
+                <SelectItem value="correct" icon={CheckIcon}>
+                  Correct Questions
+                </SelectItem>
+                <SelectItem value="incorrect" icon={CircleOffIcon}>
+                  Incorrect Questions
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
 
-      <div className="space-y-4 max-w-full mx-auto lg:px-22">
-        {state.questionsWithData.map((question, index) => (
-          <div key={`${question.questionId}-${index}`} className="mb-32">
-            <OptimizedQuestionCard
-              question={question}
-              index={index}
-              onRetry={handleRetry}
-              type="answered"
-            />
-          </div>
-        ))}
+      <div className="space-y-4 max-w-full mx-auto lg:px-22 overflow-hidden">
+        {state.questionsWithData
+          .filter((question) => {
+            if (state.filterValue === "all") return true;
+            if (state.filterValue === "correct") return question.isCorrect;
+            if (state.filterValue === "incorrect") return !question.isCorrect;
+            return true;
+          })
+          .map((question, index) => (
+            <div key={`${question.questionId}-${index}`} className="mb-32">
+              <OptimizedQuestionCard
+                question={question}
+                index={index}
+                onRetry={handleRetry}
+                type="answered"
+              />
+            </div>
+          ))}
       </div>
 
       {/* Load more trigger - invisible element for intersection observer */}

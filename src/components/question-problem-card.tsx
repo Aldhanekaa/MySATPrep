@@ -1449,7 +1449,7 @@ export default function QuestionProblemCard({
             className=" text-justify"
           >
             <span
-              className="text-xl"
+              className="text-sm md:text-lg lg:text-xl"
               dangerouslySetInnerHTML={{
                 __html: question.problem.rationale,
               }}

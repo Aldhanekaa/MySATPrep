@@ -10,7 +10,13 @@ import {
 } from "@/types/session";
 import { getPracticeStatistics } from "@/lib/practiceStatistics";
 import { AnsweredQuestion } from "@/types/statistics";
-import { ChevronDown, ChevronUp, Trash2, AlertTriangle } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronUp,
+  Trash2,
+  AlertTriangle,
+  CopyIcon,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -409,6 +415,17 @@ export function SessionsTab() {
                       </>
                     )}
                   </Button>
+                  {/* <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() =>
+                      router.push("/practice?duplicate=" + sessionId)
+                    }
+                    className="flex items-center gap-1 h-8 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                  >
+                    <CopyIcon className="w-3 h-3" />
+                    Duplicate
+                  </Button> */}
                   <Button
                     variant="ghost"
                     size="sm"
