@@ -2649,6 +2649,17 @@ export default function PracticeRushMultistep({
 
             dispatch({ type: "SET_CURRENT_STEP", payload: 5 });
 
+            finalQuestions = selections.randomize
+              ? [
+                  ...finalQuestions.slice(0, restoredQuestions.length),
+                  ...[
+                    ...finalQuestions
+                      .slice(restoredQuestions.length, finalQuestions.length)
+                      .slice(),
+                  ].sort(() => Math.random() - 0.5),
+                ]
+              : finalQuestions;
+
             // setTimeout(() => {
             dispatch({ type: "SET_QUESTIONS", payload: finalQuestions });
             dispatch({ type: "SET_CURRENT_STEP", payload: 5 });
