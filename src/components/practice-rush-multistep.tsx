@@ -1170,6 +1170,7 @@ interface AppState {
   currentBatch: number; // Keep for backward compatibility but will be deprecated
   questionsLoadedCount: number; // Track total questions loaded so far
   questionsProcessedCount: number;
+  totalQuestionsToFetch: number; // Track total number of questions that need to be fetched
   cachedSelectionsHash: string | null; // Hash of practice selections to validate cache compatibility
   sessionId: string;
   sessionStartTime: number;
@@ -1214,6 +1215,7 @@ type AppAction =
   | { type: "START_LOADING_NEXT_BATCH" }
   | { type: "FINISH_LOADING_NEXT_BATCH"; payload: QuestionState[] }
   | { type: "SET_QUESTIONS_PROCESSED_COUNT"; payload: number }
+  | { type: "SET_TOTAL_QUESTIONS_TO_FETCH"; payload: number }
   | {
       type: "INITIALIZE_SESSION";
       payload: {
@@ -1259,6 +1261,7 @@ const initialState: AppState = {
   currentBatch: 1,
   questionsLoadedCount: 22, // Initially load 22 questions
   questionsProcessedCount: 0,
+  totalQuestionsToFetch: 0, // Initialize total questions to fetch
   cachedSelectionsHash: null, // No cached selections initially
   sessionId: `practice-${Date.now()}-${Math.random()
     .toString(36)
@@ -1283,6 +1286,8 @@ function appReducer(state: AppState, action: AppAction): AppState {
         ...state,
         questions: action.payload,
         questionsLoadedCount: action.payload.length, // Set loaded count to initial questions length
+        questionsProcessedCount: 0, // Reset progress counter after questions are loaded
+        totalQuestionsToFetch: 0, // Reset total questions counter
       };
     case "SET_CURRENT_STEP":
       return { ...state, currentStep: action.payload };
@@ -1462,6 +1467,11 @@ function appReducer(state: AppState, action: AppAction): AppState {
       return {
         ...state,
         questionsProcessedCount: action.payload,
+      };
+    case "SET_TOTAL_QUESTIONS_TO_FETCH":
+      return {
+        ...state,
+        totalQuestionsToFetch: action.payload,
       };
     case "INITIALIZE_SESSION":
       return {
@@ -1739,12 +1749,19 @@ export default function PracticeRushMultistep({
         title: "Fetching Each Question",
         content: state.isLoadingNextBatch
           ? `Loading Next Batch... (${state.questionsProcessedCount}/22)`
+          : state.questionsProcessedCount > 0 && state.totalQuestionsToFetch > 0
+          ? `Fetching Questions... (${state.questionsProcessedCount}/${state.totalQuestionsToFetch})`
           : "Fetching Each Question 🔍",
       },
       {
         id: "verifying",
         title: "Verifying",
-        content: "Verifying Questions...",
+        content:
+          state.questionsProcessedCount > 0 &&
+          state.totalQuestionsToFetch > 0 &&
+          state.questionsProcessedCount === state.totalQuestionsToFetch
+            ? `Verifying Questions... (${state.questionsProcessedCount}/${state.totalQuestionsToFetch})`
+            : "Verifying Questions...",
       },
       {
         id: "launching",
@@ -1752,7 +1769,11 @@ export default function PracticeRushMultistep({
         content: "Launching Practice... 🚀",
       },
     ],
-    [state.isLoadingNextBatch, state.questionsProcessedCount]
+    [
+      state.isLoadingNextBatch,
+      state.questionsProcessedCount,
+      state.totalQuestionsToFetch,
+    ]
   );
 
   // Initialize session when practice starts
@@ -2033,7 +2054,8 @@ export default function PracticeRushMultistep({
   const fetchQuestionDetails = useCallback(
     async (
       questionsToFetch: PlainQuestionType[],
-      existingQuestions: QuestionState[] = []
+      existingQuestions: QuestionState[] = [],
+      showProgress: boolean = false
     ): Promise<QuestionState[]> => {
       const questions: {
         plainQuestion: PlainQuestionType;
@@ -2041,7 +2063,23 @@ export default function PracticeRushMultistep({
       }[] = [];
       const correctQuestions: QuestionState[] = [...existingQuestions];
 
-      for (const question of questionsToFetch) {
+      // Set total questions to fetch if showing progress
+      if (showProgress) {
+        dispatch({
+          type: "SET_TOTAL_QUESTIONS_TO_FETCH",
+          payload: questionsToFetch.length,
+        });
+        dispatch({ type: "SET_QUESTIONS_PROCESSED_COUNT", payload: 0 });
+      }
+
+      for (let i = 0; i < questionsToFetch.length; i++) {
+        const question = questionsToFetch[i];
+
+        // Update progress if showing progress
+        if (showProgress) {
+          dispatch({ type: "SET_QUESTIONS_PROCESSED_COUNT", payload: i });
+        }
+
         const questionData: API_Response_Question =
           await fetchQuestionsbyIBN_ExternalId(
             question.external_id
@@ -2053,6 +2091,14 @@ export default function PracticeRushMultistep({
 
         if (questionData && questionData.correct_answer)
           questions.push({ plainQuestion: question, data: questionData });
+      }
+
+      // Update progress to show completion of fetching phase
+      if (showProgress) {
+        dispatch({
+          type: "SET_QUESTIONS_PROCESSED_COUNT",
+          payload: questionsToFetch.length,
+        });
       }
 
       for (let i = 0; i < questions.length; i++) {
@@ -2152,7 +2198,11 @@ export default function PracticeRushMultistep({
         questionsToFetch = questionsData.slice(0, questionsNeeded);
       }
 
-      return await fetchQuestionDetails(questionsToFetch, existingQuestions);
+      return await fetchQuestionDetails(
+        questionsToFetch,
+        existingQuestions,
+        true
+      );
     },
     [fetchQuestionDetails]
   );
@@ -2573,7 +2623,9 @@ export default function PracticeRushMultistep({
 
           // Use the helper function to fetch question details
           const correctQuestions = await fetchQuestionDetails(
-            filteredQuestionsData
+            filteredQuestionsData,
+            [],
+            true
           );
 
           dispatch({ type: "SET_CURRENT_STEP", payload: 4 });
