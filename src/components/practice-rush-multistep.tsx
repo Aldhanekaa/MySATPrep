@@ -2225,8 +2225,12 @@ export default function PracticeRushMultistep({
           );
         });
 
-        // Calculate how many questions to take from each difficulty
-        const totalQuestions = Math.min(22 - existingQuestions.length, 22);
+        let totalQuestions = 0;
+
+        if (existingQuestions && existingQuestions.length > 0) {
+          const benchmarkQuestionsLength = existingQuestions.length % 2;
+          totalQuestions = Math.min(22 - benchmarkQuestionsLength, 22);
+        }
         const questionsPerDifficulty = Math.floor(
           totalQuestions / difficultiesChosen.length
         );
