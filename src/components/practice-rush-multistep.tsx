@@ -1814,7 +1814,7 @@ export default function PracticeRushMultistep({
         content:
           state.questionsProcessedCount > 0 &&
           state.totalQuestionsToFetch > 0 &&
-          state.questionsProcessedCount >=
+          state.questionsProcessedCount <=
             Math.floor(state.totalQuestionsToFetch / 2)
             ? `Verifying Questions... (${
                 state.questionsProcessedCount -
@@ -2232,6 +2232,7 @@ export default function PracticeRushMultistep({
           // console.log(`benchmarkQuestionsLength ${benchmarkQuestionsLength}`);
           totalQuestions = Math.min(22 - benchmarkQuestionsLength, 22);
         }
+
         const questionsPerDifficulty = Math.floor(
           totalQuestions / difficultiesChosen.length
         );
@@ -2279,12 +2280,24 @@ export default function PracticeRushMultistep({
         questionsToFetch = selectedQuestions;
         console.log("THIS IS A NEW VERSION (should be)");
 
+        dispatch({
+          type: "SET_TOTAL_QUESTIONS_TO_FETCH",
+          payload: questionsToFetch.length * 2,
+        });
+        dispatch({ type: "SET_QUESTIONS_PROCESSED_COUNT", payload: 0 });
+
         console.log(
           `Total questions after difficulty-based selection: ${questionsToFetch.length}`
         );
       } else {
-        // Original behavior for non-randomized or when no difficulties specified
-        const questionsNeeded = Math.min(22, 22 - existingQuestions.length);
+        let questionsNeeded = 0;
+
+        if (existingQuestions && existingQuestions.length > 0) {
+          const benchmarkQuestionsLength = existingQuestions.length % 22;
+          // console.log(`benchmarkQuestionsLength ${benchmarkQuestionsLength}`);
+          questionsNeeded = Math.min(22 - benchmarkQuestionsLength, 22);
+        }
+
         questionsToFetch = questionsData.slice(0, questionsNeeded);
       }
 
