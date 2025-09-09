@@ -1,12 +1,13 @@
-import React, { useState, useEffect, useCallback } from "react";
-import { Button } from "@/components/ui/button";
+import React, { useEffect, useCallback, useMemo, useReducer } from "react";
 import { AssessmentWorkspace } from "@/app/dashboard/types";
 import { useLocalStorage } from "@/lib/useLocalStorage";
 import { SavedQuestions, SavedQuestion } from "@/types/savedQuestions";
 import { QuestionById_Data } from "@/types/question";
-import QuestionProblemCard from "@/components/question-problem-card";
-import { Card, CardContent, CardHeader } from "@/components/ui/card-v2";
-import { Separator } from "../ui/separator";
+import { Card, CardContent } from "@/components/ui/card-v2";
+import {
+  OptimizedQuestionCard,
+  BaseQuestionWithData,
+} from "./shared/OptimizedQuestionCard";
 
 // Simple skeleton component
 const Skeleton = ({
@@ -23,12 +24,115 @@ interface SavedTabProps {
   selectedAssessment?: AssessmentWorkspace;
 }
 
-interface QuestionWithData extends SavedQuestion {
+interface QuestionWithData extends SavedQuestion, BaseQuestionWithData {
   questionData?: QuestionById_Data;
   isLoading?: boolean;
   hasError?: boolean;
   errorMessage?: string;
 }
+
+// State management for better performance
+interface SavedTabState {
+  questionsWithData: QuestionWithData[];
+  fetchedQuestionIds: Set<string>;
+  isInitialized: boolean;
+}
+
+type SavedTabAction =
+  | { type: "INITIALIZE_QUESTIONS"; payload: QuestionWithData[] }
+  | {
+      type: "SET_QUESTION_LOADING";
+      payload: { index: number; questionId: string };
+    }
+  | {
+      type: "SET_QUESTION_SUCCESS";
+      payload: { index: number; questionData: QuestionById_Data };
+    }
+  | {
+      type: "SET_QUESTION_ERROR";
+      payload: { index: number; errorMessage: string };
+    }
+  | { type: "ADD_FETCHED_ID"; payload: string }
+  | { type: "REMOVE_FETCHED_ID"; payload: string }
+  | { type: "RESET_FETCHED_IDS" };
+
+const savedTabReducer = (
+  state: SavedTabState,
+  action: SavedTabAction
+): SavedTabState => {
+  switch (action.type) {
+    case "INITIALIZE_QUESTIONS":
+      return {
+        ...state,
+        questionsWithData: action.payload,
+        isInitialized: true,
+      };
+    case "SET_QUESTION_LOADING":
+      return {
+        ...state,
+        questionsWithData: state.questionsWithData.map((q, i) =>
+          i === action.payload.index
+            ? {
+                ...q,
+                isLoading: true,
+                hasError: false,
+                errorMessage: undefined,
+              }
+            : q
+        ),
+      };
+    case "SET_QUESTION_SUCCESS":
+      return {
+        ...state,
+        questionsWithData: state.questionsWithData.map((q, i) =>
+          i === action.payload.index
+            ? {
+                ...q,
+                questionData: action.payload.questionData,
+                isLoading: false,
+                hasError: false,
+              }
+            : q
+        ),
+      };
+    case "SET_QUESTION_ERROR":
+      return {
+        ...state,
+        questionsWithData: state.questionsWithData.map((q, i) =>
+          i === action.payload.index
+            ? {
+                ...q,
+                isLoading: false,
+                hasError: true,
+                errorMessage: action.payload.errorMessage,
+              }
+            : q
+        ),
+      };
+    case "ADD_FETCHED_ID":
+      return {
+        ...state,
+        fetchedQuestionIds: new Set([
+          ...state.fetchedQuestionIds,
+          action.payload,
+        ]),
+      };
+    case "REMOVE_FETCHED_ID":
+      const newFetchedIds = new Set(state.fetchedQuestionIds);
+      newFetchedIds.delete(action.payload);
+      return {
+        ...state,
+        fetchedQuestionIds: newFetchedIds,
+      };
+    case "RESET_FETCHED_IDS":
+      return {
+        ...state,
+        fetchedQuestionIds: new Set(),
+      };
+    default:
+      return state;
+  }
+};
 
 export function SavedTab({ selectedAssessment }: SavedTabProps) {
   // Load saved questions from localStorage
@@ -37,13 +141,14 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
     {}
   );
 
-  // State for managing questions with their fetched data
-  const [questionsWithData, setQuestionsWithData] = useState<
-    QuestionWithData[]
-  >([]);
-  const [isInitialized, setIsInitialized] = useState(false);
+  // Use reducer for better state management and performance
+  const [state, dispatch] = useReducer(savedTabReducer, {
+    questionsWithData: [],
+    fetchedQuestionIds: new Set<string>(),
+    isInitialized: false,
+  });
 
-  // Get the assessment key from selectedAssessment
+  // Get the assessment key from selectedAssessment (memoized)
   const getAssessmentKey = useCallback(
     (assessment?: AssessmentWorkspace): string => {
       if (!assessment) return "SAT"; // Default to SAT
@@ -60,7 +165,19 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
     []
   );
 
-  // Fetch question data from API
+  // Memoize assessment key to prevent unnecessary recalculations
+  const assessmentKey = useMemo(
+    () => getAssessmentKey(selectedAssessment),
+    [selectedAssessment, getAssessmentKey]
+  );
+
+  // Memoize assessment name to prevent unnecessary recalculations
+  const assessmentName = useMemo(
+    () => selectedAssessment?.name || "SAT",
+    [selectedAssessment?.name]
+  );
+
+  // Fetch question data from API (memoized)
   const fetchQuestionData = useCallback(
     async (questionId: string): Promise<QuestionById_Data | null> => {
       try {
@@ -85,9 +202,14 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
     []
   );
 
+  // Memoized retry handler to prevent recreation on every render
+  const handleRetry = useCallback((index: number, questionId: string) => {
+    dispatch({ type: "REMOVE_FETCHED_ID", payload: questionId });
+    dispatch({ type: "SET_QUESTION_LOADING", payload: { index, questionId } });
+  }, []);
+
   // Initialize questions when assessment or saved questions change
   useEffect(() => {
-    const assessmentKey = getAssessmentKey(selectedAssessment);
     const assessmentSavedQuestions = savedQuestions[assessmentKey] || [];
 
     // Initialize questions with loading state
@@ -99,84 +221,95 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
       })
     );
 
-    setQuestionsWithData(initialQuestions);
-    setFetchedQuestionIds(new Set()); // Reset fetched questions when assessment changes
-    setIsInitialized(true);
-  }, [selectedAssessment, savedQuestions, getAssessmentKey]);
+    dispatch({ type: "INITIALIZE_QUESTIONS", payload: initialQuestions });
+    dispatch({ type: "RESET_FETCHED_IDS" });
+  }, [assessmentKey, savedQuestions]);
 
-  // Track which questions have been fetched to prevent duplicate requests
-  const [fetchedQuestionIds, setFetchedQuestionIds] = useState<Set<string>>(
-    new Set()
-  );
-
-  // Fetch question data progressively
+  // Fetch question data progressively (optimized with debouncing)
   useEffect(() => {
-    if (!isInitialized || questionsWithData.length === 0) return;
+    if (!state.isInitialized || state.questionsWithData.length === 0) return;
 
-    const fetchQuestionsProgressively = async () => {
-      // Find questions that need to be fetched (not yet fetched and currently loading)
-      const questionsToFetch = questionsWithData
-        .map((question, index) => ({ question, index }))
-        .filter(
-          ({ question }) =>
-            question.isLoading &&
-            !question.questionData &&
-            !question.hasError &&
-            !fetchedQuestionIds.has(question.questionId)
-        );
-
-      if (questionsToFetch.length === 0) return;
-
-      // Mark these questions as being fetched
-      const newFetchedIds = new Set(fetchedQuestionIds);
-      questionsToFetch.forEach(({ question }) => {
-        newFetchedIds.add(question.questionId);
-      });
-      setFetchedQuestionIds(newFetchedIds);
-
-      // Process questions one by one to avoid overwhelming the API
-      for (const { question, index } of questionsToFetch) {
-        try {
-          const questionData = await fetchQuestionData(question.questionId);
-
-          // Update the specific question with fetched data
-          setQuestionsWithData((prev) =>
-            prev.map((q, i) =>
-              i === index
-                ? {
-                    ...q,
-                    questionData: questionData || undefined,
-                    isLoading: false,
-                    hasError: false,
-                  }
-                : q
-            )
+    // Debounce the fetching to prevent too many rapid calls
+    const fetchTimeout = setTimeout(() => {
+      const fetchQuestionsProgressively = async () => {
+        // Find questions that need to be fetched
+        const questionsToFetch = state.questionsWithData
+          .map((question, index) => ({ question, index }))
+          .filter(
+            ({ question }) =>
+              question.isLoading &&
+              !question.questionData &&
+              !question.hasError &&
+              !state.fetchedQuestionIds.has(question.questionId)
           );
 
-          // Add a small delay between requests to be respectful to the API
-          await new Promise((resolve) => setTimeout(resolve, 100));
-        } catch (error) {
-          const errorMessage =
-            error instanceof Error ? error.message : "Unknown error";
+        if (questionsToFetch.length === 0) return;
 
-          // Update the specific question with error state
-          setQuestionsWithData((prev) =>
-            prev.map((q, i) =>
-              i === index
-                ? { ...q, isLoading: false, hasError: true, errorMessage }
-                : q
-            )
-          );
+        // Mark these questions as being fetched
+        questionsToFetch.forEach(({ question }) => {
+          dispatch({ type: "ADD_FETCHED_ID", payload: question.questionId });
+        });
+
+        // Process questions with optimized batching (limit concurrent requests)
+        const batchSize = 3; // Process max 3 questions at a time
+        for (let i = 0; i < questionsToFetch.length; i += batchSize) {
+          const batch = questionsToFetch.slice(i, i + batchSize);
+
+          // Process batch concurrently
+          const batchPromises = batch.map(async ({ question, index }) => {
+            try {
+              const questionData = await fetchQuestionData(question.questionId);
+
+              if (questionData) {
+                dispatch({
+                  type: "SET_QUESTION_SUCCESS",
+                  payload: { index, questionData },
+                });
+              }
+            } catch (error) {
+              const errorMessage =
+                error instanceof Error ? error.message : "Unknown error";
+
+              dispatch({
+                type: "SET_QUESTION_ERROR",
+                payload: { index, errorMessage },
+              });
+            }
+          });
+
+          await Promise.all(batchPromises);
+
+          // Add delay between batches to be respectful to the API
+          if (i + batchSize < questionsToFetch.length) {
+            await new Promise((resolve) => setTimeout(resolve, 200));
+          }
         }
-      }
-    };
+      };
 
-    fetchQuestionsProgressively();
-  }, [isInitialized, questionsWithData, fetchQuestionData, fetchedQuestionIds]);
+      fetchQuestionsProgressively();
+    }, 100); // 100ms debounce
 
-  const assessmentName = selectedAssessment?.name || "SAT";
+    return () => clearTimeout(fetchTimeout);
+  }, [
+    state.isInitialized,
+    state.questionsWithData,
+    state.fetchedQuestionIds,
+    fetchQuestionData,
+  ]);
 
-  if (!isInitialized) {
+  // Memoize loading indicator to prevent unnecessary re-renders
+  const loadingIndicator = useMemo(() => {
+    const hasLoadingQuestions = state.questionsWithData.some(
+      (q) => q.isLoading
+    );
+    return hasLoadingQuestions ? (
+      <div className="text-center text-sm text-muted-foreground">
+        Loading more questions...
+      </div>
+    ) : null;
+  }, [state.questionsWithData]);
+
+  if (!state.isInitialized) {
     return (
       <div className="space-y-4">
         <h2 className="text-lg font-semibold">Saved Questions</h2>
@@ -188,7 +321,7 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
     );
   }
 
-  if (questionsWithData.length === 0) {
+  if (state.questionsWithData.length === 0) {
     return (
       <div className="space-y-4">
         <h2 className="text-lg font-semibold">Saved Questions</h2>
@@ -215,106 +348,25 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
       <div className="px-8 lg:px-28">
         <h2 className="text-lg font-semibold">Saved Questions</h2>
         <p className="text-sm text-muted-foreground">
-          {questionsWithData.length} saved question
-          {questionsWithData.length !== 1 ? "s" : ""} for {assessmentName}
+          {state.questionsWithData.length} saved question
+          {state.questionsWithData.length !== 1 ? "s" : ""} for {assessmentName}
         </p>
       </div>
 
       <div className="space-y-4 max-w-full mx-auto px-6 lg:px-22">
-        {questionsWithData.map((question, index) => (
+        {state.questionsWithData.map((question, index) => (
           <div key={`${question.questionId}-${index}`} className=" mb-32">
-            {question.isLoading && (
-              <Card>
-                <CardHeader>
-                  <Skeleton className="h-4 w-3/4" />
-                  <Skeleton className="h-4 w-1/2" />
-                </CardHeader>
-                <CardContent>
-                  <Skeleton className="h-20 w-full mb-4" />
-                  <div className="space-y-2">
-                    <Skeleton className="h-4 w-full" />
-                    <Skeleton className="h-4 w-full" />
-                    <Skeleton className="h-4 w-3/4" />
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {question.hasError && (
-              <Card className="border-red-200 bg-red-50">
-                <CardContent className="pt-6">
-                  <div className="text-center text-red-600">
-                    <p className="font-medium">Failed to load question</p>
-                    <p className="text-sm text-red-500 mt-1">
-                      ID: {question.questionId}
-                    </p>
-                    {question.errorMessage && (
-                      <p className="text-xs text-red-400 mt-1">
-                        {question.errorMessage}
-                      </p>
-                    )}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="mt-2"
-                      onClick={() => {
-                        // Remove from fetched set to allow retry
-                        setFetchedQuestionIds((prev) => {
-                          const newSet = new Set(prev);
-                          newSet.delete(question.questionId);
-                          return newSet;
-                        });
-
-                        // Retry loading this question
-                        setQuestionsWithData((prev) =>
-                          prev.map((q, i) =>
-                            i === index
-                              ? {
-                                  ...q,
-                                  isLoading: true,
-                                  hasError: false,
-                                  errorMessage: undefined,
-                                }
-                              : q
-                          )
-                        );
-                      }}
-                    >
-                      Retry
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {question.questionData &&
-              !question.isLoading &&
-              !question.hasError && (
-                <React.Fragment>
-                  <div className="">
-                    <div className="mb-2 text-xs text-muted-foreground">
-                      Saved on{" "}
-                      {new Date(question.timestamp).toLocaleDateString()}
-                    </div>
-                    <QuestionProblemCard
-                      question={question.questionData}
-                      hideToolsPopup={true}
-                      hideViewQuestionButton={false}
-                      hideSubjectHeaders
-                    />
-                  </div>
-                  <Separator className="my-6" />
-                </React.Fragment>
-              )}
+            <OptimizedQuestionCard
+              question={question}
+              index={index}
+              onRetry={handleRetry}
+              type="saved"
+            />
           </div>
         ))}
       </div>
 
-      {questionsWithData.some((q) => q.isLoading) && (
-        <div className="text-center text-sm text-muted-foreground">
-          Loading more questions...
-        </div>
-      )}
+      {loadingIndicator}
     </div>
   );
 }

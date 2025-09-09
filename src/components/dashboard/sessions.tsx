@@ -10,9 +10,10 @@ import {
 } from "@/types/session";
 import { getPracticeStatistics } from "@/lib/practiceStatistics";
 import { AnsweredQuestion } from "@/types/statistics";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronUp, Trash2, AlertTriangle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { toast } from "sonner";
 
 interface QuestionResult {
   questionId: string;
@@ -27,6 +28,10 @@ export function SessionsTab() {
   const [expandedSessions, setExpandedSessions] = useState<Set<string>>(
     new Set()
   );
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [sessionToDelete, setSessionToDelete] =
+    useState<PracticeSession | null>(null);
+  const [isCurrentSession, setIsCurrentSession] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -103,6 +108,76 @@ export function SessionsTab() {
 
   const handleQuestionClick = (questionId: string) => {
     router.push(`/question/${questionId}`);
+  };
+
+  const handleDeleteSession = (session: PracticeSession) => {
+    // Check if this is the current practice session
+    try {
+      const currentSession = localStorage.getItem("currentPracticeSession");
+      const isCurrentActiveSession = !!(
+        currentSession &&
+        JSON.parse(currentSession).sessionId === session.sessionId
+      );
+
+      setSessionToDelete(session);
+      setIsCurrentSession(isCurrentActiveSession);
+      setDeleteModalOpen(true);
+    } catch (error) {
+      console.error("Failed to check current session:", error);
+      setSessionToDelete(session);
+      setIsCurrentSession(false);
+      setDeleteModalOpen(true);
+    }
+  };
+
+  const confirmDeleteSession = () => {
+    if (!sessionToDelete) return;
+
+    try {
+      // Remove from practice history
+      const history = getSessionHistory();
+      const updatedHistory = history.filter(
+        (session) => session.sessionId !== sessionToDelete.sessionId
+      );
+      localStorage.setItem("practiceHistory", JSON.stringify(updatedHistory));
+
+      // If this is the current session, also remove it from currentPracticeSession
+      if (isCurrentSession) {
+        localStorage.removeItem("currentPracticeSession");
+        toast.success("Session Deleted Successfully", {
+          description:
+            "Your current practice session has been removed. You can start a new practice session anytime.",
+          duration: 5000,
+        });
+      } else {
+        toast.success("Session Deleted Successfully", {
+          description:
+            "The practice session has been removed from your history.",
+          duration: 3000,
+        });
+      }
+
+      // Update the local state
+      setPracticeHistory(updatedHistory);
+
+      // Close modal and reset state
+      setDeleteModalOpen(false);
+      setSessionToDelete(null);
+      setIsCurrentSession(false);
+    } catch (error) {
+      console.error("Failed to delete session:", error);
+      toast.error("Failed to Delete Session", {
+        description:
+          "An error occurred while deleting the session. Please try again.",
+        duration: 4000,
+      });
+    }
+  };
+
+  const cancelDeleteSession = () => {
+    setDeleteModalOpen(false);
+    setSessionToDelete(null);
+    setIsCurrentSession(false);
   };
 
   const formatDuration = (milliseconds: number): string => {
@@ -334,6 +409,15 @@ export function SessionsTab() {
                       </>
                     )}
                   </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleDeleteSession(session)}
+                    className="flex items-center gap-1 h-8 text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                    Delete
+                  </Button>
                 </div>
 
                 {/* Question Details Dropdown */}
@@ -384,6 +468,73 @@ export function SessionsTab() {
               </Card>
             );
           })}
+        </div>
+      )}
+
+      {/* Duolingo-styled Delete Confirmation Modal */}
+      {deleteModalOpen && sessionToDelete && (
+        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/20">
+          <div className="bg-red-50 border-4 border-red-200 rounded-3xl p-8 max-w-md w-full mx-4 shadow-2xl">
+            <div className="text-center">
+              <div className="mb-6">
+                <div className="mx-auto w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
+                  <AlertTriangle className="w-8 h-8 text-red-600" />
+                </div>
+                <h3 className="text-xl font-bold text-red-900 mb-2">
+                  Delete Practice Session?
+                </h3>
+                <div className="text-red-700 text-sm space-y-2">
+                  <p>
+                    Are you sure you want to delete this practice session from{" "}
+                    <strong>
+                      {sessionToDelete.practiceSelections.assessment}
+                    </strong>
+                    ?
+                  </p>
+                  <p className="text-xs">
+                    Session from{" "}
+                    {new Date(sessionToDelete.timestamp).toLocaleDateString()}{" "}
+                    at{" "}
+                    {new Date(sessionToDelete.timestamp).toLocaleTimeString(
+                      [],
+                      {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      }
+                    )}
+                  </p>
+                  {isCurrentSession && (
+                    <div className="mt-4 p-3 bg-red-100 border border-red-300 rounded-2xl">
+                      <div className="flex items-center gap-2 text-red-800">
+                        <AlertTriangle className="w-4 h-4" />
+                        <span className="text-xs font-medium">Warning!</span>
+                      </div>
+                      <p className="text-xs text-red-700 mt-1">
+                        This is your current active practice session. Deleting
+                        it will also remove your current progress.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <Button
+                  onClick={cancelDeleteSession}
+                  variant="outline"
+                  className="flex-1 bg-white hover:bg-gray-50 text-gray-700 font-bold text-sm py-3 px-4 rounded-2xl border-2 border-gray-300 hover:border-gray-400 shadow-sm hover:shadow-md transform transition-all duration-200"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={confirmDeleteSession}
+                  className="flex-1 bg-red-500 hover:bg-red-600 text-white font-bold text-sm py-3 px-4 rounded-2xl border-b-4 border-red-600 hover:border-red-700 shadow-lg hover:shadow-xl transform transition-all duration-200 active:translate-y-0.5 active:border-b-2"
+                >
+                  Delete Session
+                </Button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>

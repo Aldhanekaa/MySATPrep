@@ -1,13 +1,15 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useCallback, useEffect, useReducer } from "react";
 import { Button } from "@/components/ui/button";
 import { AssessmentWorkspace } from "@/app/dashboard/types";
 import { useLocalStorage } from "@/lib/useLocalStorage";
 import { PracticeStatistics } from "@/types/statistics";
 import { QuestionById_Data } from "@/types/question";
-import QuestionProblemCard from "@/components/question-problem-card";
-import { Card, CardContent, CardHeader } from "@/components/ui/card-v2";
-import { Separator } from "../ui/separator";
+import { Card, CardContent } from "@/components/ui/card-v2";
 import { Badge } from "../ui/badge";
+import {
+  OptimizedQuestionCard,
+  AnsweredQuestionWithData,
+} from "./shared/OptimizedQuestionCard";
 
 // Simple skeleton component
 const Skeleton = ({
@@ -24,18 +26,126 @@ interface AnsweredTabProps {
   selectedAssessment?: AssessmentWorkspace;
 }
 
-interface AnsweredQuestionWithData {
-  questionId: string;
-  difficulty: string;
-  isCorrect: boolean;
-  timeSpent: number;
-  timestamp: string;
-  selectedAnswer?: string;
-  plainQuestion?: unknown;
-  questionData?: QuestionById_Data;
-  isLoading?: boolean;
-  hasError?: boolean;
-  errorMessage?: string;
+// State management
+interface State {
+  questionsWithData: AnsweredQuestionWithData[];
+  allAnsweredQuestions: AnsweredQuestionWithData[];
+  displayedQuestionsCount: number;
+  isLoadingMore: boolean;
+  isInitialized: boolean;
+  fetchedQuestionIds: Set<string>;
+}
+
+type Action =
+  | { type: "INITIALIZE"; payload: AnsweredQuestionWithData[] }
+  | {
+      type: "UPDATE_QUESTION";
+      payload: { index: number; question: Partial<AnsweredQuestionWithData> };
+    }
+  | { type: "LOAD_MORE" }
+  | { type: "SET_LOADING_MORE"; payload: boolean }
+  | { type: "MARK_AS_FETCHED"; payload: string }
+  | { type: "RETRY_QUESTION"; payload: number };
+
+const initialState: State = {
+  questionsWithData: [],
+  allAnsweredQuestions: [],
+  displayedQuestionsCount: 15,
+  isLoadingMore: false,
+  isInitialized: false,
+  fetchedQuestionIds: new Set(),
+};
+
+function questionsReducer(state: State, action: Action): State {
+  switch (action.type) {
+    case "INITIALIZE":
+      const sortedQuestions = [...action.payload].sort(
+        (a, b) =>
+          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+      );
+      const initialQuestions = sortedQuestions.slice(0, 15).map((q) => ({
+        ...q,
+        isLoading: true,
+        hasError: false,
+      }));
+
+      return {
+        ...state,
+        allAnsweredQuestions: sortedQuestions,
+        questionsWithData: initialQuestions,
+        displayedQuestionsCount: 15,
+        isInitialized: true,
+        fetchedQuestionIds: new Set(),
+      };
+
+    case "UPDATE_QUESTION":
+      return {
+        ...state,
+        questionsWithData: state.questionsWithData.map((q, i) =>
+          i === action.payload.index ? { ...q, ...action.payload.question } : q
+        ),
+      };
+
+    case "LOAD_MORE":
+      const nextCount = Math.min(
+        state.displayedQuestionsCount + 15,
+        state.allAnsweredQuestions.length
+      );
+      const newQuestions = state.allAnsweredQuestions
+        .slice(state.displayedQuestionsCount, nextCount)
+        .map((q) => ({
+          ...q,
+          isLoading: true,
+          hasError: false,
+        }));
+
+      return {
+        ...state,
+        questionsWithData: [...state.questionsWithData, ...newQuestions],
+        displayedQuestionsCount: nextCount,
+        isLoadingMore: false,
+      };
+
+    case "SET_LOADING_MORE":
+      return {
+        ...state,
+        isLoadingMore: action.payload,
+      };
+
+    case "MARK_AS_FETCHED":
+      return {
+        ...state,
+        fetchedQuestionIds: new Set([
+          ...state.fetchedQuestionIds,
+          action.payload,
+        ]),
+      };
+
+    case "RETRY_QUESTION":
+      const newFetchedIds = new Set(state.fetchedQuestionIds);
+      const questionToRetry = state.questionsWithData[action.payload];
+      if (questionToRetry) {
+        newFetchedIds.delete(questionToRetry.questionId);
+      }
+
+      return {
+        ...state,
+        fetchedQuestionIds: newFetchedIds,
+        questionsWithData: state.questionsWithData.map((q, i) =>
+          i === action.payload
+            ? {
+                ...q,
+                isLoading: true,
+                hasError: false,
+                errorMessage: undefined,
+              }
+            : q
+        ),
+      };
+
+    default:
+      return state;
+  }
 }
 
 export function AnsweredTab({ selectedAssessment }: AnsweredTabProps) {
@@ -45,25 +155,7 @@ export function AnsweredTab({ selectedAssessment }: AnsweredTabProps) {
     {}
   );
 
-  // State for managing questions with their fetched data
-  const [questionsWithData, setQuestionsWithData] = useState<
-    AnsweredQuestionWithData[]
-  >([]);
-  const [isInitialized, setIsInitialized] = useState(false);
-
-  // Track which questions have been fetched to prevent duplicate requests
-  const [fetchedQuestionIds, setFetchedQuestionIds] = useState<Set<string>>(
-    new Set()
-  );
-
-  // Infinite scrolling states
-  const [allAnsweredQuestions, setAllAnsweredQuestions] = useState<
-    AnsweredQuestionWithData[]
-  >([]);
-  const [displayedQuestionsCount, setDisplayedQuestionsCount] = useState(15);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-
-  // Intersection observer ref for infinite scrolling
+  const [state, dispatch] = useReducer(questionsReducer, initialState);
   const loadMoreRef = React.useRef<HTMLDivElement>(null);
 
   // Get the assessment key from selectedAssessment
@@ -108,6 +200,11 @@ export function AnsweredTab({ selectedAssessment }: AnsweredTabProps) {
     []
   );
 
+  // Retry function for failed questions
+  const handleRetry = useCallback((index: number) => {
+    dispatch({ type: "RETRY_QUESTION", payload: index });
+  }, []);
+
   // Initialize questions when assessment or practice statistics change
   useEffect(() => {
     const assessmentKey = getAssessmentKey(selectedAssessment);
@@ -115,141 +212,115 @@ export function AnsweredTab({ selectedAssessment }: AnsweredTabProps) {
     const answeredQuestionsDetailed =
       assessmentStats?.answeredQuestionsDetailed || [];
 
-    // Sort all questions by timestamp (most recent first)
-    const sortedQuestions: AnsweredQuestionWithData[] =
-      answeredQuestionsDetailed
-        .sort(
-          (a, b) =>
-            new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-        )
-        .map((question) => ({
-          ...question,
-          isLoading: false,
-          hasError: false,
-        }));
-
-    // Store all questions and reset display count
-    setAllAnsweredQuestions(sortedQuestions);
-    setDisplayedQuestionsCount(15);
-
-    // Initialize with first 15 questions (or all if less than 15)
-    const initialQuestions = sortedQuestions.slice(0, 15).map((question) => ({
-      ...question,
-      isLoading: true,
+    const questionsWithDefaults = answeredQuestionsDetailed.map((q) => ({
+      ...q,
+      isLoading: false,
       hasError: false,
     }));
 
-    setQuestionsWithData(initialQuestions);
-    setFetchedQuestionIds(new Set()); // Reset fetched questions when assessment changes
-    setIsInitialized(true);
+    dispatch({ type: "INITIALIZE", payload: questionsWithDefaults });
   }, [selectedAssessment, practiceStatistics, getAssessmentKey]);
 
   // Fetch question data progressively
   useEffect(() => {
-    if (!isInitialized || questionsWithData.length === 0) return;
+    if (!state.isInitialized || state.questionsWithData.length === 0) return;
 
     const fetchQuestionsProgressively = async () => {
-      // Find questions that need to be fetched (not yet fetched and currently loading)
-      const questionsToFetch = questionsWithData
+      // Find questions that need to be fetched
+      const questionsToFetch = state.questionsWithData
         .map((question, index) => ({ question, index }))
         .filter(
           ({ question }) =>
             question.isLoading &&
             !question.questionData &&
             !question.hasError &&
-            !fetchedQuestionIds.has(question.questionId)
+            !state.fetchedQuestionIds.has(question.questionId)
         );
 
       if (questionsToFetch.length === 0) return;
 
       // Mark these questions as being fetched
-      const newFetchedIds = new Set(fetchedQuestionIds);
       questionsToFetch.forEach(({ question }) => {
-        newFetchedIds.add(question.questionId);
+        dispatch({ type: "MARK_AS_FETCHED", payload: question.questionId });
       });
-      setFetchedQuestionIds(newFetchedIds);
 
-      // Process questions one by one to avoid overwhelming the API
+      // Process questions with small delays
       for (const { question, index } of questionsToFetch) {
         try {
           const questionData = await fetchQuestionData(question.questionId);
 
-          // Update the specific question with fetched data
-          setQuestionsWithData((prev) =>
-            prev.map((q, i) =>
-              i === index
-                ? {
-                    ...q,
-                    questionData: questionData || undefined,
-                    isLoading: false,
-                    hasError: false,
-                  }
-                : q
-            )
-          );
+          dispatch({
+            type: "UPDATE_QUESTION",
+            payload: {
+              index,
+              question: {
+                questionData: questionData || undefined,
+                isLoading: false,
+                hasError: false,
+              },
+            },
+          });
 
-          // Add a small delay between requests to be respectful to the API
+          // Small delay between requests
           await new Promise((resolve) => setTimeout(resolve, 100));
         } catch (error) {
           const errorMessage =
             error instanceof Error ? error.message : "Unknown error";
 
-          // Update the specific question with error state
-          setQuestionsWithData((prev) =>
-            prev.map((q, i) =>
-              i === index
-                ? { ...q, isLoading: false, hasError: true, errorMessage }
-                : q
-            )
-          );
+          dispatch({
+            type: "UPDATE_QUESTION",
+            payload: {
+              index,
+              question: {
+                isLoading: false,
+                hasError: true,
+                errorMessage,
+              },
+            },
+          });
         }
       }
     };
 
     fetchQuestionsProgressively();
-  }, [isInitialized, questionsWithData, fetchQuestionData, fetchedQuestionIds]);
+  }, [
+    state.isInitialized,
+    state.questionsWithData,
+    state.fetchedQuestionIds,
+    fetchQuestionData,
+  ]);
 
   // Function to load more questions
   const loadMoreQuestions = useCallback(() => {
-    if (isLoadingMore || allAnsweredQuestions.length <= displayedQuestionsCount)
+    if (
+      state.isLoadingMore ||
+      state.allAnsweredQuestions.length <= state.displayedQuestionsCount
+    ) {
       return;
+    }
 
-    setIsLoadingMore(true);
-
-    // Calculate next batch
-    const nextCount = Math.min(
-      displayedQuestionsCount + 15,
-      allAnsweredQuestions.length
-    );
-    const newQuestions = allAnsweredQuestions.slice(
-      displayedQuestionsCount,
-      nextCount
-    );
-
-    // Add new questions with loading state
-    const questionsToAdd = newQuestions.map((question) => ({
-      ...question,
-      isLoading: true,
-      hasError: false,
-    }));
-
-    setQuestionsWithData((prev) => [...prev, ...questionsToAdd]);
-    setDisplayedQuestionsCount(nextCount);
-    setIsLoadingMore(false);
-  }, [allAnsweredQuestions, displayedQuestionsCount, isLoadingMore]);
+    dispatch({ type: "SET_LOADING_MORE", payload: true });
+    setTimeout(() => {
+      dispatch({ type: "LOAD_MORE" });
+    }, 100);
+  }, [
+    state.isLoadingMore,
+    state.allAnsweredQuestions.length,
+    state.displayedQuestionsCount,
+  ]);
 
   // Intersection Observer for infinite scrolling
   useEffect(() => {
     const currentLoadMoreRef = loadMoreRef.current;
     if (
       !currentLoadMoreRef ||
-      allAnsweredQuestions.length <= displayedQuestionsCount
+      state.allAnsweredQuestions.length <= state.displayedQuestionsCount
     )
       return;
 
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && !isLoadingMore) {
+        if (entries[0].isIntersecting && !state.isLoadingMore) {
           loadMoreQuestions();
         }
       },
@@ -264,17 +335,17 @@ export function AnsweredTab({ selectedAssessment }: AnsweredTabProps) {
       }
     };
   }, [
-    allAnsweredQuestions.length,
-    displayedQuestionsCount,
-    isLoadingMore,
+    state.allAnsweredQuestions.length,
+    state.displayedQuestionsCount,
+    state.isLoadingMore,
     loadMoreQuestions,
   ]);
 
   const assessmentName = selectedAssessment?.name || "SAT";
 
   // Calculate statistics from all answered questions, not just displayed ones
-  const totalQuestions = allAnsweredQuestions.length;
-  const correctQuestions = allAnsweredQuestions.filter(
+  const totalQuestions = state.allAnsweredQuestions.length;
+  const correctQuestions = state.allAnsweredQuestions.filter(
     (q) => q.isCorrect
   ).length;
   const accuracy =
@@ -282,7 +353,7 @@ export function AnsweredTab({ selectedAssessment }: AnsweredTabProps) {
       ? ((correctQuestions / totalQuestions) * 100).toFixed(1)
       : "0";
 
-  if (!isInitialized) {
+  if (!state.isInitialized) {
     return (
       <div className="space-y-4">
         <h2 className="text-lg font-semibold">Answered Questions</h2>
@@ -294,7 +365,7 @@ export function AnsweredTab({ selectedAssessment }: AnsweredTabProps) {
     );
   }
 
-  if (questionsWithData.length === 0) {
+  if (state.questionsWithData.length === 0) {
     return (
       <div className="space-y-4">
         <h2 className="text-lg font-semibold">Answered Questions</h2>
@@ -354,120 +425,26 @@ export function AnsweredTab({ selectedAssessment }: AnsweredTabProps) {
       </div>
 
       <div className="space-y-4 max-w-full mx-auto px-6 lg:px-22">
-        {questionsWithData.map((question, index) => (
-          <div key={`${question.questionId}-${index}`} className="mb-6">
-            {question.isLoading && (
-              <Card>
-                <CardHeader>
-                  <Skeleton className="h-4 w-3/4" />
-                  <Skeleton className="h-4 w-1/2" />
-                </CardHeader>
-                <CardContent>
-                  <Skeleton className="h-20 w-full mb-4" />
-                  <div className="space-y-2">
-                    <Skeleton className="h-4 w-full" />
-                    <Skeleton className="h-4 w-full" />
-                    <Skeleton className="h-4 w-3/4" />
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {question.hasError && (
-              <Card className="border-red-200 bg-red-50">
-                <CardContent className="pt-6">
-                  <div className="text-center text-red-600">
-                    <p className="font-medium">Failed to load question</p>
-                    <p className="text-sm text-red-500 mt-1">
-                      ID: {question.questionId}
-                    </p>
-                    {question.errorMessage && (
-                      <p className="text-xs text-red-400 mt-1">
-                        {question.errorMessage}
-                      </p>
-                    )}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="mt-2"
-                      onClick={() => {
-                        // Remove from fetched set to allow retry
-                        setFetchedQuestionIds((prev) => {
-                          const newSet = new Set(prev);
-                          newSet.delete(question.questionId);
-                          return newSet;
-                        });
-
-                        // Retry loading this question
-                        setQuestionsWithData((prev) =>
-                          prev.map((q, i) =>
-                            i === index
-                              ? {
-                                  ...q,
-                                  isLoading: true,
-                                  hasError: false,
-                                  errorMessage: undefined,
-                                }
-                              : q
-                          )
-                        );
-                      }}
-                    >
-                      Retry
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {question.questionData &&
-              !question.isLoading &&
-              !question.hasError && (
-                <React.Fragment>
-                  <div className="">
-                    <div className="mb-2 flex flex-wrap gap-2 items-center text-xs text-muted-foreground">
-                      <span>
-                        Answered on{" "}
-                        {new Date(question.timestamp).toLocaleDateString()}
-                      </span>
-                      <span>•</span>
-                      <Badge
-                        variant={question.isCorrect ? "default" : "destructive"}
-                        className={question.isCorrect ? "bg-green-500" : ""}
-                      >
-                        {question.isCorrect ? "Correct" : "Incorrect"}
-                      </Badge>
-                      <span>•</span>
-                      <Badge variant="outline">
-                        {(question.timeSpent / 1000).toFixed(1)}s
-                      </Badge>
-                      <span>•</span>
-                      <Badge variant="outline">
-                        Difficulty: {question.difficulty}
-                      </Badge>
-                    </div>
-                    <QuestionProblemCard
-                      question={question.questionData}
-                      hideToolsPopup={true}
-                      hideViewQuestionButton={false}
-                      hideSubjectHeaders
-                    />
-                  </div>
-                  <Separator className="my-6" />
-                </React.Fragment>
-              )}
+        {state.questionsWithData.map((question, index) => (
+          <div key={`${question.questionId}-${index}`} className="mb-32">
+            <OptimizedQuestionCard
+              question={question}
+              index={index}
+              onRetry={handleRetry}
+              type="answered"
+            />
           </div>
         ))}
       </div>
 
       {/* Load more trigger - invisible element for intersection observer */}
-      {allAnsweredQuestions.length > displayedQuestionsCount && (
+      {state.allAnsweredQuestions.length > state.displayedQuestionsCount && (
         <div className="space-y-4">
           <div
             ref={loadMoreRef}
             className="h-10 flex items-center justify-center"
           >
-            {isLoadingMore && (
+            {state.isLoadingMore && (
               <div className="text-center text-sm text-muted-foreground">
                 Loading more questions...
               </div>
@@ -475,16 +452,17 @@ export function AnsweredTab({ selectedAssessment }: AnsweredTabProps) {
           </div>
 
           {/* Manual load more button as fallback */}
-          {!isLoadingMore && (
+          {!state.isLoadingMore && (
             <div className="flex justify-center">
               <Button
                 variant="outline"
                 onClick={loadMoreQuestions}
-                disabled={isLoadingMore}
+                disabled={state.isLoadingMore}
                 className="px-6 py-2"
               >
                 Load More Questions (
-                {allAnsweredQuestions.length - displayedQuestionsCount}{" "}
+                {state.allAnsweredQuestions.length -
+                  state.displayedQuestionsCount}{" "}
                 remaining)
               </Button>
             </div>
@@ -492,11 +470,12 @@ export function AnsweredTab({ selectedAssessment }: AnsweredTabProps) {
         </div>
       )}
 
-      {questionsWithData.some((q) => q.isLoading) && !isLoadingMore && (
-        <div className="text-center text-sm text-muted-foreground">
-          Loading questions...
-        </div>
-      )}
+      {state.questionsWithData.some((q) => q.isLoading) &&
+        !state.isLoadingMore && (
+          <div className="text-center text-sm text-muted-foreground">
+            Loading questions...
+          </div>
+        )}
     </div>
   );
 }
