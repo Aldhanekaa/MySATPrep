@@ -15,6 +15,10 @@ import { useLocalStorage } from "@/lib/useLocalStorage";
 import { playSound } from "@/lib/playSound";
 import { ProjectBanner } from "@/components/ui/project-banner";
 import { toast } from "sonner";
+import {
+  primaryClassCdObjectData,
+  skillCdsObjectData,
+} from "@/static-data/domains";
 
 // Interface for review-specific selections from the onboarding component
 interface ReviewSelections {
@@ -247,10 +251,25 @@ function Review() {
     );
     setQuestionsWithData(questions);
 
-    console.log(questions);
+    // Only include unique primaryClassCd values
+    let seen = new Set();
+    const skills = questions
+      .filter((q) => {
+        const skillCd = q.plainQuestion?.skill_cd;
+        if (!skillCd || seen.has(skillCd)) return false;
+        seen.add(skillCd);
+        return true;
+      })
+      .map((q, idx) => ({
+        id: skillCdsObjectData[q.plainQuestion?.skill_cd || ""].id,
+        text: skillCdsObjectData[q.plainQuestion?.skill_cd || ""].text,
+        skill_cd: q.plainQuestion?.skill_cd || "",
+      }));
+
+    console.log("questions - skills", skills, questions, skillCdsObjectData);
 
     // Only include unique primaryClassCd values
-    const seen = new Set();
+    seen = new Set();
     const domains = questions
       .filter((q) => {
         const primaryClassCd = q.plainQuestion?.primary_class_cd;
@@ -259,8 +278,10 @@ function Review() {
         return true;
       })
       .map((q, idx) => ({
-        id: Number(idx),
-        text: "hey",
+        id: primaryClassCdObjectData[q.plainQuestion?.primary_class_cd || ""]
+          .id,
+        text: primaryClassCdObjectData[q.plainQuestion?.primary_class_cd || ""]
+          .text,
         primaryClassCd: q.plainQuestion?.primary_class_cd,
       }));
 
@@ -273,7 +294,7 @@ function Review() {
       subject: selections.subject,
       // @ts-ignore
       domains: domains, // Empty for review mode
-      skills: [], // Empty for review mode
+      skills: skills, // Empty for review mode
       difficulties: [], // Empty for review mode
       randomize: false, // Not applicable for review
       excludeBluebook: false, // Not applicable for review

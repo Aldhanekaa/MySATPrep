@@ -25,7 +25,13 @@ export const skillCds: SkillCd_Variants[] = [
   "Q.D.",
   "Q.E.",
   "Q.F.",
+  "S.A.",
+  "S.B.",
+  "S.C.",
+  "S.D.",
+  "SYN",
 ];
+
 export const domains = {
   "R&W": [
     {
@@ -233,3 +239,31 @@ export const domains = {
     },
   ],
 };
+
+// Dynamically build skillCdsObjectData from domains
+export const skillCdsObjectData = (() => {
+  const result: Record<string, { text: string; id: string; skill_cd: string }> =
+    {};
+  Object.values(domains).forEach((domainArr) => {
+    domainArr.forEach((domain) => {
+      domain.skill.forEach((skill) => {
+        result[skill.skill_cd] = skill;
+      });
+    });
+  });
+  return result;
+})();
+
+// Dynamically build primaryClassCdObjectData from domains
+export const primaryClassCdObjectData = (() => {
+  const result: Record<
+    string,
+    { text: string; id: string; primaryClassCd: string; skill: any[] }
+  > = {};
+  Object.values(domains).forEach((domainArr) => {
+    domainArr.forEach((domain) => {
+      result[domain.primaryClassCd] = domain;
+    });
+  });
+  return result;
+})();
