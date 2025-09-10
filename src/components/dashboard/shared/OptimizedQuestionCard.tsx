@@ -5,6 +5,40 @@ import { Separator } from "../../ui/separator";
 import { Badge } from "../../ui/badge";
 import QuestionProblemCard from "@/components/question-problem-card";
 import { QuestionById_Data } from "@/types/question";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { ClockAlertIcon, EyeClosedIcon, ShieldAlertIcon } from "lucide-react";
+
+// Utility function to convert Unix timestamp to human-readable date
+const formatUnixTimestamp = (unixTimestamp: string | number): string => {
+  try {
+    // Convert to number if it's a string
+    const timestamp =
+      typeof unixTimestamp === "string"
+        ? parseInt(unixTimestamp, 10)
+        : unixTimestamp;
+
+    // Check if it's in seconds (10 digits) or milliseconds (13 digits)
+    const date =
+      timestamp.toString().length === 10
+        ? new Date(timestamp * 1000)
+        : new Date(timestamp);
+
+    // Check if the date is valid
+    if (isNaN(date.getTime())) {
+      return unixTimestamp.toString();
+    }
+
+    // Format as readable date (e.g., "Jan 15, 2024")
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  } catch (error) {
+    // Fallback to original value if conversion fails
+    return unixTimestamp.toString();
+  }
+};
 
 // Simple skeleton component
 const Skeleton = ({
@@ -41,6 +75,7 @@ interface OptimizedQuestionCardProps {
   index: number;
   onRetry: (index: number, questionId: string) => void;
   type: "saved" | "answered" | "standard";
+  withDate?: boolean;
 }
 
 // Type guard to check if question is answered type
@@ -56,7 +91,13 @@ const isAnsweredQuestion = (
 
 // Memoized OptimizedQuestionCard component with lazy loading optimization
 export const OptimizedQuestionCard = memo(
-  ({ question, index, onRetry, type }: OptimizedQuestionCardProps) => {
+  ({
+    question,
+    index,
+    onRetry,
+    type,
+    withDate,
+  }: OptimizedQuestionCardProps) => {
     const [isVisible, setIsVisible] = React.useState(false);
     const cardRef = React.useRef<HTMLDivElement>(null);
 
@@ -202,6 +243,20 @@ export const OptimizedQuestionCard = memo(
                     Difficulty: {answeredQuestionStats.difficulty}
                   </Badge>
                 </div>
+              )}
+
+              {withDate && (
+                <React.Fragment>
+                  <StatusBadge
+                    leftIcon={ClockAlertIcon}
+                    leftLabel="Created At"
+                    rightLabel={formatUnixTimestamp(
+                      question.questionData.question.createDate
+                    )}
+                    status="success"
+                    className="mb-3 "
+                  />
+                </React.Fragment>
               )}
 
               <QuestionProblemCard

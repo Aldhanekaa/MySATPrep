@@ -18,7 +18,23 @@ import { MultiSelectCombobox } from "../ui/multiselect-combobox";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { Button } from "../ui/button";
 import { Switch } from "../ui/switch";
-import { SlidersHorizontalIcon } from "lucide-react";
+import {
+  BookOpen,
+  ClockArrowDownIcon,
+  ClockArrowUpIcon,
+  ClockFadingIcon,
+  ClockIcon,
+  Pencil,
+  PyramidIcon,
+  SlidersHorizontalIcon,
+} from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
 
 export interface BaseQuestionWithData {
   questionId: string;
@@ -47,9 +63,9 @@ interface QuestionResultsState {
   isLoadingMore: boolean;
   selectedDifficulties: QuestionDifficulty[];
   selectedSkills: string[];
-  filteredQuestions: QuestionWithData[];
   excludeBluebookQuestions: boolean;
   onlyBluebookQuestions: boolean;
+  sortOrder: "default" | "newest" | "oldest";
 }
 
 type QuestionResultsAction =
@@ -76,7 +92,8 @@ type QuestionResultsAction =
   | { type: "SET_SKILL_FILTER"; payload: string[] }
   | { type: "RESET_SKILL_FILTER" }
   | { type: "TOGGLE_EXCLUDE_BLUEBOOK"; payload: boolean }
-  | { type: "TOGGLE_ONLY_BLUEBOOK"; payload: boolean };
+  | { type: "TOGGLE_ONLY_BLUEBOOK"; payload: boolean }
+  | { type: "SET_SORT_ORDER"; payload: "default" | "newest" | "oldest" };
 
 // Difficulty filter options constant with correct mappings
 const DIFFICULTY_OPTIONS = [
@@ -208,17 +225,21 @@ const filterQuestionsBasic = (
   return filtered;
 };
 
-// Combined filter function (includes Bluebook filtering)
+// Combined filter function (includes Bluebook filtering and sorting)
 const filterQuestions = (
   questions: QuestionWithData[],
   selectedDifficulties: QuestionDifficulty[],
   selectedSkills: string[],
   excludeBluebook: boolean = false,
   onlyBluebook: boolean = false,
+  sortOrder: "default" | "newest" | "oldest" = "default",
   bluebookExternalIds?: { mathLiveItems: string[]; readingLiveItems: string[] },
   selectedSubject?: string
 ): QuestionWithData[] => {
   let filtered = questions;
+
+  // Apply sorting
+  filtered = sortQuestionsByDate(filtered, sortOrder);
 
   // Apply Bluebook filters (exclude takes precedence over only)
   if (excludeBluebook) {
@@ -246,24 +267,69 @@ const filterQuestions = (
   return filtered;
 };
 
+// Helper function to sort questions by createDate
+const sortQuestionsByDate = (
+  questions: QuestionWithData[],
+  sortOrder: "default" | "newest" | "oldest"
+): QuestionWithData[] => {
+  if (sortOrder === "default") {
+    return questions;
+  }
+
+  const newSorted = [...questions].sort((a, b) => {
+    // Get createDate from questionData if available
+    const getCreateDate = (question: QuestionWithData): number | null => {
+      if (question.createDate) {
+        const createDate = question.createDate;
+        // Convert to milliseconds if it's in seconds (10 digits)
+        return createDate.toString().length === 10
+          ? createDate * 1000
+          : createDate;
+      }
+      return null; // Return null if no createDate available
+    };
+
+    const dateA = getCreateDate(a);
+    const dateB = getCreateDate(b);
+
+    // Handle cases where createDate is not available
+    if (dateA === null && dateB === null) {
+      // Both don't have createDate, maintain original order
+      return 0;
+    }
+    if (dateA === null) {
+      // A doesn't have createDate, put it at the end
+      return sortOrder === "newest" ? 1 : 1;
+    }
+    if (dateB === null) {
+      // B doesn't have createDate, put it at the end
+      return sortOrder === "newest" ? -1 : -1;
+    }
+
+    // Both have createDate, sort normally
+    if (sortOrder === "newest") {
+      return dateB - dateA; // Newest first (descending)
+    } else {
+      return dateA - dateB; // Oldest first (ascending)
+    }
+  });
+
+  console.log("newSorted date", newSorted, newSorted.length);
+
+  return newSorted;
+};
+
 const questionResultsReducer = (
   state: QuestionResultsState,
   action: QuestionResultsAction
 ): QuestionResultsState => {
   switch (action.type) {
     case "INITIALIZE_QUESTIONS": {
-      const filteredQuestions = filterQuestionsBasic(
-        action.payload,
-        state.selectedDifficulties,
-        state.selectedSkills
-      );
       return {
         ...state,
         questionsWithData: action.payload,
-        filteredQuestions,
         isInitialized: true,
-        visibleCount: Math.min(10, filteredQuestions.length), // Start with 10 questions
-        hasMoreQuestions: filteredQuestions.length > 10,
+        visibleCount: 10, // Start with 10 questions
         isLoadingMore: false,
       };
     }
@@ -292,16 +358,10 @@ const questionResultsReducer = (
             }
           : q
       );
-      const filteredQuestions = filterQuestionsBasic(
-        newQuestionData,
-        state.selectedDifficulties,
-        state.selectedSkills
-      );
 
       return {
         ...state,
         questionsWithData: newQuestionData,
-        filteredQuestions,
       };
     case "SET_QUESTION_ERROR":
       return {
@@ -338,20 +398,10 @@ const questionResultsReducer = (
         fetchedQuestionIds: new Set(),
       };
     case "INCREASE_VISIBLE_COUNT": {
-      const filteredQuestions = filterQuestionsBasic(
-        state.questionsWithData,
-        state.selectedDifficulties,
-        state.selectedSkills
-      );
-      const newVisibleCount = Math.min(
-        state.visibleCount + action.payload,
-        filteredQuestions.length
-      );
+      const newVisibleCount = state.visibleCount + action.payload;
       return {
         ...state,
         visibleCount: newVisibleCount,
-        hasMoreQuestions: newVisibleCount < filteredQuestions.length,
-        filteredQuestions,
       };
     }
     case "SET_LOADING_MORE":
@@ -361,62 +411,34 @@ const questionResultsReducer = (
       };
 
     case "SET_DIFFICULTY_FILTER": {
-      const filteredQuestions = filterQuestionsBasic(
-        state.questionsWithData,
-        action.payload,
-        state.selectedSkills
-      );
       return {
         ...state,
         selectedDifficulties: action.payload,
-        filteredQuestions,
-        visibleCount: Math.min(10, filteredQuestions.length),
-        hasMoreQuestions: filteredQuestions.length > 10,
+        visibleCount: 10,
         isLoadingMore: false,
       };
     }
     case "RESET_DIFFICULTY_FILTER": {
-      const filteredQuestions = filterQuestionsBasic(
-        state.questionsWithData,
-        [],
-        state.selectedSkills
-      );
       return {
         ...state,
         selectedDifficulties: [],
-        filteredQuestions,
-        visibleCount: Math.min(10, filteredQuestions.length),
-        hasMoreQuestions: filteredQuestions.length > 10,
+        visibleCount: 10,
         isLoadingMore: false,
       };
     }
     case "SET_SKILL_FILTER": {
-      const filteredQuestions = filterQuestionsBasic(
-        state.questionsWithData,
-        state.selectedDifficulties,
-        action.payload
-      );
       return {
         ...state,
         selectedSkills: action.payload,
-        filteredQuestions,
-        visibleCount: Math.min(10, filteredQuestions.length),
-        hasMoreQuestions: filteredQuestions.length > 10,
+        visibleCount: 10,
         isLoadingMore: false,
       };
     }
     case "RESET_SKILL_FILTER": {
-      const filteredQuestions = filterQuestionsBasic(
-        state.questionsWithData,
-        state.selectedDifficulties,
-        []
-      );
       return {
         ...state,
         selectedSkills: [],
-        filteredQuestions,
-        visibleCount: Math.min(10, filteredQuestions.length),
-        hasMoreQuestions: filteredQuestions.length > 10,
+        visibleCount: 10,
         isLoadingMore: false,
       };
     }
@@ -438,6 +460,13 @@ const questionResultsReducer = (
         excludeBluebookQuestions: action.payload
           ? false
           : state.excludeBluebookQuestions,
+      };
+    }
+    case "SET_SORT_ORDER": {
+      return {
+        ...state,
+        sortOrder: action.payload,
+        visibleCount: 10, // Reset visible count when sorting changes
       };
     }
     default:
@@ -485,9 +514,9 @@ export function QuestionResults({
     isLoadingMore: false,
     selectedDifficulties: [],
     selectedSkills: [],
-    filteredQuestions: [],
     excludeBluebookQuestions: false,
     onlyBluebookQuestions: false,
+    sortOrder: "default",
   });
 
   // console.log("selectedDomains", selectedDomains);
@@ -524,6 +553,7 @@ export function QuestionResults({
       state.selectedSkills,
       state.excludeBluebookQuestions,
       state.onlyBluebookQuestions,
+      state.sortOrder,
       bluebookExternalIds,
       selectedSubject
     );
@@ -557,6 +587,7 @@ export function QuestionResults({
     state.selectedSkills,
     state.excludeBluebookQuestions,
     state.onlyBluebookQuestions,
+    state.sortOrder,
     bluebookExternalIds,
     selectedSubject,
   ]);
@@ -618,6 +649,11 @@ export function QuestionResults({
     dispatch({ type: "RESET_FETCHED_IDS" });
   }, [questions]);
 
+  // Reset fetched IDs when sort order changes to prevent stale fetching state
+  useEffect(() => {
+    dispatch({ type: "RESET_FETCHED_IDS" });
+  }, [state.sortOrder]);
+
   // Update hasMoreQuestions based on filtered questions from state
   const hasMoreQuestions = useMemo(() => {
     return state.visibleCount < actualFilteredQuestions.length;
@@ -671,6 +707,8 @@ export function QuestionResults({
           state.visibleCount
         );
 
+        // console.log("state.visibleCount", state.visibleCount);
+
         // Find questions that need to be fetched (only visible ones)
         const questionsToFetch = visibleQuestions
           .map((question) => {
@@ -689,6 +727,11 @@ export function QuestionResults({
               !state.fetchedQuestionIds.has(question.questionId)
           );
 
+        // console.log(
+        //   "questionsToFetch",
+        //   questionsToFetch,
+        //   questionsToFetch.length
+        // );
         if (questionsToFetch.length === 0) return;
 
         // Mark these questions as being fetched
@@ -1113,7 +1156,7 @@ export function QuestionResults({
           <Popover>
             <PopoverTrigger asChild className="h-full cursor-pointer">
               <Button variant="outline" className="h-full">
-                <SlidersHorizontalIcon />
+                Filter <SlidersHorizontalIcon />
               </Button>
             </PopoverTrigger>
 
@@ -1143,6 +1186,33 @@ export function QuestionResults({
                   />
                   <span className="text-sm"> Bluebook Questions Only</span>
                 </div>
+                <Select
+                  value={state.sortOrder}
+                  onValueChange={(value: "default" | "newest" | "oldest") => {
+                    dispatch({
+                      type: "SET_SORT_ORDER",
+                      payload: value,
+                    });
+                  }}
+                >
+                  <SelectTrigger
+                    className="bg-white h-full"
+                    icon={ClockFadingIcon}
+                  >
+                    <SelectValue placeholder={"Filter by Date"} />
+                  </SelectTrigger>
+                  <SelectContent className="font-medium">
+                    <SelectItem value="default" icon={ClockIcon}>
+                      Default
+                    </SelectItem>
+                    <SelectItem value="newest" icon={ClockArrowUpIcon}>
+                      Newest First
+                    </SelectItem>
+                    <SelectItem value="oldest" icon={ClockArrowDownIcon}>
+                      Oldest First
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </PopoverContent>
           </Popover>
@@ -1155,6 +1225,7 @@ export function QuestionResults({
           .map((question, index) => (
             <div key={`${question.questionId}-${index}`} className="mb-32">
               <OptimizedQuestionCard
+                withDate
                 question={question}
                 index={index}
                 onRetry={handleRetry}

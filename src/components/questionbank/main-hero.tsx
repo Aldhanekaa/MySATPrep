@@ -302,6 +302,8 @@ export function QB_MainHero() {
       if (responseData && responseData.success && responseData.data) {
         const questionsDataBasedOnFilter: PlainQuestionType[] =
           responseData.data;
+
+        console.log("questionsDataBasedOnFilter", questionsDataBasedOnFilter);
         dispatch({
           type: "SET_QUESTIONS",
           payload: questionsDataBasedOnFilter,
