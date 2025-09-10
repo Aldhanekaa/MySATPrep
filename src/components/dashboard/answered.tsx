@@ -427,7 +427,7 @@ export function AnsweredTab({ selectedAssessment }: AnsweredTabProps) {
   }
 
   return (
-    <div className="space-y-6 px-2">
+    <div className="space-y-6 px-2 max-w-7xl mx-auto">
       <div className="px-2 lg:px-28">
         <h2 className="text-lg font-semibold">Answered Questions</h2>
         <div className="grid grid-cols-12">

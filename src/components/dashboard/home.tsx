@@ -2,7 +2,6 @@
 import React from "react";
 import { useState, useEffect } from "react";
 
-import { Button } from "@/components/ui/button";
 import { AssessmentWorkspace } from "@/app/dashboard/types";
 import { ActivityCard } from "../ui/activity-card";
 import { getUserProfile } from "@/lib/userProfile";
@@ -11,6 +10,7 @@ import { UserProfileWithHistory } from "@/types/userProfile";
 import { PracticeStatistics } from "@/types/statistics";
 import { getSessionHistory, PracticeSession } from "@/types/session";
 import { Metric } from "../ui/activity-card";
+import SummaryCharts from "./summary/charts";
 
 interface HomeTabProps {
   selectedAssessment?: AssessmentWorkspace;
@@ -141,20 +141,9 @@ export function HomeTab({ selectedAssessment }: HomeTabProps) {
     }
   }, []);
   return (
-    <div className="space-y-4 grid grid-cols-5">
-      <div className="col-span-5 md:col-span-2">
-        <ActivityCard
-          externalMetrics={activityMetrics}
-          externalStreakDays={streakDays}
-          onViewDetails={() => console.log("Viewing details")}
-        />
-      </div>
-      <div className="pl-8 col-span-5 md:col-span-3 space-y-4">
-        <h2 className="text-lg font-semibold">Home</h2>
-        <p className="text-sm text-muted-foreground">
-          Welcome to your assessment dashboard. Start practicing with your
-          selected assessment type.
-        </p>
+    <div className="space-y-4 grid grid-cols-7">
+      <div className="px-4 col-span-7 md:col-span-4 xl:col-span-5 space-y-4">
+        <SummaryCharts selectedAssessment={selectedAssessment} />
 
         {/* User Profile Information */}
         {userProfile && (
@@ -263,6 +252,13 @@ export function HomeTab({ selectedAssessment }: HomeTabProps) {
             )}
           </div>
         )}
+      </div>
+      <div className="col-span-7 md:col-span-3 xl:col-span-2">
+        <ActivityCard
+          externalMetrics={activityMetrics}
+          externalStreakDays={streakDays}
+          onViewDetails={() => console.log("Viewing details")}
+        />
       </div>
     </div>
   );

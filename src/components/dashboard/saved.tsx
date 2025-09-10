@@ -367,7 +367,7 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
   }
 
   return (
-    <div className="space-y-6 px-2">
+    <div className="space-y-6 px-2 max-w-7xl mx-auto">
       <div className="px-8 lg:px-28 grid grid-cols-12">
         <div className="col-span-12 md:col-span-8 flex flex-col flex-wrap gap-2 items-start text-sm ">
           <h2 className="text-lg font-semibold">Saved Questions</h2>

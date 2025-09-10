@@ -233,9 +233,9 @@ export default function DashboardPage() {
             </div>
           </section>
         </section>
-        <main className="space-y-4 max-w-7xl w-full mx-auto px-3">
+        <main className="space-y-4 max-w-11/12 w-full mx-auto px-0 md:px-3">
           {/* Mobile Expandable Tabs - shown only on mobile */}
-          <div className="lg:hidden md:pl-13">
+          <div className="lg:hidden">
             <ExpandableTabs
               tabs={EXPANDABLE_TAB_ITEMS}
               defaultValue="home"
