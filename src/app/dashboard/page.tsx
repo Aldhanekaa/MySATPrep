@@ -214,7 +214,9 @@ export default function DashboardPage() {
                   questions.
                 </p>
 
-                <ButtonsGroup />
+                <ButtonsGroup
+                  assessment={getAssessmentKey(selectedAssessment)}
+                />
               </div>
 
               <div className="space-y-4">

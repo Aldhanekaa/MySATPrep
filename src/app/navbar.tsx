@@ -9,9 +9,8 @@ import Link from "next/link";
 const menuItems = [
   { name: "Dashboard", href: "/dashboard" },
   // { name: "Leaderboard", href: "/leaderboard" },
-  // { name: "Questionbank", href: "/questionbank" },
-
   { name: "Resources", href: "/resources" },
+  // { name: "Feedback", href: "/feedback" },
 ];
 
 export const SiteHeader = () => {

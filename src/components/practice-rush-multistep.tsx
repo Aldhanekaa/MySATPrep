@@ -3495,7 +3495,7 @@ export default function PracticeRushMultistep({
                   </div>
                 </div>
                 <div className="col-span-12 xl:col-span-5 flex flex-wrap gap-2 items-center justify-center md:justify-start mt-6 xl:mt-0 lg:justify-end  xl:justify-end">
-                  <TooltipProvider>
+                  <TooltipProvider delayDuration={100}>
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Button

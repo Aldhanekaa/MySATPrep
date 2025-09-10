@@ -16,10 +16,14 @@ interface ReviewSelections {
 
 interface ReviewOnboardingProps {
   onComplete: (selections: ReviewSelections) => void;
+  assessment?: string;
+  subject?: string;
 }
 
 export default function ReviewOnboarding({
   onComplete,
+  assessment,
+  subject,
 }: ReviewOnboardingProps) {
   const id = useId();
   const [step, setStep] = useState<number>(1);
@@ -31,6 +35,19 @@ export default function ReviewOnboarding({
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [step]);
+
+  useEffect(() => {
+    console.log("Initial assessment:", assessment);
+    if (assessment) {
+      setSelectedAssessment(assessment);
+      setStep(2);
+    }
+
+    if (subject) {
+      setSelectedSubject(subject);
+      setStep(3);
+    }
+  }, [assessment, subject]);
 
   const assessmentItems = [
     {
@@ -126,7 +143,7 @@ export default function ReviewOnboarding({
       case 1:
         return "Choose Assessment";
       case 2:
-        return "Choose Subject";
+        return "Choose Subject to Review";
       case 3:
         return "Choose Review Type";
       default:
@@ -190,7 +207,7 @@ export default function ReviewOnboarding({
   const getContinueButtonText = () => {
     switch (step) {
       case 1:
-        return "Choose Subject";
+        return "Choose Subject to Review";
       case 2:
         return "Choose Review Type";
       case 3:

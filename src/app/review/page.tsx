@@ -63,7 +63,10 @@ function Review() {
   const [onboardingComplete, setOnboardingComplete] = useState<boolean>(false);
   const [practiceSelections, setPracticeSelections] =
     useState<PracticeSelections | null>(null);
+
   const [reviewType, setReviewType] = useState<string>("");
+  const [subject, setSubject] = useState<string>("");
+
   const [assessmentType, setAssessmentType] = useState<string>("");
 
   const [showValidationBanner, setShowValidationBanner] =
@@ -149,32 +152,34 @@ function Review() {
       }" is not valid. Valid options: SAT, PSAT/NMSQT, PSAT`;
       errors.push(errorMsg);
       isValid = false;
-      return;
+      // return;
+    } else {
+      setAssessmentType(assessment);
     }
 
-    setAssessmentType(assessment);
-
     // Validate subject
-    if (!subject || !validateSubject(subject)) {
+    if (subject && !validateSubject(subject)) {
       const errorMsg = `Subject "${
         subject || "missing"
       }" is not valid. Valid options: math, reading-writing`;
       errors.push(errorMsg);
       isValid = false;
+    } else if (subject) {
+      setSubject(subject);
     }
 
     // Validate review type
-    if (!type || !validateReviewType(type)) {
+    if (type && !validateReviewType(type)) {
       const errorMsg = `Review type "${
         type || "missing"
       }" is not valid. Valid options: incorrect-questions, bookmarks`;
       errors.push(errorMsg);
       isValid = false;
 
-      return;
+      // return;
+    } else if (type) {
+      setReviewType(type);
     }
-
-    setReviewType(type);
 
     // If validation failed, show banner and onboarding
     if (!isValid) {
@@ -446,7 +451,11 @@ function Review() {
 
       {!onboardingComplete ? (
         <React.Fragment>
-          <ReviewOnboarding onComplete={handleOnboardingComplete} />
+          <ReviewOnboarding
+            subject={subject}
+            assessment={assessmentType}
+            onComplete={handleOnboardingComplete}
+          />
           {showValidationBanner && validationErrors.length > 0 && (
             <ProjectBanner
               variant="error"
