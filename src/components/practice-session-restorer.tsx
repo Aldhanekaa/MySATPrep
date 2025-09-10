@@ -81,6 +81,13 @@ export function restorePracticeSession(): SessionRestorationResult {
         const foundDomain = availableDomains.find(
           (d) => d.primaryClassCd === domain.primaryClassCd
         );
+
+        console.log(
+          "domain.primaryClassCd DOMAIN!",
+          domain,
+          availableDomains,
+          practiceSelections
+        );
         if (!foundDomain) {
           throw new Error(`Domain ${domain.primaryClassCd} no longer exists`);
         }

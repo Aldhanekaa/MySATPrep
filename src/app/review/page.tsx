@@ -16,6 +16,7 @@ import { playSound } from "@/lib/playSound";
 import { ProjectBanner } from "@/components/ui/project-banner";
 import { toast } from "sonner";
 import {
+  getSubjectByPrimaryClassCd,
   primaryClassCdObjectData,
   skillCdsObjectData,
 } from "@/static-data/domains";
@@ -50,7 +51,7 @@ function validateSubject(subject: string): boolean {
 }
 
 function validateReviewType(type: string): boolean {
-  const validTypes = ["incorrect-questions", "bookmarks"];
+  const validTypes = ["incorrect", "bookmarks"];
   return validTypes.includes(type);
 }
 
@@ -185,17 +186,62 @@ function Review() {
     // If validation passed, construct practice selections and skip onboarding
     if (assessment && subject && type) {
       try {
-        const questions = loadQuestionsFromStorage(assessment, type);
+        let questions = loadQuestionsFromStorage(assessment, type);
+        console.log("Loaded questions:", questions);
+        questions = questions.filter(
+          (e) =>
+            getSubjectByPrimaryClassCd(
+              e.plainQuestion?.primary_class_cd || ""
+            ) == subject
+        );
+        setQuestionsWithData(questions);
+
+        // Only include unique primaryClassCd values
+        let seen = new Set();
+        const skills = questions
+          .filter((q) => {
+            const skillCd = q.plainQuestion?.skill_cd;
+            if (!skillCd || seen.has(skillCd)) return false;
+            seen.add(skillCd);
+            return true;
+          })
+          .map((q, idx) => ({
+            id: skillCdsObjectData[q.plainQuestion?.skill_cd || ""].id,
+            text: skillCdsObjectData[q.plainQuestion?.skill_cd || ""].text,
+            skill_cd: q.plainQuestion?.skill_cd || "",
+          }));
+
+        console.log(
+          "questions - skills",
+          skills,
+          questions,
+          skillCdsObjectData
+        );
+
+        // Only include unique primaryClassCd values
+        seen = new Set();
+        const domains = questions
+          .filter((q) => {
+            const primaryClassCd = q.plainQuestion?.primary_class_cd;
+            if (!primaryClassCd || seen.has(primaryClassCd)) return false;
+            seen.add(primaryClassCd);
+            return true;
+          })
+          .map((q, idx) => ({
+            id: primaryClassCdObjectData[
+              q.plainQuestion?.primary_class_cd || ""
+            ].id,
+            text: primaryClassCdObjectData[
+              q.plainQuestion?.primary_class_cd || ""
+            ].text,
+            primaryClassCd: q.plainQuestion?.primary_class_cd,
+          }));
+
         setQuestionsWithData(questions);
 
         // Map the URL type to the internal review type format
         const reviewTypeValue =
           type === "incorrect-questions" ? "incorrect" : "bookmarked";
-        const domains = questionsWithData.map((q, idx) => ({
-          id: Number(idx),
-          text: "hey",
-          primaryClassCd: q.plainQuestion?.primary_class_cd,
-        }));
 
         console.log("questionsWithData", questions, assessment, subject, type);
 
@@ -205,19 +251,13 @@ function Review() {
           assessment: assessment,
           subject: subject,
           // @ts-ignore
-          domains: [
-            ...questionsWithData.map((q, idx) => ({
-              id: Number(idx),
-              text: "hey",
-              primaryClassCd: q.plainQuestion?.primary_class_cd,
-            })),
-          ], // Empty for review mode
-          skills: [], // Empty for review mode
+          domains: domains, // Empty for review mode
+          skills: skills, // Empty for review mode
           difficulties: [], // Empty for review mode
           randomize: false, // Not applicable for review
           excludeBluebook: false, // Not applicable for review
           duplicateSession: true,
-          questionIds: questionsWithData.map((q) => q.questionId),
+          questionIds: questions.map((q) => q.questionId),
         };
 
         setPracticeSelections(selections);
@@ -243,11 +283,16 @@ function Review() {
     setReviewType(selections.reviewType);
     setAssessmentType(selections.assessment);
 
-    console.log("Selections ", selections);
+    // console.log("Selections ", selections);
 
-    const questions = loadQuestionsFromStorage(
+    let questions = loadQuestionsFromStorage(
       selections.assessment,
       selections.reviewType
+    );
+    questions = questions.filter(
+      (e) =>
+        getSubjectByPrimaryClassCd(e.plainQuestion?.primary_class_cd || "") ==
+        selections.subject
     );
     setQuestionsWithData(questions);
 
@@ -266,7 +311,13 @@ function Review() {
         skill_cd: q.plainQuestion?.skill_cd || "",
       }));
 
-    console.log("questions - skills", skills, questions, skillCdsObjectData);
+    // console.log(
+    //   "questions - skills",
+    //   skills,
+    //   questions,
+    //   selections.subject,
+    //   skillCdsObjectData
+    // );
 
     // Only include unique primaryClassCd values
     seen = new Set();
@@ -285,7 +336,7 @@ function Review() {
         primaryClassCd: q.plainQuestion?.primary_class_cd,
       }));
 
-    console.log(questionsWithData, domains, questions);
+    // console.log(questionsWithData, domains, questions);
 
     // Convert ReviewSelections to PracticeSelections
     const practiceSelections: PracticeSelections = {
@@ -310,7 +361,7 @@ function Review() {
 
   const handleSessionComplete = (sessionData: PracticeSession) => {
     // Handle session completion if needed
-    console.log("Review session completed:", sessionData);
+    // console.log("Review session completed:", sessionData);
     toast.success("Review Session Completed", {
       description: "You've completed reviewing all available questions.",
       duration: 3000,

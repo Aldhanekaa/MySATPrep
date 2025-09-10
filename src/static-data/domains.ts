@@ -258,12 +258,42 @@ export const skillCdsObjectData = (() => {
 export const primaryClassCdObjectData = (() => {
   const result: Record<
     string,
-    { text: string; id: string; primaryClassCd: string; skill: any[] }
+    {
+      subject: string;
+      text: string;
+      id: string;
+      primaryClassCd: string;
+      skill: any[];
+    }
   > = {};
-  Object.values(domains).forEach((domainArr) => {
+  Object.entries(domains).forEach(([subject, domainArr]) => {
     domainArr.forEach((domain) => {
-      result[domain.primaryClassCd] = domain;
+      result[domain.primaryClassCd] = { subject, ...domain };
     });
   });
   return result;
 })();
+
+// Returns the subject for a given skillCd (e.g., "CID", "H.A.")
+export function getSubjectBySkillCd(skillCd: string): string | undefined {
+  for (const [subject, domainArr] of Object.entries(domains)) {
+    for (const domain of domainArr) {
+      if (domain.skill.some((skill) => skill.skill_cd === skillCd)) {
+        return subject == "R&W" ? "reading-writing" : "math";
+      }
+    }
+  }
+  return undefined;
+}
+
+// Returns the subject for a given primaryClassCd (e.g., "INI", "H")
+export function getSubjectByPrimaryClassCd(
+  primaryClassCd: string
+): string | undefined {
+  for (const [subject, domainArr] of Object.entries(domains)) {
+    if (domainArr.some((domain) => domain.primaryClassCd === primaryClassCd)) {
+      return subject == "R&W" ? "reading-writing" : "math";
+    }
+  }
+  return undefined;
+}

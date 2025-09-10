@@ -4169,43 +4169,87 @@ export default function PracticeRushMultistep({
                         />
                       )}
                       <div className="py-1 relative overflow-visible">
-                        <Button
-                          variant={"default"}
-                          className={`mt-5 w-full font-bold text-lg py-6 border-b-4 rounded-2xl text-white shadow-lg transform transition-all duration-200 ${
-                            state.isLoadingNextBatch
-                              ? "bg-yellow-500 hover:bg-yellow-600 border-yellow-700 hover:border-yellow-800 cursor-wait animate-pulse"
-                              : state.isAnswerChecked && state.isAnswerCorrect
-                              ? "bg-green-500 hover:bg-green-600 border-green-700 hover:border-green-800 cursor-pointer hover:shadow-xl active:translate-y-0.5 active:border-b-2"
-                              : state.isAnswerChecked && !state.isAnswerCorrect
-                              ? "bg-red-500 hover:bg-red-600 border-red-700 hover:border-red-800 cursor-pointer hover:shadow-xl active:translate-y-0.5 active:border-b-2"
-                              : "bg-blue-500 hover:bg-blue-600 border-blue-700 hover:border-blue-800 cursor-pointer hover:shadow-xl active:translate-y-0.5 active:border-b-2"
-                          }`}
-                          disabled={
-                            (state.selectedAnswer == null &&
-                              !state.questionAnswers[
-                                currentQuestion.plainQuestion.questionId
-                              ]) ||
-                            state.isLoadingNextBatch
-                          }
-                          onClick={handleAnsweringQuestion(
+                        {practiceSelections?.subject == "reading-writing" &&
+                          (isAtEndOfBatch &&
+                          state.isAnswerChecked &&
+                          state.questionAnswers[
                             currentQuestion.plainQuestion.questionId
-                          )}
-                        >
-                          {state.isLoadingNextBatch ? (
-                            <DuolingoLoadingSpinner
-                              progress={state.questionsProcessedCount}
-                              total={22}
-                            />
-                          ) : state.questionAnswers[
-                              currentQuestion.plainQuestion.questionId
-                            ] ? (
-                            "NEXT"
-                          ) : !state.isAnswerChecked ? (
-                            "CHECK"
+                          ] ? (
+                            <div className="flex gap-3 mt-5">
+                              {canLoadMore && (
+                                <Button
+                                  variant="default"
+                                  className={`flex-1 font-bold text-lg py-6 border-b-4 rounded-2xl text-white shadow-lg transform transition-all duration-200 ${
+                                    state.isLoadingNextBatch
+                                      ? "bg-blue-400 border-blue-500 cursor-not-allowed"
+                                      : "bg-blue-500 hover:bg-blue-600 border-blue-700 hover:border-blue-800 cursor-pointer hover:shadow-xl active:translate-y-0.5 active:border-b-2"
+                                  }`}
+                                  onClick={() =>
+                                    !state.isLoadingNextBatch && loadNextBatch()
+                                  }
+                                  disabled={state.isLoadingNextBatch}
+                                >
+                                  {state.isLoadingNextBatch ? (
+                                    <span className="flex items-center justify-center gap-2">
+                                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                      LOADING... (
+                                      {state.questionsProcessedCount}
+                                      /22)
+                                    </span>
+                                  ) : (
+                                    "LOAD MORE"
+                                  )}
+                                </Button>
+                              )}
+                              <Button
+                                variant="default"
+                                className="flex-1 font-bold text-lg py-6 border-b-4 rounded-2xl text-white shadow-lg transform transition-all duration-200 bg-green-500 hover:bg-green-600 border-green-700 hover:border-green-800 cursor-pointer hover:shadow-xl active:translate-y-0.5 active:border-b-2"
+                                onClick={handleFinish}
+                              >
+                                FINISH
+                              </Button>
+                            </div>
                           ) : (
-                            "CONTINUE"
-                          )}
-                        </Button>
+                            <Button
+                              variant={"default"}
+                              className={`mt-5 w-full relative font-bold text-lg py-6 border-b-4 rounded-2xl text-white shadow-lg transform transition-all duration-200 ${
+                                state.isLoadingNextBatch
+                                  ? "bg-yellow-500 hover:bg-yellow-600 border-yellow-700 hover:border-yellow-800 cursor-wait animate-pulse"
+                                  : state.isAnswerChecked &&
+                                    state.isAnswerCorrect
+                                  ? "bg-green-500 hover:bg-green-600 border-green-700 hover:border-green-800 cursor-pointer hover:shadow-xl active:translate-y-0.5 active:border-b-2"
+                                  : state.isAnswerChecked &&
+                                    !state.isAnswerCorrect
+                                  ? "bg-red-500 hover:bg-red-600 border-red-700 hover:border-red-800 cursor-pointer hover:shadow-xl active:translate-y-0.5 active:border-b-2"
+                                  : "bg-blue-500 hover:bg-blue-600 border-blue-700 hover:border-blue-800 cursor-pointer hover:shadow-xl active:translate-y-0.5 active:border-b-2"
+                              }`}
+                              disabled={
+                                (state.selectedAnswer == null &&
+                                  !state.questionAnswers[
+                                    currentQuestion.plainQuestion.questionId
+                                  ]) ||
+                                state.isLoadingNextBatch
+                              }
+                              onClick={handleAnsweringQuestion(
+                                currentQuestion.plainQuestion.questionId
+                              )}
+                            >
+                              {state.isLoadingNextBatch ? (
+                                <DuolingoLoadingSpinner
+                                  progress={state.questionsProcessedCount}
+                                  total={22}
+                                />
+                              ) : state.questionAnswers[
+                                  currentQuestion.plainQuestion.questionId
+                                ] ? (
+                                "NEXT"
+                              ) : !state.isAnswerChecked ? (
+                                "CHECK"
+                              ) : (
+                                "CONTINUE"
+                              )}
+                            </Button>
+                          ))}
                         <Confetti
                           ref={confettiRef}
                           className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-full h-full pointer-events-none"
