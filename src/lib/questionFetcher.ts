@@ -41,7 +41,7 @@ export async function fetchQuestionData(
           Accept: "application/json",
         },
         cache: "force-cache",
-        next: { revalidate: 3600 },
+        next: { revalidate: 86400 },
         signal: AbortSignal.timeout(30000),
       });
 
@@ -127,7 +127,7 @@ export async function fetchQuestionData(
       },
       body: JSON.stringify({ external_id: questionId }),
       cache: "force-cache",
-      next: { revalidate: 3600 },
+      next: { revalidate: 86400 },
       signal: AbortSignal.timeout(30000),
     });
 

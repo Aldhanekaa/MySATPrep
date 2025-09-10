@@ -114,6 +114,8 @@ export async function GET(request: NextRequest) {
         test: 2,
         domain: domainsParam,
       }),
+      next: { revalidate: 86400 },
+      cache: "force-cache",
       // Add timeout to prevent hanging requests
       signal: AbortSignal.timeout(30000), // 30 second timeout
     });

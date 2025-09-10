@@ -22,7 +22,8 @@ export async function GET() {
         "Content-Type": "application/json",
         Accept: "application/json",
       },
-      next: { revalidate: 3600 },
+      next: { revalidate: 86400 },
+      cache: "force-cache",
 
       // Add timeout to prevent hanging requests
       signal: AbortSignal.timeout(30000), // 30 second timeout
