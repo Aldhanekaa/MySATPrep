@@ -151,6 +151,8 @@ export async function fetchQuestionData(
       };
     }
 
+    console.log("Fetched question data:", data);
+
     if (data.type === "mcq") {
       return {
         success: true,
