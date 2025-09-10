@@ -640,6 +640,7 @@ interface AnswerOptionsProps {
   correctAnswers?: string[];
   isAnswerChecked?: boolean;
   isReviewMode?: boolean;
+  duplicateSession?: boolean;
 }
 
 // Optimized Answer Options Component
@@ -654,6 +655,7 @@ const AnswerOptions = React.memo(function AnswerOptions({
   correctAnswers = [],
   isAnswerChecked = false,
   isReviewMode = false,
+  duplicateSession,
 }: AnswerOptionsProps) {
   const optionEntries = useMemo(
     () => Object.entries(answerOptions),

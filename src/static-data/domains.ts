@@ -25,6 +25,7 @@ export const skillCds: SkillCd_Variants[] = [
   "Q.D.",
   "Q.E.",
   "Q.F.",
+  "Q.G.",
   "S.A.",
   "S.B.",
   "S.C.",
