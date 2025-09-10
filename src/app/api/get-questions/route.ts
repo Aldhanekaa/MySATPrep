@@ -3,6 +3,7 @@ import { DomainItemsArray, SkillCd_Variants } from "@/types/lookup";
 import { API_Response_Question_List } from "@/types/question";
 import { NextRequest, NextResponse } from "next/server";
 import { skillCds as Skills } from "@/static-data/domains";
+import { fetchQuestionData, QuestionFetchResult } from "@/lib/questionFetcher";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -11,8 +12,21 @@ export async function GET(request: NextRequest) {
   const excludeQuestionIdsParam = searchParams.get("excludeIds");
   const difficultiesParam = searchParams.get("difficulties");
   const skillCdsParam = searchParams.get("skills");
-
   const random = searchParams.get("random");
+
+  const uniqueIdsParam = searchParams.get("uniqueIds"); // externalIds or Ibn
+
+  if (uniqueIdsParam) {
+    const uniqueIds = uniqueIdsParam.split(",").map((id) => id.trim());
+    const questions: QuestionFetchResult[] = [];
+
+    uniqueIds.forEach(async (id) => {
+      const result = await fetchQuestionData(id);
+      questions.push(result);
+    });
+
+    return NextResponse.json({ success: true, data: questions });
+  }
 
   let skillCds: string[] = [];
   if (skillCdsParam) {

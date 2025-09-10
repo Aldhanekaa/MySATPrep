@@ -6,6 +6,7 @@ import React, {
   useCallback,
   useReducer,
   useMemo,
+  useState,
 } from "react";
 import OnboardCard from "@/components/ui/onboard-card";
 import {
@@ -53,6 +54,8 @@ import {
   ArrowRightIcon,
   BookmarkIcon,
   CheckCircle,
+  ChevronDown,
+  ChevronUp,
   Clock,
   GripHorizontal,
   LinkIcon,
@@ -65,6 +68,7 @@ import Image from "next/image";
 
 import ReferenceSheet from "@/src/sat-math-refrence-sheet.webp";
 import { Confetti, ConfettiRef } from "./ui/confetti";
+import { DraggableReferencePopup } from "./popups/reference-popup";
 import { playSound } from "@/lib/playSound";
 import { useRouter } from "next/navigation";
 import { LookupRequest } from "@/types";
@@ -782,369 +786,6 @@ const AnswerOptions = React.memo(function AnswerOptions({
   );
 });
 
-// Optimized Draggable Reference Popup Component
-interface DraggableReferencePopupProps {
-  isOpen: boolean;
-  onClose: () => void;
-}
-
-interface PopupState {
-  position: { x: number; y: number };
-  size: { width: number; height: number };
-  isDragging: boolean;
-  isResizing: boolean;
-  resizeDirection: "se" | "ne" | null;
-  dragStart: { x: number; y: number };
-  resizeStart: {
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-    startPosition: { x: number; y: number };
-  };
-}
-
-type PopupAction =
-  | { type: "SET_POSITION"; payload: { x: number; y: number } }
-  | { type: "SET_SIZE"; payload: { width: number; height: number } }
-  | { type: "START_DRAGGING"; payload: { x: number; y: number } }
-  | { type: "STOP_DRAGGING" }
-  | {
-      type: "START_RESIZING";
-      payload: {
-        direction: "se" | "ne";
-        x: number;
-        y: number;
-        width: number;
-        height: number;
-        startPosition: { x: number; y: number };
-      };
-    }
-  | { type: "STOP_RESIZING" };
-
-const popupInitialState: PopupState = {
-  position: { x: 50, y: 50 },
-  size: { width: 600, height: 400 },
-  isDragging: false,
-  isResizing: false,
-  resizeDirection: null,
-  dragStart: { x: 0, y: 0 },
-  resizeStart: {
-    x: 0,
-    y: 0,
-    width: 0,
-    height: 0,
-    startPosition: { x: 0, y: 0 },
-  },
-};
-
-function popupReducer(state: PopupState, action: PopupAction): PopupState {
-  switch (action.type) {
-    case "SET_POSITION":
-      return { ...state, position: action.payload };
-    case "SET_SIZE":
-      return { ...state, size: action.payload };
-    case "START_DRAGGING":
-      return {
-        ...state,
-        isDragging: true,
-        dragStart: action.payload,
-      };
-    case "STOP_DRAGGING":
-      return {
-        ...state,
-        isDragging: false,
-        isResizing: false,
-        resizeDirection: null,
-      };
-    case "START_RESIZING":
-      return {
-        ...state,
-        isResizing: true,
-        resizeDirection: action.payload.direction,
-        resizeStart: {
-          x: action.payload.x,
-          y: action.payload.y,
-          width: action.payload.width,
-          height: action.payload.height,
-          startPosition: action.payload.startPosition,
-        },
-      };
-    case "STOP_RESIZING":
-      return {
-        ...state,
-        isDragging: false,
-        isResizing: false,
-        resizeDirection: null,
-      };
-    default:
-      return state;
-  }
-}
-
-function DraggableReferencePopup({
-  isOpen,
-  onClose,
-}: DraggableReferencePopupProps) {
-  const [popupState, dispatchPopup] = useReducer(
-    popupReducer,
-    popupInitialState
-  );
-  const popupRef = useRef<HTMLDivElement>(null);
-
-  // Ensure initial position is within window bounds
-  useEffect(() => {
-    if (isOpen) {
-      const windowWidth = window.innerWidth;
-      const windowHeight = window.innerHeight;
-
-      const maxX = windowWidth - popupState.size.width;
-      const maxY = windowHeight - popupState.size.height;
-
-      const newPosition = {
-        x: Math.max(0, Math.min(maxX, popupState.position.x)),
-        y: Math.max(0, Math.min(maxY, popupState.position.y)),
-      };
-
-      if (
-        newPosition.x !== popupState.position.x ||
-        newPosition.y !== popupState.position.y
-      ) {
-        dispatchPopup({ type: "SET_POSITION", payload: newPosition });
-      }
-    }
-  }, [
-    isOpen,
-    popupState.size.width,
-    popupState.size.height,
-    popupState.position,
-  ]);
-
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      if (popupState.isDragging && !popupState.isResizing) {
-        const newX = e.clientX - popupState.dragStart.x;
-        const newY = e.clientY - popupState.dragStart.y;
-
-        // Get window dimensions
-        const windowWidth = window.innerWidth;
-        const windowHeight = window.innerHeight;
-
-        // Calculate boundaries (ensure popup stays within window)
-        const minX = 0;
-        const maxX = windowWidth - popupState.size.width;
-        const minY = 0;
-        const maxY = windowHeight - popupState.size.height;
-
-        // Constrain position within boundaries
-        const constrainedX = Math.max(minX, Math.min(maxX, newX));
-        const constrainedY = Math.max(minY, Math.min(maxY, newY));
-
-        dispatchPopup({
-          type: "SET_POSITION",
-          payload: { x: constrainedX, y: constrainedY },
-        });
-      } else if (popupState.isResizing) {
-        if (popupState.resizeDirection === "se") {
-          // Bottom-right resize (existing behavior)
-          const newWidth = Math.max(
-            400,
-            popupState.resizeStart.width +
-              (e.clientX - popupState.resizeStart.x)
-          );
-          const newHeight = Math.max(
-            300,
-            popupState.resizeStart.height +
-              (e.clientY - popupState.resizeStart.y)
-          );
-
-          // Get window dimensions for resize constraints
-          const windowWidth = window.innerWidth;
-          const windowHeight = window.innerHeight;
-
-          // Ensure resized popup doesn't exceed window bounds
-          const maxWidth = windowWidth - popupState.position.x;
-          const maxHeight = windowHeight - popupState.position.y;
-
-          const constrainedWidth = Math.min(newWidth, maxWidth);
-          const constrainedHeight = Math.min(newHeight, maxHeight);
-
-          dispatchPopup({
-            type: "SET_SIZE",
-            payload: { width: constrainedWidth, height: constrainedHeight },
-          });
-        } else if (popupState.resizeDirection === "ne") {
-          // Top-right resize
-          const newWidth = Math.max(
-            400,
-            popupState.resizeStart.width +
-              (e.clientX - popupState.resizeStart.x)
-          );
-          const newHeight = Math.max(
-            300,
-            popupState.resizeStart.height -
-              (e.clientY - popupState.resizeStart.y)
-          );
-
-          // Get window dimensions for resize constraints
-          const windowWidth = window.innerWidth;
-
-          // Calculate new position for top resize
-          const newY =
-            popupState.resizeStart.startPosition.y +
-            (e.clientY - popupState.resizeStart.y);
-
-          // Ensure resized popup doesn't exceed window bounds
-          const maxWidth = windowWidth - popupState.position.x;
-          const minY = 0;
-          const maxY =
-            popupState.resizeStart.startPosition.y +
-            popupState.resizeStart.height -
-            300; // Minimum height constraint
-
-          const constrainedWidth = Math.min(newWidth, maxWidth);
-          const constrainedHeight = Math.min(
-            newHeight,
-            popupState.resizeStart.startPosition.y +
-              popupState.resizeStart.height
-          );
-          const constrainedY = Math.max(minY, Math.min(maxY, newY));
-
-          dispatchPopup({
-            type: "SET_SIZE",
-            payload: { width: constrainedWidth, height: constrainedHeight },
-          });
-
-          dispatchPopup({
-            type: "SET_POSITION",
-            payload: { x: popupState.position.x, y: constrainedY },
-          });
-        }
-      }
-    };
-
-    const handleMouseUp = () => {
-      dispatchPopup({ type: "STOP_DRAGGING" });
-    };
-
-    if (popupState.isDragging || popupState.isResizing) {
-      document.addEventListener("mousemove", handleMouseMove);
-      document.addEventListener("mouseup", handleMouseUp);
-    }
-
-    return () => {
-      document.removeEventListener("mousemove", handleMouseMove);
-      document.removeEventListener("mouseup", handleMouseUp);
-    };
-  }, [popupState]);
-
-  const handleMouseDown = (e: React.MouseEvent) => {
-    dispatchPopup({
-      type: "START_DRAGGING",
-      payload: {
-        x: e.clientX - popupState.position.x,
-        y: e.clientY - popupState.position.y,
-      },
-    });
-  };
-
-  const handleResizeMouseDown = (
-    e: React.MouseEvent,
-    direction: "se" | "ne"
-  ) => {
-    e.stopPropagation();
-    dispatchPopup({
-      type: "START_RESIZING",
-      payload: {
-        direction,
-        x: e.clientX,
-        y: e.clientY,
-        width: popupState.size.width,
-        height: popupState.size.height,
-        startPosition: { x: popupState.position.x, y: popupState.position.y },
-      },
-    });
-  };
-
-  if (!isOpen) return null;
-
-  return (
-    <div
-      ref={popupRef}
-      className="fixed flex flex-col bg-white rounded-lg shadow-2xl border-black border-4 overflow-hidden z-50"
-      style={{
-        left: `${popupState.position.x}px`,
-        top: `${popupState.position.y}px`,
-        width: `${popupState.size.width}px`,
-        height: `${popupState.size.height}px`,
-      }}
-    >
-      {/* Header */}
-      <div
-        className="bg-black border-b border-black text-white cursor-move flex justify-between items-center"
-        onMouseDown={handleMouseDown}
-      >
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onClose}
-          className=" h-8 w-8 p-0 hover:bg-neutral-800 hover:text-white cursor-pointer"
-        >
-          <X className="h-4 w-4" />
-        </Button>
-
-        <Button
-          variant="ghost"
-          size="sm"
-          className=" h-8 w-8 p-0 cursor-move hover:bg-neutral-900 hover:text-white "
-        >
-          <GripHorizontal className="h-4 w-4 text-white b" />
-        </Button>
-        <div></div>
-      </div>
-
-      {/* Content */}
-      <div className="relative h-full">
-        <div className="p-4 h-full overflow-auto">
-          <div className="w-full h-full flex items-center justify-center">
-            <Image
-              src={ReferenceSheet}
-              alt="SAT Reference Sheet"
-              width={popupState.size.width - 50}
-              height={popupState.size.height - 100}
-              className="max-w-full max-h-full object-contain"
-              style={{
-                width: "auto",
-                height: "auto",
-                maxWidth: `${popupState.size.width - 50}px`,
-                maxHeight: `${popupState.size.height - 100}px`,
-              }}
-            />
-          </div>
-        </div>
-
-        <div
-          onMouseDown={(e) => handleResizeMouseDown(e, "se")}
-          className="absolute bottom-0 right-0 h-6 w-6 cursor-se-resize"
-        >
-          <svg
-            stroke="currentColor"
-            fill="currentColor"
-            strokeWidth="0"
-            viewBox="0 0 256 256"
-            className="absolute bottom-1 right-1 text-black/50 dark:text-white/50"
-            height="1em"
-            width="1em"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path d="M216.49,136.49l-80,80a12,12,0,1,1-17-17l80-80a12,12,0,1,1,17,17Zm-16-105a12,12,0,0,0-17,0l-152,152a12,12,0,0,0,17,17l152-152A12,12,0,0,0,200.49,31.51Z"></path>
-          </svg>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // State management with useReducer for better performance
 interface AppState {
   questionsData: API_Response_Question_List | null;
@@ -1541,6 +1182,7 @@ export default function PracticeRushMultistep({
   const confettiRef = useRef<ConfettiRef>(null);
 
   const [state, dispatch] = useReducer(appReducer, initialState);
+  const [isGridCollapsed, setIsGridCollapsed] = useState(false);
 
   // Check URL parameters to determine if this is a continue session
   const isContinueSession = useMemo(() => {
@@ -2129,6 +1771,7 @@ export default function PracticeRushMultistep({
 
   // Scroll to top when question step changes
   useEffect(() => {
+    if (effectiveReviewMode) return; // Don't scroll in review mode
     window.scrollTo({ top: 0, behavior: "smooth" });
     // Don't reset question state - let SET_CURRENT_QUESTION_STEP handle the state properly
     // dispatch({ type: "RESET_QUESTION_STATE" });
@@ -3488,6 +3131,191 @@ export default function PracticeRushMultistep({
                     You are reviewing a completed practice session. All answers
                     are read-only.
                   </p>
+
+                  {/* Question Results Grid */}
+                  {state.questions && state.questions.length > 0 && (
+                    <div className="mt-4 pt-4 border-t border-blue-100">
+                      {/* Collapsible Header */}
+                      <div
+                        className="flex items-center justify-between cursor-pointer hover:bg-blue-50 rounded-lg p-2 transition-colors"
+                        onClick={() => {
+                          setIsGridCollapsed(!isGridCollapsed);
+                          playSound("button-pressed.wav");
+                        }}
+                      >
+                        <div className="text-sm font-medium text-blue-900">
+                          Question Results (
+                          {Object.keys(state.questionAnswers).length} answered)
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <span className="text-xs text-blue-600">
+                            {isGridCollapsed ? "Show" : "Hide"}
+                          </span>
+                          {isGridCollapsed ? (
+                            <ChevronDown className="w-4 h-4 text-blue-600" />
+                          ) : (
+                            <ChevronUp className="w-4 h-4 text-blue-600" />
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Collapsible Content */}
+                      <div
+                        className={`transition-all duration-300 ease-in-out overflow-hidden ${
+                          isGridCollapsed
+                            ? "max-h-0 opacity-0"
+                            : "max-h-[1000px] opacity-100"
+                        }`}
+                      >
+                        <div className="mt-3">
+                          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3 px-2">
+                            {state.questions.map((question, idx) => {
+                              const questionId =
+                                question.plainQuestion.questionId;
+                              const userAnswer =
+                                state.questionAnswers[questionId];
+                              const isAnswered = Boolean(userAnswer);
+                              const isCorrect =
+                                isAnswered &&
+                                question.correct_answer
+                                  .map((a) => a.trim())
+                                  .includes(userAnswer?.trim() || "");
+                              const timeSpent =
+                                state.questionTimes[questionId] || 0;
+                              const isCurrent =
+                                state.currentQuestionStep === idx;
+
+                              return (
+                                <div
+                                  key={questionId}
+                                  onClick={() => {
+                                    dispatch({
+                                      type: "SET_CURRENT_QUESTION_STEP",
+                                      payload: idx,
+                                    });
+                                  }}
+                                  className={`relative p-3 rounded-lg border-2 text-center cursor-pointer transition-all duration-300 hover:shadow-md ${
+                                    isCurrent
+                                      ? "ring-2 ring-blue-400 scale-105 shadow-lg"
+                                      : ""
+                                  } ${
+                                    !isAnswered
+                                      ? "bg-white border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300"
+                                      : isCorrect
+                                      ? "bg-green-50 border-green-200 text-green-800 hover:bg-green-100 hover:border-green-300"
+                                      : "bg-red-50 border-red-200 text-red-800 hover:bg-red-100 hover:border-red-300"
+                                  }`}
+                                  title={`Question ${idx + 1} - ${
+                                    question.plainQuestion.difficulty === "E"
+                                      ? "Easy"
+                                      : question.plainQuestion.difficulty ===
+                                        "M"
+                                      ? "Medium"
+                                      : "Hard"
+                                  }${
+                                    isAnswered
+                                      ? ` - ${
+                                          isCorrect ? "Correct" : "Incorrect"
+                                        } (${userAnswer})`
+                                      : " - Not answered"
+                                  } - Time: ${Math.floor(timeSpent / 1000)}s`}
+                                >
+                                  {/* Status indicator dot */}
+                                  <div
+                                    className={`absolute -top-1 -right-1 w-3 h-3 rounded-full border-2 border-white ${
+                                      !isAnswered
+                                        ? "bg-gray-400"
+                                        : isCorrect
+                                        ? "bg-green-500"
+                                        : "bg-red-500"
+                                    }`}
+                                  />
+
+                                  {/* Question number */}
+                                  <div className="font-bold text-sm mb-1">
+                                    Q{idx + 1}
+                                  </div>
+
+                                  {/* Difficulty badge */}
+                                  <div
+                                    className={`inline-flex items-center justify-center rounded text-xs font-bold mb-1 px-1 py-1 ${
+                                      question.plainQuestion.difficulty === "E"
+                                        ? "bg-green-200 text-green-800"
+                                        : question.plainQuestion.difficulty ===
+                                          "M"
+                                        ? "bg-yellow-200 text-yellow-800"
+                                        : "bg-red-200 text-red-800"
+                                    }`}
+                                  >
+                                    {question.plainQuestion.difficulty === "E"
+                                      ? "Easy"
+                                      : question.plainQuestion.difficulty ===
+                                        "M"
+                                      ? "Medium"
+                                      : "Hard"}
+                                  </div>
+
+                                  {/* Time spent */}
+                                  <div className="text-xs text-gray-600 mb-1">
+                                    {Math.floor(timeSpent / (1000 * 60))}m{" "}
+                                    {Math.floor(
+                                      (timeSpent % (1000 * 60)) / 1000
+                                    )}
+                                    s
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                          <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                            <div className="flex flex-wrap items-center justify-center gap-4 mb-2 text-xs">
+                              <div className="flex items-center gap-1">
+                                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                                <span className="text-green-700 font-medium">
+                                  Correct
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                                <span className="text-red-700 font-medium">
+                                  Incorrect
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <div className="w-3 h-3 bg-gray-400 rounded-full"></div>
+                                <span className="text-gray-700 font-medium">
+                                  Not Answered
+                                </span>
+                              </div>
+                            </div>
+                            <div className="flex flex-wrap items-center justify-center gap-4 text-xs">
+                              <div className="flex items-center gap-1">
+                                <div className="w-5 h-4 bg-green-200 text-green-800 rounded text-xs font-bold flex items-center justify-center">
+                                  E
+                                </div>
+                                <span className="text-blue-700">Easy</span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <div className="w-5 h-4 bg-yellow-200 text-yellow-800 rounded text-xs font-bold flex items-center justify-center">
+                                  M
+                                </div>
+                                <span className="text-blue-700">Medium</span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <div className="w-5 h-4 bg-red-200 text-red-800 rounded text-xs font-bold flex items-center justify-center">
+                                  H
+                                </div>
+                                <span className="text-blue-700">Hard</span>
+                              </div>
+                            </div>
+                            <div className="mt-2 text-xs text-blue-600 text-center font-medium">
+                              Click on any question to jump to it
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
               <div className="w-full flex justify-start">

@@ -6,6 +6,7 @@ import React, {
   useMemo,
   useReducer,
   useRef,
+  useState,
 } from "react";
 import {
   PlainQuestionType,
@@ -35,6 +36,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../ui/select";
+import { Calendar, RangeValue } from "../ui/calendar";
 
 export interface BaseQuestionWithData {
   questionId: string;
@@ -66,6 +68,7 @@ interface QuestionResultsState {
   excludeBluebookQuestions: boolean;
   onlyBluebookQuestions: boolean;
   sortOrder: "default" | "newest" | "oldest";
+  dateRange: RangeValue | null;
 }
 
 type QuestionResultsAction =
@@ -93,7 +96,8 @@ type QuestionResultsAction =
   | { type: "RESET_SKILL_FILTER" }
   | { type: "TOGGLE_EXCLUDE_BLUEBOOK"; payload: boolean }
   | { type: "TOGGLE_ONLY_BLUEBOOK"; payload: boolean }
-  | { type: "SET_SORT_ORDER"; payload: "default" | "newest" | "oldest" };
+  | { type: "SET_SORT_ORDER"; payload: "default" | "newest" | "oldest" }
+  | { type: "SET_DATE_RANGE"; payload: RangeValue | null };
 
 // Difficulty filter options constant with correct mappings
 const DIFFICULTY_OPTIONS = [
@@ -225,6 +229,53 @@ const filterQuestionsBasic = (
   return filtered;
 };
 
+// Helper function to filter questions by date range
+const filterQuestionsByDateRange = (
+  questions: QuestionWithData[],
+  dateRange: RangeValue | null
+): QuestionWithData[] => {
+  // If no date range is selected, return all questions
+  if (!dateRange || !dateRange.end) {
+    return questions;
+  }
+
+  // Filter questions based on date range
+  return questions.filter((question) => {
+    // Get the question's createDate
+    const getCreateDate = (question: QuestionWithData): Date | null => {
+      if (question.createDate) {
+        const createDate = question.createDate;
+        // Convert to milliseconds if it's in seconds (10 digits)
+        const timestamp =
+          createDate.toString().length === 10 ? createDate * 1000 : createDate;
+        return new Date(timestamp);
+      }
+      return null;
+    };
+
+    const questionDate = getCreateDate(question);
+
+    // If question has no date, exclude it from date filtering
+    if (!questionDate) {
+      return false;
+    }
+
+    const startDate = dateRange.start;
+    const endDate = dateRange.end;
+
+    // Check if question date falls within the range
+    if (startDate && endDate) {
+      return questionDate >= startDate && questionDate <= endDate;
+    } else if (endDate) {
+      // If only end date is specified (start is null), include from beginning of time
+      return questionDate <= endDate;
+    }
+
+    return true;
+  });
+};
+
+// Combined filter function (includes Bluebook filtering and sorting)
 // Combined filter function (includes Bluebook filtering and sorting)
 const filterQuestions = (
   questions: QuestionWithData[],
@@ -233,6 +284,7 @@ const filterQuestions = (
   excludeBluebook: boolean = false,
   onlyBluebook: boolean = false,
   sortOrder: "default" | "newest" | "oldest" = "default",
+  dateRange: RangeValue | null = null,
   bluebookExternalIds?: { mathLiveItems: string[]; readingLiveItems: string[] },
   selectedSubject?: string
 ): QuestionWithData[] => {
@@ -240,6 +292,9 @@ const filterQuestions = (
 
   // Apply sorting
   filtered = sortQuestionsByDate(filtered, sortOrder);
+
+  // Apply date range filter
+  filtered = filterQuestionsByDateRange(filtered, dateRange);
 
   // Apply Bluebook filters (exclude takes precedence over only)
   if (excludeBluebook) {
@@ -469,6 +524,13 @@ const questionResultsReducer = (
         visibleCount: 10, // Reset visible count when sorting changes
       };
     }
+    case "SET_DATE_RANGE": {
+      return {
+        ...state,
+        dateRange: action.payload,
+        visibleCount: 10, // Reset visible count when date filter changes
+      };
+    }
     default:
       return state;
   }
@@ -517,6 +579,7 @@ export function QuestionResults({
     excludeBluebookQuestions: false,
     onlyBluebookQuestions: false,
     sortOrder: "default",
+    dateRange: null,
   });
 
   // console.log("selectedDomains", selectedDomains);
@@ -554,6 +617,7 @@ export function QuestionResults({
       state.excludeBluebookQuestions,
       state.onlyBluebookQuestions,
       state.sortOrder,
+      state.dateRange,
       bluebookExternalIds,
       selectedSubject
     );
@@ -588,6 +652,7 @@ export function QuestionResults({
     state.excludeBluebookQuestions,
     state.onlyBluebookQuestions,
     state.sortOrder,
+    state.dateRange,
     bluebookExternalIds,
     selectedSubject,
   ]);
@@ -914,13 +979,14 @@ export function QuestionResults({
     );
 
     return (
-      <div className="space-y-4">
+      <div className="space-y-6 px-2 max-w-full lg:max-w-7xl xl:max-w-[92rem] mx-auto">
         <div className="px-8 lg:px-28 grid grid-cols-12 py-4">
           <div className="col-span-12 md:col-span-5 flex flex-col flex-wrap gap-2 items-start text-sm">
             <h2 className="text-lg font-semibold">Question Results</h2>
             <p className="text-sm text-muted-foreground">
               {state.selectedDifficulties.length > 0 ||
-              state.selectedSkills.length > 0 ? (
+              state.selectedSkills.length > 0 ||
+              state.dateRange ? (
                 <>
                   No questions found for the selected filters.
                   <span className="block text-xs text-blue-600 mt-1">
@@ -970,21 +1036,34 @@ export function QuestionResults({
                 <p className="text-4xl mb-4">🔍</p>
                 <h3 className="text-lg font-medium mb-2">
                   {state.selectedDifficulties.length > 0 ||
-                  state.selectedSkills.length > 0
+                  state.selectedSkills.length > 0 ||
+                  state.dateRange
                     ? "No questions match your filter criteria"
                     : "No questions available"}
                 </h3>
                 <p className="text-sm text-muted-foreground mb-4">
                   {state.selectedDifficulties.length > 0 ||
-                  state.selectedSkills.length > 0 ? (
+                  state.selectedSkills.length > 0 ||
+                  state.dateRange ? (
                     <>
                       We couldn't find any questions matching the selected
                       {state.selectedDifficulties.length > 0 &&
-                      state.selectedSkills.length > 0
+                      state.selectedSkills.length > 0 &&
+                      state.dateRange
+                        ? " difficulty, skill, and date filters"
+                        : state.selectedDifficulties.length > 0 &&
+                          state.selectedSkills.length > 0
                         ? " difficulty and skill filters"
+                        : state.selectedDifficulties.length > 0 &&
+                          state.dateRange
+                        ? " difficulty and date filters"
+                        : state.selectedSkills.length > 0 && state.dateRange
+                        ? " skill and date filters"
                         : state.selectedDifficulties.length > 0
                         ? " difficulty levels"
-                        : " skills"}
+                        : state.selectedSkills.length > 0
+                        ? " skills"
+                        : " date range"}
                       .
                       {hasQuestionsWithMissingDifficulty && (
                         <span className="block mt-2 text-xs text-amber-600">
@@ -1000,7 +1079,8 @@ export function QuestionResults({
                 </p>
 
                 {(state.selectedDifficulties.length > 0 ||
-                  state.selectedSkills.length > 0) && (
+                  state.selectedSkills.length > 0 ||
+                  state.dateRange) && (
                   <div className="space-y-3">
                     <p className="text-sm font-medium">Try these options:</p>
                     <div className="flex flex-col sm:flex-row gap-2 justify-center">
@@ -1008,6 +1088,7 @@ export function QuestionResults({
                         onClick={() => {
                           dispatch({ type: "RESET_DIFFICULTY_FILTER" });
                           dispatch({ type: "RESET_SKILL_FILTER" });
+                          dispatch({ type: "SET_DATE_RANGE", payload: null });
                         }}
                         className="px-4 py-2 text-sm bg-blue-50 text-blue-700 rounded-md hover:bg-blue-100 transition-colors"
                       >
@@ -1064,7 +1145,8 @@ export function QuestionResults({
           <h2 className="text-lg font-semibold">Question Results</h2>
           <p className="text-sm text-muted-foreground">
             {state.selectedDifficulties.length > 0 ||
-            state.selectedSkills.length > 0 ? (
+            state.selectedSkills.length > 0 ||
+            state.dateRange ? (
               <React.Fragment>
                 {actualFilteredQuestions.length} of{" "}
                 {state.questionsWithData.length} question
@@ -1077,7 +1159,10 @@ export function QuestionResults({
                     ? " by difficulty & skills"
                     : state.selectedDifficulties.length > 0
                     ? " by difficulty"
-                    : " by skills"}
+                    : state.selectedSkills.length > 0
+                    ? " by skills"
+                    : ""}
+                  {state.dateRange ? " by date" : ""}
                   {state.excludeBluebookQuestions && ", excluding Bluebook"}
                   {state.onlyBluebookQuestions && ", Bluebook only"})
                 </span>
@@ -1213,6 +1298,17 @@ export function QuestionResults({
                     </SelectItem>
                   </SelectContent>
                 </Select>
+
+                <Calendar
+                  allowClear
+                  disableFuture
+                  isDocsPage
+                  showTimeInput={false}
+                  onChange={(dateRange) =>
+                    dispatch({ type: "SET_DATE_RANGE", payload: dateRange })
+                  }
+                  value={state.dateRange}
+                />
               </div>
             </PopoverContent>
           </Popover>

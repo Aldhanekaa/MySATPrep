@@ -44,6 +44,44 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+
+  --color-context-card-border: var(--context-card-border);
+  --color-blue-900: var(--ds-blue-900);
+  --color-gray-200: var(--ds-gray-200);
+  --color-gray-alpha-100: var(--ds-gray-alpha-100);
+  --color-gray-alpha-300: var(--ds-gray-alpha-300);
+  --color-accents-2: var(--accents-2);
+  --color-red-800: var(--ds-red-800);
+  --color-red-900: var(--ds-red-900);
+  --color-amber-800: var(--ds-amber-800);
+  --color-amber-850: var(--ds-amber-850);
+  --color-gray-100: var(--ds-gray-100);
+  --color-gray-400: var(--ds-gray-400);
+  --color-gray-700: var(--ds-gray-700);
+  --color-gray-1000: var(--ds-gray-1000);
+  --color-gray-1000-h: var(--ds-gray-1000-h);
+  --color-gray-alpha-200: var(--ds-gray-alpha-200);
+  --color-gray-alpha-400: var(--ds-gray-alpha-400);
+  --color-background-100: var(--ds-background-100);
+  --color-gray-900: var(--ds-gray-900);
+  --color-gray-alpha-500: var(--ds-gray-alpha-500);
+  --color-background-200: var(--ds-background-200);
+  --color-geist-foreground: var(--geist-foreground);
+  --color-red-900-alpha-160: var(--ds-red-900-alpha-160);
+  --color-error: var(--geist-error);
+  --shadow-focus-calendar-date: var(--ds-focus-calendar-date-ring);
+  --shadow-focus-ring: var(--ds-focus-ring);
+  --shadow-border-small: var(--ds-shadow-border-small);
+  --shadow-border: var(--ds-shadow-border);
+  --shadow-border-medium: var(--ds-shadow-border-medium);
+  --shadow-border-large: var(--ds-shadow-border-large);
+  --shadow-tooltip: var(--ds-shadow-tooltip);
+  --shadow-menu: var(--ds-shadow-menu);
+  --shadow-modal: var(--ds-shadow-modal);
+  --shadow-fullscreen: var(--ds-shadow-fullscreen);
+  --shadow-focus-input: var(--ds-input-ring);
+  --shadow-error-input: var(--ds-input-error-ring);
+  --shadow-error-input-hover: var(--ds-input-error-hover-ring);
 }
 
 :root {
@@ -81,6 +119,65 @@
   --sidebar-ring: oklch(0.708 0 0);
 
   --destructive-foreground: oklch(1 0 0);
+
+  --context-card-border: hsla(0, 0%, 92%, 1);
+  --ds-blue-900: oklch(53.18% 0.2399 256.9900584162342);
+  --ds-gray-200: hsla(0, 0%, 92%, 1);
+  --ds-gray-alpha-100: rgba(0, 0, 0, 0.05);
+  --ds-gray-alpha-300: hsla(0, 0%, 0%, 0.1);
+  --accents-2: #eaeaea;
+  --ds-focus-calendar-date-ring: 0 0 0 1px var(--ds-background-100),
+    0 0 0 2.5px var(--ds-gray-1000);
+  --ds-red-800: oklch(58.19% 0.2482 25.15);
+  --ds-red-900: oklch(54.99% 0.232 25.29);
+  --ds-blue-700: oklch(57.61% 0.2508 258.23);
+  --ds-amber-800: oklch(77.21% 0.1991 64.28);
+  --ds-amber-850: hsl(33, 96%, 42%);
+  --ds-gray-100: hsla(0, 0%, 95%, 1);
+  --ds-gray-400: hsla(0, 0%, 92%, 1);
+  --ds-gray-700: hsla(0, 0%, 56%, 1);
+  --ds-gray-1000: hsla(0, 0%, 9%, 1);
+  --ds-gray-1000-h: hsl(0, 0%, 22%);
+  --ds-gray-alpha-200: hsla(0, 0%, 0%, 0.08);
+  --ds-gray-alpha-400: hsla(0, 0%, 0%, 0.08);
+  --ds-background-100: hsla(0, 0%, 100%, 1);
+  --ds-focus-color: var(--ds-blue-700);
+  --ds-focus-ring: 0 0 0 2px var(--ds-background-100),
+    0 0 0 4px var(--ds-focus-color);
+  --ds-shadow-border: 0 0 0 1px rgba(0, 0, 0, 0.08);
+  --ds-shadow-small: 0px 2px 2px rgba(0, 0, 0, 0.04);
+  --ds-shadow-border-small: var(--ds-shadow-border), var(--ds-shadow-small);
+  --ds-shadow-medium: 0px 2px 2px rgba(0, 0, 0, 0.04),
+    0px 8px 8px -8px rgba(0, 0, 0, 0.04);
+  --ds-shadow-border-medium: var(--ds-shadow-border), var(--ds-shadow-medium);
+  --ds-shadow-large: 0px 2px 2px rgba(0, 0, 0, 0.04),
+    0px 8px 16px -4px rgba(0, 0, 0, 0.04);
+  --ds-shadow-border-large: var(--ds-shadow-border), var(--ds-shadow-large);
+  --ds-shadow-tooltip: var(--ds-shadow-border), 0px 1px 1px rgba(0, 0, 0, 0.02),
+    0px 4px 8px rgba(0, 0, 0, 0.04);
+  --ds-shadow-menu: var(--ds-shadow-border), 0px 1px 1px rgba(0, 0, 0, 0.02),
+    0px 4px 8px -4px rgba(0, 0, 0, 0.04), 0px 16px 24px -8px rgba(0, 0, 0, 0.06);
+  --ds-shadow-modal: var(--ds-shadow-border), 0px 1px 1px rgba(0, 0, 0, 0.02),
+    0px 8px 16px -4px rgba(0, 0, 0, 0.04),
+    0px 24px 32px -8px rgba(0, 0, 0, 0.06);
+  --ds-shadow-fullscreen: var(--ds-shadow-border),
+    0px 1px 1px rgba(0, 0, 0, 0.02), 0px 8px 16px -4px rgba(0, 0, 0, 0.04),
+    0px 24px 32px -8px rgba(0, 0, 0, 0.06);
+  --ds-red-300: oklch(94.33% 0.0369 15.011509923860523);
+  --ds-red-500: oklch(84.47% 0.1018 17.71);
+  --ds-gray-900: hsla(0, 0%, 40%, 1);
+  --ds-gray-alpha-500: hsla(0, 0%, 0%, 0.21);
+  --ds-gray-alpha-600: hsla(0, 0%, 0%, 0.34);
+  --ds-background-200: hsla(0, 0%, 98%, 1);
+  --geist-foreground: #000;
+  --ds-input-ring: 0 0 0 1px var(--ds-gray-alpha-600),
+    0 0 0 4px rgba(0, 0, 0, 0.16);
+  --ds-input-error-ring: 0 0 0 1px var(--ds-red-900),
+    0 0 0 4px var(--ds-red-300);
+  --ds-input-error-hover-ring: 0 0 0 1px var(--ds-red-900),
+    0 0 0 4px var(--ds-red-500);
+  --ds-red-900-alpha-160: hsla(358, 66%, 48%, 0.16);
+  --geist-error: #ee0000;
 }
 
 .dark {

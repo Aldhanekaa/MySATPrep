@@ -8,6 +8,16 @@ import { ArrowRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { playSound } from "@/lib/playSound";
 
+import SAT_ICON from "@/src/svgs/sat-icon.svg";
+import NMSQT_ICON from "@/src/svgs/nmsqt-icon.svg";
+import PSAT_ICON from "@/src/svgs/psat-icon.svg";
+
+import PRACTICE_RUSH_ICON from "@/src/svgs/practice-rush.svg";
+import FULL_LENGTH_ICON from "@/src/svgs/full-length.svg";
+
+import RW_ICON from "@/src/svgs/rw-icon.svg";
+import MATH_ICON from "@/src/svgs/math-icon.svg";
+
 interface ReviewSelections {
   assessment: string;
   subject: string;
@@ -53,16 +63,22 @@ export default function ReviewOnboarding({
     {
       value: "SAT",
       label: "SAT",
+      icon: SAT_ICON,
+
       description: "Digital SAT Assessment",
     },
     {
       value: "PSAT/NMSQT",
       label: "PSAT/NMSQT",
+      icon: NMSQT_ICON,
+
       description: "PSAT/NMSQT & PSAT 10",
     },
     {
       value: "PSAT",
       label: "PSAT 8/9",
+      icon: PSAT_ICON,
+
       description: "PSAT 8/9 Assessment",
     },
   ];
@@ -72,11 +88,13 @@ export default function ReviewOnboarding({
       value: "math",
       label: "Math",
       description: "Review SAT Math problems",
+      icon: MATH_ICON,
     },
     {
       value: "reading-writing",
       label: "Reading & Writing",
       description: "Review SAT Reading and Writing problems",
+      icon: RW_ICON,
     },
   ];
 
@@ -85,11 +103,13 @@ export default function ReviewOnboarding({
       value: "incorrect",
       label: "Incorrect Questions",
       description: "Review questions you answered incorrectly",
+      icon: undefined,
     },
     {
       value: "bookmarked",
       label: "Bookmarked Questions",
       description: "Review questions you bookmarked for later",
+      icon: undefined,
     },
   ];
 
@@ -265,13 +285,24 @@ export default function ReviewOnboarding({
                       value={item.value}
                       className="sr-only after:absolute after:inset-0"
                     />
-                    <Image
-                      src={"https://originui.com/ui-light.png"}
-                      alt={"label"}
-                      width={88}
-                      height={70}
-                      className="mt-6 mb-8 relative cursor-pointer overflow-hidden rounded-lg border border-input shadow-sm shadow-black/5 outline-offset-2 transition-colors peer-[:focus-visible]:outline peer-[:focus-visible]:outline-2 peer-[:focus-visible]:outline-ring/70 peer-data-[disabled]:cursor-not-allowed peer-data-[state=checked]:border-ring peer-data-[state=checked]:bg-accent peer-data-[disabled]:opacity-50"
-                    />
+                    {item.icon ? (
+                      <Image
+                        src={item.icon}
+                        alt={"label"}
+                        width={105}
+                        height={88}
+                        className="mt-6 mb-8 relative cursor-pointer overflow-hidden rounded-lg shadow-sm shadow-black/5 outline-offset-2 transition-colors peer-[:focus-visible]:outline peer-[:focus-visible]:outline-2 peer-[:focus-visible]:outline-ring/70 peer-data-[disabled]:cursor-not-allowed peer-data-[state=checked]:border-ring peer-data-[state=checked]:bg-accent peer-data-[disabled]:opacity-50"
+                      />
+                    ) : (
+                      <Image
+                        src={"https://originui.com/ui-light.png"}
+                        alt={"label"}
+                        width={88}
+                        height={70}
+                        className="mt-6 mb-8 relative cursor-pointer overflow-hidden rounded-lg border border-input shadow-sm shadow-black/5 outline-offset-2 transition-colors peer-[:focus-visible]:outline peer-[:focus-visible]:outline-2 peer-[:focus-visible]:outline-ring/70 peer-data-[disabled]:cursor-not-allowed peer-data-[state=checked]:border-ring peer-data-[state=checked]:bg-accent peer-data-[disabled]:opacity-50"
+                      />
+                    )}
+
                     <p className="text-2xl font-bold leading-none text-foreground">
                       {item.label}
                     </p>
