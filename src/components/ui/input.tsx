@@ -10,7 +10,10 @@ const sizes = {
   large: "h-12 text-base rounded-lg",
 };
 
-interface InputProps {
+type InputProps = Omit<
+  React.InputHTMLAttributes<HTMLInputElement>,
+  "size" | "prefix"
+> & {
   placeholder?: string;
   size?: keyof typeof sizes;
   prefix?: React.ReactNode | string;
@@ -21,19 +24,16 @@ interface InputProps {
   error?: string | boolean;
   label?: string;
   value?: string;
-  onChange?: (value: string) => void;
-  onFocus?: () => void;
-  onBlur?: () => void;
   ref?: React.RefObject<HTMLInputElement | null>;
   className?: string;
   wrapperClassName?: string;
-}
+};
 
 export const Input = ({
   placeholder,
-  size = "medium",
   prefix,
   suffix,
+  size = "medium",
   prefixStyling = true,
   suffixStyling = true,
   disabled = false,
@@ -46,6 +46,7 @@ export const Input = ({
   ref,
   className,
   wrapperClassName,
+  type,
   ...rest
 }: InputProps) => {
   const [_value, set_value] = useState(value || "");
@@ -54,7 +55,7 @@ export const Input = ({
   const _onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     set_value(e.target.value);
     if (onChange) {
-      onChange(e.target.value);
+      onChange(e);
     }
   };
 
@@ -109,6 +110,7 @@ export const Input = ({
           onFocus={onFocus}
           onBlur={onBlur}
           ref={_ref}
+          type={type}
           {...rest}
         />
         {suffix && (
