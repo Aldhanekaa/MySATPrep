@@ -2936,7 +2936,14 @@ export default function PracticeRushMultistep({
 
     // Check if there are more questions available
     const startIndex = state.questionsLoadedCount;
-    if (startIndex >= state.questionsData.length) {
+
+    const currentTotalLength = state.questions?.length;
+
+    if (
+      currentTotalLength &&
+      state.questions &&
+      currentTotalLength >= state.questions.length
+    ) {
       console.log("No more questions available in the dataset");
       return;
     }
@@ -2949,9 +2956,20 @@ export default function PracticeRushMultistep({
 
       let questionsToFetch: PlainQuestionType[];
 
-      if (isRandomized && difficultiesChosen && difficultiesChosen.length > 0) {
+      if (
+        isRandomized &&
+        state.questions &&
+        difficultiesChosen &&
+        difficultiesChosen.length > 0
+      ) {
         // Get remaining questions from questionsData starting from startIndex
-        const remainingQuestions = state.questionsData.slice(startIndex);
+        const remainingQuestions = state.questionsData.filter(
+          (q) =>
+            q.questionId &&
+            !state.questions?.some(
+              (loadedQ) => loadedQ.plainQuestion.questionId === q.questionId
+            )
+        );
 
         // Filter remaining questions by selected difficulties
         const questionsByDifficulty: {
