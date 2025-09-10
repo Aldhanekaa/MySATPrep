@@ -15,12 +15,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-// import {
-//   ChartConfig,
-//   ChartContainer,
-//   ChartTooltip,
-//   ChartTooltipContent,
-// } from "@/components/ui/radar-chart";
+
+import { Bar, BarChart, Rectangle, XAxis, YAxis } from "recharts";
 
 import {
   ChartConfig,
@@ -42,6 +38,7 @@ import {
 } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useRouter } from "next/navigation";
+import { Chart } from "@/components/ui/bar-chart";
 
 const chartData = [
   { month: "January", desktop: 80, mobile: 20 },
@@ -66,6 +63,19 @@ const chartConfig = {
   incorrectPercentage: {
     label: "Incorrect",
     color: "var(--color-red-300)",
+  },
+
+  correctAnswers: {
+    label: "Count",
+    color: "var(--chart-1)",
+  },
+  incorrectAnswers: {
+    label: "Count",
+    color: "var(--chart-2)",
+  },
+  summary: {
+    label: "Correct Answers",
+    color: "var(--chart-3)",
   },
 } satisfies ChartConfig;
 
@@ -147,11 +157,11 @@ export default function SummaryCharts({
         }
       }
 
-      console.log(primaryClassCdObjectData);
-      console.log(skillCdsObjectData);
-      console.log("finalData", finalData);
+      // console.log(primaryClassCdObjectData);
+      // console.log(skillCdsObjectData);
+      // console.log("finalData", finalData);
 
-      console.log("stats", selectedStats);
+      // console.log("stats", selectedStats);
     }
 
     for (const [subject, primaryClassCds] of Object.entries(finalData)) {
@@ -160,11 +170,11 @@ export default function SummaryCharts({
       for (const [primaryClassCd, skillData] of Object.entries(
         primaryClassCds
       )) {
-        console.log(
-          "skillCdsObjectData",
-          primaryClassCdObjectData,
-          primaryClassCd
-        );
+        // console.log(
+        //   "skillCdsObjectData",
+        //   primaryClassCdObjectData,
+        //   primaryClassCd
+        // );
         finalDataReturn[subject].push({
           text:
             primaryClassCdObjectData[primaryClassCd]?.text || primaryClassCd,
@@ -181,14 +191,120 @@ export default function SummaryCharts({
       }
     }
 
-    console.log("finalDataReturn", finalDataReturn);
+    // console.log("finalDataReturn", finalDataReturn);
 
     return finalDataReturn;
   }, [selectedAssessment]);
 
-  console.log("SUMMARY DATA", summaryData, chartData);
+  const answeredQuestionsDataSummary = useMemo(() => {
+    let skills: {
+      [subject: string]: {
+        [primaryClassCd: string]: {
+          [skillCd: string]: {
+            correctAnswers: number;
+            incorrectAnswers: number;
+          };
+        };
+      };
+    } = {};
+    let finalData: {
+      [subject: string]: {
+        [primaryClassCd: string]: Array<{
+          correctAnswers: number;
+          incorrectAnswers: number;
+          text: string;
+          summary: string;
+        }>;
+      };
+    } = {};
+
+    const stats = getPracticeStatistics();
+    const selectedStats = selectedAssessment
+      ? stats[selectedAssessment.name]
+      : null;
+
+    if (selectedStats && "statistics" in selectedStats) {
+      console.log("selectedStats", selectedStats);
+      const statisticsData = selectedStats["statistics"];
+
+      for (const [primaryClassCd, skillCds_Data] of Object.entries(
+        statisticsData
+      )) {
+        // console.log("primaryClassCd", primaryClassCd, primaryClassCdObjectData);
+
+        if (primaryClassCd in primaryClassCdObjectData) {
+          const primaryData = primaryClassCdObjectData[primaryClassCd];
+
+          if (!(primaryData.subject in skills)) {
+            skills[primaryData.subject] = {};
+          }
+
+          if (
+            primaryData.subject in skills &&
+            !(primaryClassCd in skills[primaryData.subject])
+          ) {
+            skills[primaryData.subject][primaryClassCd] = {};
+          }
+
+          // console.log("skills", skills);
+
+          for (const [classCd, questions] of Object.entries(skillCds_Data)) {
+            if (!(classCd in skills[primaryData.subject][primaryClassCd])) {
+              skills[primaryData.subject][primaryClassCd][classCd] = {
+                correctAnswers: 0,
+                incorrectAnswers: 0,
+              };
+            }
+
+            for (const question in questions) {
+              const questionData = questions[question];
+
+              if (questionData.isCorrect) {
+                skills[primaryData.subject][primaryClassCd][
+                  classCd
+                ].correctAnswers += 1;
+              } else {
+                skills[primaryData.subject][primaryClassCd][
+                  classCd
+                ].incorrectAnswers += 1;
+              }
+            }
+          }
+        }
+      }
+
+      console.log("skills", skills);
+
+      for (const [subject, skillData] of Object.entries(skills)) {
+        finalData[subject] = {};
+        for (const [primaryClassCd, classData] of Object.entries(skillData)) {
+          finalData[subject][primaryClassCd] = [];
+          for (const [classCd, questionData] of Object.entries(classData)) {
+            finalData[subject][primaryClassCd] =
+              finalData[subject][primaryClassCd] || [];
+            finalData[subject][primaryClassCd].push({
+              correctAnswers: questionData.correctAnswers,
+              incorrectAnswers: questionData.incorrectAnswers,
+              summary: `${questionData.correctAnswers} out of ${
+                questionData.incorrectAnswers + questionData.correctAnswers
+              }`,
+              text: classCd,
+            });
+          }
+        }
+      }
+
+      console.log("finalData", finalData);
+
+      return finalData;
+    }
+
+    return undefined;
+  }, [selectedAssessment]);
+
+  // console.log("SUMMARY DATA", summaryData, chartData);
   return (
-    <div>
+    <div className=" space-y-5">
       <div className="grid grid-cols-2 gap-6">
         <Card className=" col-span-2 xl:col-span-1">
           <CardHeader className="items-center pb-4">
@@ -197,17 +313,17 @@ export default function SummaryCharts({
               Your Reading & Writing Skills Breakdown (In Percentage)
             </CardDescription>
           </CardHeader>
-          <CardContent className="pb-0">
+          <CardContent className="pb-5">
             {summaryData["R&W"].length > 0 ? (
               <ChartContainer
                 config={chartConfig}
-                className="mx-auto aspect-square max-h-[250px] w-[30rem]"
+                className="mx-auto aspect-square max-h-[250px] w-full max-w-full"
                 id="BRO"
               >
                 <RadarChart
                   data={summaryData["R&W"]}
                   dataKey={"correctPercantage"}
-                  width={3000}
+                  width={100}
                 >
                   <ChartTooltip
                     cursor={false}
@@ -241,7 +357,37 @@ export default function SummaryCharts({
                       />
                     }
                   />
-                  <PolarAngleAxis dataKey="text" axisLineType="polygon" />
+                  <PolarAngleAxis
+                    dataKey="text"
+                    axisLineType="polygon"
+                    tick={({ x, y, textAnchor, value, index, ...props }) => {
+                      const data = summaryData["R&W"][index];
+                      return (
+                        <text
+                          x={x}
+                          y={index === 0 ? y - 10 : y}
+                          textAnchor={textAnchor}
+                          fontSize={13}
+                          fontWeight={500}
+                          {...props}
+                        >
+                          <tspan>{data.correctAnswers}</tspan>
+                          <tspan className="fill-muted-foreground">/</tspan>
+                          <tspan>
+                            {data.incorrectAnswers + data.correctAnswers}
+                          </tspan>
+                          <tspan
+                            x={x}
+                            dy={"1rem"}
+                            fontSize={12}
+                            className="fill-muted-foreground"
+                          >
+                            {data.text}
+                          </tspan>
+                        </text>
+                      );
+                    }}
+                  />
                   <PolarGrid strokeDasharray="3 3" />
                   <Radar
                     stroke="var(--color-blue-300)"
@@ -289,17 +435,17 @@ export default function SummaryCharts({
               Your Maths Skills Breakdown (In Percentage)
             </CardDescription>
           </CardHeader>
-          <CardContent className="pb-0">
+          <CardContent className="pb-5">
             {summaryData["Math"].length > 0 ? (
               <ChartContainer
                 config={chartConfig}
-                className="mx-auto aspect-square max-h-[250px] w-[30rem]"
+                className="mx-auto aspect-square max-h-[250px] w-full max-w-full"
                 id="BRO"
               >
                 <RadarChart
                   data={summaryData["Math"]}
                   dataKey={"correctPercantage"}
-                  width={3000}
+                  width={100}
                 >
                   <ChartTooltip
                     cursor={false}
@@ -333,7 +479,37 @@ export default function SummaryCharts({
                       />
                     }
                   />
-                  <PolarAngleAxis dataKey="text" axisLineType="polygon" />
+                  <PolarAngleAxis
+                    dataKey="text"
+                    axisLineType="polygon"
+                    tick={({ x, y, textAnchor, value, index, ...props }) => {
+                      const data = summaryData["Math"][index];
+                      return (
+                        <text
+                          x={x}
+                          y={index === 0 ? y - 10 : y}
+                          textAnchor={textAnchor}
+                          fontSize={13}
+                          fontWeight={500}
+                          {...props}
+                        >
+                          <tspan>{data.correctAnswers}</tspan>
+                          <tspan className="fill-muted-foreground">/</tspan>
+                          <tspan>
+                            {data.incorrectAnswers + data.correctAnswers}
+                          </tspan>
+                          <tspan
+                            x={x}
+                            dy={"1rem"}
+                            fontSize={12}
+                            className="fill-muted-foreground"
+                          >
+                            {data.text}
+                          </tspan>
+                        </text>
+                      );
+                    }}
+                  />
                   <PolarGrid strokeDasharray="3 3" />
                   <Radar
                     stroke="var(--color-blue-300)"
@@ -372,6 +548,155 @@ export default function SummaryCharts({
                 }}
               />
             )}
+          </CardContent>
+        </Card>
+      </div>
+
+      <div>
+        <Card className=" col-span-2 xl:col-span-1">
+          <CardHeader className="items-start pb-4">
+            <CardTitle>Skills Insights</CardTitle>
+            <CardDescription>
+              View your performance across different skills in different topics.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="pb-5 space-y-10">
+            {answeredQuestionsDataSummary &&
+              Object.entries(answeredQuestionsDataSummary).map(
+                ([subject, primaryClassCds]) => (
+                  <div>
+                    <h4 className="text-xl">{subject}</h4>
+                    <div className="space-y-3">
+                      {Object.entries(primaryClassCds).map(
+                        ([primaryClassKey, skillCds]) => (
+                          <div key={primaryClassKey}>
+                            <h5 className="text-lg">
+                              {primaryClassCdObjectData[primaryClassKey].text}
+                            </h5>
+
+                            <ChartContainer
+                              key={primaryClassKey}
+                              className={` ${
+                                skillCds.length == 5
+                                  ? "aspect-[50/8]"
+                                  : skillCds.length > 3 && skillCds.length < 5
+                                  ? "aspect-[50/5]"
+                                  : skillCds.length <= 3
+                                  ? "aspect-[50/4]"
+                                  : "aspect-[50/1]"
+                              }`}
+                              config={chartConfig}
+                            >
+                              <BarChart
+                                accessibilityLayer
+                                data={skillCds}
+                                layout="vertical"
+                                margin={{
+                                  left: 0,
+                                }}
+                                // barSize={200}
+                                // maxBarSize={50}
+                                // barGap={32}
+                                // barCategoryGap={"4%"}
+                                // width={23}
+                              >
+                                <XAxis
+                                  type="number"
+                                  dataKey="correctAnswers"
+                                  hide
+                                />
+                                <YAxis
+                                  dataKey="text"
+                                  type="category"
+                                  tickLine={false}
+                                  tickMargin={10}
+                                  axisLine={false}
+                                  hide
+                                />
+                                <ChartTooltip
+                                  cursor={false}
+                                  content={
+                                    <ChartTooltipContent
+                                      indicator="dashed"
+                                      labelKey="eee"
+                                      hideLabel
+                                      className=" w-[14rem] bg-white"
+                                    />
+                                  }
+                                />
+                                <Bar
+                                  dataKey="summary"
+                                  background={{
+                                    radius: 10,
+                                    fill: "var(--color-blue-300)",
+                                    opacity: 0.2,
+                                  }}
+                                  fill="var(--color-blue-400)"
+                                  radius={10}
+                                  shape={(props: any) => {
+                                    console.log("shape", props);
+
+                                    return (
+                                      <>
+                                        <Rectangle
+                                          {...props}
+                                          width={
+                                            (props.payload.correctAnswers /
+                                              (props.payload.correctAnswers +
+                                                props.payload
+                                                  .incorrectAnswers)) *
+                                            props.background.width
+                                          }
+                                          // height={12s}
+                                        />
+                                        <text
+                                          x={props.x + 25}
+                                          y={
+                                            props.y +
+                                            props.background.height / 2 +
+                                            3
+                                          }
+                                          fill="var(--color-blue-900)"
+                                          fontSize={12.5}
+                                        >
+                                          {
+                                            skillCdsObjectData[
+                                              props.payload.text
+                                            ].text
+                                          }
+                                        </text>
+                                        <text
+                                          x={props.background.width - 10}
+                                          y={
+                                            props.y +
+                                            props.background.height / 2 +
+                                            3
+                                          }
+                                          textAnchor="end"
+                                          fill="var(--fg)"
+                                        >
+                                          {Math.round(
+                                            (props.payload.correctAnswers /
+                                              (props.payload.correctAnswers +
+                                                props.payload
+                                                  .incorrectAnswers)) *
+                                              100
+                                          )}{" "}
+                                          %
+                                        </text>
+                                      </>
+                                    );
+                                  }}
+                                />
+                              </BarChart>
+                            </ChartContainer>
+                          </div>
+                        )
+                      )}
+                    </div>
+                  </div>
+                )
+              )}
           </CardContent>
         </Card>
       </div>
