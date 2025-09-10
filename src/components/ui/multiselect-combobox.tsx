@@ -66,6 +66,8 @@ interface Props<T extends BaseOption> {
   placeholder?: string;
   /** Whether to show options grouped by their group property */
   grouped?: boolean;
+  /** Optional click handler for the trigger */
+  onClick?: () => void;
 }
 
 /**
@@ -81,6 +83,7 @@ export const MultiSelectCombobox = <T extends BaseOption>({
   onChange,
   placeholder,
   grouped = false,
+  ...props
 }: Props<T>) => {
   // State for controlling popover visibility
   const [open, setOpen] = useState(false);
@@ -124,6 +127,7 @@ export const MultiSelectCombobox = <T extends BaseOption>({
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <div
+          {...props}
           role="combobox"
           aria-expanded={open}
           aria-haspopup="listbox"
@@ -131,7 +135,16 @@ export const MultiSelectCombobox = <T extends BaseOption>({
           aria-label={`Select ${label}`}
           tabIndex={0}
           className="flex h-full min-w-[200px] cursor-pointer items-center justify-start gap-2 rounded-md border border-input bg-background px-4 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground focus:outline-none focus:ring-2 focus:ring-gray-300 focus:ring-offset-2"
-          onClick={() => setOpen(!open)}
+          onClick={
+            props.onClick
+              ? () => {
+                  props.onClick?.();
+                  setOpen(!open);
+                }
+              : () => {
+                  setOpen(!open);
+                }
+          }
           onKeyDown={(e) => {
             if (e.key === "Enter" || e.key === " ") {
               setOpen(!open);
@@ -176,7 +189,7 @@ export const MultiSelectCombobox = <T extends BaseOption>({
 
       {/* Dropdown content */}
       <PopoverContent
-        className="w-[--radix-popover-trigger-width] p-0"
+        className="w-[--radix-popover-trigger-width] p-0 max-w-[350px]"
         id="multi-select-options"
       >
         <Command>

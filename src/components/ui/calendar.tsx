@@ -612,6 +612,8 @@ interface CalendarProps {
   disableFuture?: boolean;
   disableMonthYearSelect?: boolean;
   limitToCurrentYear?: boolean;
+  dataOnboard?: string;
+  onClick?: () => void;
 }
 
 export const Calendar = ({
@@ -631,6 +633,8 @@ export const Calendar = ({
   disableFuture = false,
   disableMonthYearSelect = false,
   limitToCurrentYear = true,
+  dataOnboard,
+  onClick,
 }: CalendarProps) => {
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
@@ -981,7 +985,11 @@ export const Calendar = ({
                 compact ? "w-[180px] gap-1.5" : "w-[250px]"
               )}
               variant="secondary"
-              onClick={() => setIsOpen((prevState) => !prevState)}
+              data-onboard={dataOnboard}
+              onClick={() => {
+                onClick && onClick();
+                setIsOpen((prevState) => !prevState);
+              }}
             >
               <div className="truncate pr-4">
                 {(value?.start || value?.end) && value?.end

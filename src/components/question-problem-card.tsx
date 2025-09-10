@@ -1,6 +1,7 @@
 "use client";
 import { QuestionById_Data } from "@/types";
 import { SavedQuestions, SavedQuestion } from "@/types/savedQuestions";
+import { QuestionNotes, QuestionNote } from "@/types/questionNotes";
 import { PracticeStatistics } from "@/types/statistics";
 import {
   Card,
@@ -21,6 +22,7 @@ import {
   GripHorizontal,
   Calculator,
   Maximize2Icon,
+  NotebookPen,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MathJax } from "better-react-mathjax";
@@ -35,6 +37,7 @@ import { Pill, PillIndicator } from "./ui/pill";
 import { Separator } from "./ui/separator";
 import { DraggableReferencePopup } from "./popups/reference-popup";
 import { DraggableDesmosPopup } from "./popups/desmos-popup";
+import { DraggableNotesPopup } from "./popups/notes-popup";
 
 // Duolingo-styled Input Component
 interface DuolingoInputProps {
@@ -105,6 +108,12 @@ export default function QuestionProblemCard({
   const [practiceStatistics, setPracticeStatistics] =
     useLocalStorage<PracticeStatistics>("practiceStatistics", {});
 
+  // Load question notes from localStorage
+  const [questionNotes, setQuestionNotes] = useLocalStorage<QuestionNotes>(
+    "questionNotes",
+    {}
+  );
+
   // State for tracking if this question is saved and answered before
   const [isQuestionSaved, setIsQuestionSaved] = useState<boolean>(false);
   const [isQuestionAnswered, setIsQuestionAnswered] = useState<boolean>(false);
@@ -114,6 +123,11 @@ export default function QuestionProblemCard({
     timestamp?: string;
     selectedAnswer?: string; // Add selected answer to track user's choice
   } | null>(null);
+
+  // State for question notes
+  const [currentNote, setCurrentNote] = useState<string>("");
+  const [isNotesModalOpen, setIsNotesModalOpen] = useState<boolean>(false);
+  const [hasNote, setHasNote] = useState<boolean>(false);
 
   // State for answer selection
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
@@ -147,6 +161,19 @@ export default function QuestionProblemCard({
       );
       setIsQuestionSaved(isSaved);
 
+      // Check if question has a note
+      const assessmentNotes = questionNotes[assessment] || [];
+      const existingNote = assessmentNotes.find(
+        (note: QuestionNote) => note.questionId === questionId
+      );
+      if (existingNote) {
+        setCurrentNote(existingNote.note);
+        setHasNote(true);
+      } else {
+        setCurrentNote("");
+        setHasNote(false);
+      }
+
       // Check if question has been answered before in practice statistics
       const assessmentStats = practiceStatistics[assessment];
       if (assessmentStats) {
@@ -171,7 +198,7 @@ export default function QuestionProblemCard({
         }
       }
     }
-  }, [question, savedQuestions, practiceStatistics, assessment]);
+  }, [question, savedQuestions, questionNotes, practiceStatistics, assessment]);
 
   // Set share URL when component mounts
   useEffect(() => {
@@ -198,6 +225,65 @@ export default function QuestionProblemCard({
       setTimeout(() => setIsCopied(false), 2000);
     } catch (error) {
       console.error("Failed to copy:", error);
+    }
+  };
+
+  // Handle saving note
+  const handleSaveNote = (noteText: string) => {
+    try {
+      const questionId = question.question.questionId;
+      const updatedNotes = { ...questionNotes };
+
+      // If note is empty, delete it
+      if (!noteText.trim()) {
+        if (updatedNotes[assessment]) {
+          updatedNotes[assessment] = updatedNotes[assessment].filter(
+            (note: QuestionNote) => note.questionId !== questionId
+          );
+        }
+        setQuestionNotes(updatedNotes);
+        setCurrentNote("");
+        setHasNote(false);
+        console.log("Note deleted successfully!");
+        return;
+      }
+
+      // Initialize array if it doesn't exist
+      if (!updatedNotes[assessment]) {
+        updatedNotes[assessment] = [];
+      }
+
+      // Check if note already exists
+      const noteIndex = updatedNotes[assessment].findIndex(
+        (note: QuestionNote) => note.questionId === questionId
+      );
+
+      const now = new Date().toISOString();
+
+      if (noteIndex === -1) {
+        // Create new note
+        const newNote: QuestionNote = {
+          questionId,
+          note: noteText,
+          timestamp: now,
+          createdAt: now,
+        };
+        updatedNotes[assessment].push(newNote);
+      } else {
+        // Update existing note
+        updatedNotes[assessment][noteIndex] = {
+          ...updatedNotes[assessment][noteIndex],
+          note: noteText,
+          timestamp: now,
+        };
+      }
+
+      setQuestionNotes(updatedNotes);
+      setCurrentNote(noteText);
+      setHasNote(true);
+      console.log("Note saved successfully!");
+    } catch (error) {
+      console.error("Failed to save note:", error);
     }
   };
 
@@ -416,6 +502,25 @@ export default function QuestionProblemCard({
                       </Button>
                     </>
                   )}
+                  <Button
+                    variant="default"
+                    className={`flex cursor-pointer items-center gap-1 md:gap-2 font-bold py-2 md:py-3 px-3 md:px-6 rounded-xl md:rounded-2xl border-b-4 shadow-md hover:shadow-lg transform transition-all duration-200 active:translate-y-0.5 active:border-b-2 text-xs md:text-sm ${
+                      hasNote
+                        ? "bg-gray-600 hover:bg-gray-700 text-white border-gray-800 hover:border-gray-900"
+                        : "bg-gray-600 hover:bg-gray-700 text-white border-gray-800 hover:border-gray-900"
+                    }`}
+                    onClick={() => {
+                      playSound("button-pressed.wav");
+                      setIsNotesModalOpen((isPopupOpen) => !isPopupOpen);
+                    }}
+                  >
+                    <NotebookPen
+                      className={`w-3 h-3 md:w-4 md:h-4 duration-300 group-hover:rotate-12`}
+                    />
+                    <span className="font-medium hidden sm:inline">
+                      {hasNote ? "Edit Note" : "Add Note"}
+                    </span>
+                  </Button>
                   <Button
                     variant="default"
                     className={`flex cursor-pointer items-center gap-1 md:gap-2 font-bold py-2 md:py-3 px-3 md:px-6 rounded-xl md:rounded-2xl border-b-4 shadow-md hover:shadow-lg transform transition-all duration-200 active:translate-y-0.5 active:border-b-2 text-xs md:text-sm ${
@@ -934,6 +1039,17 @@ export default function QuestionProblemCard({
           </div>
         </div>
       )}
+
+      {/* Notes Popup */}
+      <DraggableNotesPopup
+        isOpen={isNotesModalOpen}
+        onClose={() => setIsNotesModalOpen(false)}
+        questionId={question.question.questionId}
+        assessment={assessment}
+        questionNotes={questionNotes}
+        onSaveNote={handleSaveNote}
+        currentNote={currentNote}
+      />
 
       {/* Reference Popup */}
       {!hideToolsPopup && (

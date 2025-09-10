@@ -577,13 +577,13 @@ export default function SummaryCharts({
                             <ChartContainer
                               key={primaryClassKey}
                               className={` ${
-                                skillCds.length == 5
-                                  ? "aspect-[50/8]"
-                                  : skillCds.length > 3 && skillCds.length < 5
-                                  ? "aspect-[50/5]"
-                                  : skillCds.length <= 3
-                                  ? "aspect-[50/4]"
-                                  : "aspect-[50/1]"
+                                skillCds.length == 6
+                                  ? "aspect-[50/35] md:aspect-[50/20] xl:aspect-[50/11]"
+                                  : skillCds.length > 3 && skillCds.length < 6
+                                  ? "aspect-[50/34] md:aspect-[50/16] xl:aspect-[50/10]"
+                                  : skillCds.length == 3
+                                  ? "aspect-[50/22] md:aspect-[50/10] xl:aspect-[50/4]"
+                                  : "aspect-[50/15] md:aspect-[50/7] xl:aspect-[50/3]"
                               }`}
                               config={chartConfig}
                             >

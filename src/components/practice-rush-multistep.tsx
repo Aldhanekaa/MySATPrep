@@ -30,6 +30,7 @@ import {
   updateSessionXP,
 } from "@/lib/practiceStatistics";
 import { SavedQuestions, SavedQuestion } from "@/types/savedQuestions";
+import { QuestionNotes, QuestionNote } from "@/types/questionNotes";
 import {
   addXPForCorrectAnswer,
   reduceXPForIncorrectAnswer,
@@ -59,6 +60,7 @@ import {
   Clock,
   GripHorizontal,
   LinkIcon,
+  NotebookPen,
   PyramidIcon,
   SendIcon,
   Strikethrough,
@@ -69,7 +71,9 @@ import Image from "next/image";
 import ReferenceSheet from "@/src/sat-math-refrence-sheet.webp";
 import { Confetti, ConfettiRef } from "./ui/confetti";
 import { DraggableReferencePopup } from "./popups/reference-popup";
+import { DraggableNotesPopup } from "./popups/notes-popup";
 import { playSound } from "@/lib/playSound";
+import { useLocalStorage } from "@/lib/useLocalStorage";
 import { useRouter } from "next/navigation";
 import { LookupRequest } from "@/types";
 
@@ -817,6 +821,7 @@ interface AppState {
   sessionStartTime: number;
   isSavingSession: boolean;
   isShareModalOpen: boolean;
+  isNotesPopupOpen: boolean;
   sessionXPReceived: number; // Track total XP gained/lost during this session
 
   lookupData: LookupRequest | undefined;
@@ -852,6 +857,7 @@ type AppAction =
   | { type: "TOGGLE_EXIT_CONFIRMATION" }
   | { type: "TOGGLE_FINISH_CONFIRMATION" }
   | { type: "TOGGLE_SHARE_MODAL" }
+  | { type: "TOGGLE_NOTES_POPUP" }
   | { type: "START_TIMER" }
   | { type: "STOP_TIMER" }
   | { type: "TOGGLE_TIMER_VISIBILITY" }
@@ -913,6 +919,7 @@ const initialState: AppState = {
   sessionStartTime: Date.now(),
   isSavingSession: false,
   isShareModalOpen: false,
+  isNotesPopupOpen: false,
   sessionXPReceived: 0, // Initialize session XP tracking
 
   lookupData: undefined,
@@ -1082,6 +1089,11 @@ function appReducer(state: AppState, action: AppAction): AppState {
         ...state,
         isShareModalOpen: !state.isShareModalOpen,
       };
+    case "TOGGLE_NOTES_POPUP":
+      return {
+        ...state,
+        isNotesPopupOpen: !state.isNotesPopupOpen,
+      };
     case "START_TIMER":
       return {
         ...state,
@@ -1183,6 +1195,12 @@ export default function PracticeRushMultistep({
 
   const [state, dispatch] = useReducer(appReducer, initialState);
   const [isGridCollapsed, setIsGridCollapsed] = useState(false);
+
+  // Load question notes from localStorage
+  const [questionNotes, setQuestionNotes] = useLocalStorage<QuestionNotes>(
+    "questionNotes",
+    {}
+  );
 
   // Check URL parameters to determine if this is a continue session
   const isContinueSession = useMemo(() => {
@@ -2977,6 +2995,72 @@ export default function PracticeRushMultistep({
     ]
   );
 
+  // Handle saving note
+  const handleSaveNote = useCallback(
+    (noteText: string) => {
+      if (!currentQuestion) return;
+
+      try {
+        const questionId = currentQuestion.plainQuestion.questionId;
+        const assessment = practiceSelections.assessment;
+        const updatedNotes = { ...questionNotes };
+
+        // If note is empty, delete it
+        if (!noteText.trim()) {
+          if (updatedNotes[assessment]) {
+            updatedNotes[assessment] = updatedNotes[assessment].filter(
+              (note: QuestionNote) => note.questionId !== questionId
+            );
+          }
+          setQuestionNotes(updatedNotes);
+          console.log("Note deleted successfully!");
+          return;
+        }
+
+        // Initialize array if it doesn't exist
+        if (!updatedNotes[assessment]) {
+          updatedNotes[assessment] = [];
+        }
+
+        // Check if note already exists
+        const noteIndex = updatedNotes[assessment].findIndex(
+          (note: QuestionNote) => note.questionId === questionId
+        );
+
+        const now = new Date().toISOString();
+
+        if (noteIndex === -1) {
+          // Create new note
+          const newNote: QuestionNote = {
+            questionId,
+            note: noteText,
+            timestamp: now,
+            createdAt: now,
+          };
+          updatedNotes[assessment].push(newNote);
+        } else {
+          // Update existing note
+          updatedNotes[assessment][noteIndex] = {
+            ...updatedNotes[assessment][noteIndex],
+            note: noteText,
+            timestamp: now,
+          };
+        }
+
+        setQuestionNotes(updatedNotes);
+        console.log("Note saved successfully!");
+      } catch (error) {
+        console.error("Failed to save note:", error);
+      }
+    },
+    [
+      currentQuestion,
+      practiceSelections.assessment,
+      questionNotes,
+      setQuestionNotes,
+    ]
+  );
+
   // function handleExit() {
   //   // Show exit confirmation popup instead of directly exiting
   //   dispatch({ type: "TOGGLE_EXIT_CONFIRMATION" });
@@ -3344,6 +3428,24 @@ export default function PracticeRushMultistep({
               <div className="grid grid-cols-12 justify-between mb-10">
                 <div className="col-span-12 xl:col-span-7">
                   <div className="flex flex-col lg:flex-row gap-4 items-start">
+                    <Pill className="text-md font-semibold">
+                      {currentQuestion.plainQuestion.difficulty == "E" ? (
+                        <React.Fragment>
+                          <PillIndicator variant="success" pulse />
+                          Easy
+                        </React.Fragment>
+                      ) : currentQuestion.plainQuestion.difficulty == "M" ? (
+                        <React.Fragment>
+                          <PillIndicator variant="warning" pulse />
+                          Medium
+                        </React.Fragment>
+                      ) : (
+                        <React.Fragment>
+                          <PillIndicator variant="error" pulse />
+                          Hard
+                        </React.Fragment>
+                      )}
+                    </Pill>
                     <div className="h-full flex gap-2 justify-center items-center">
                       <div>
                         <h5 className="font-black text-2xl">
@@ -3378,25 +3480,6 @@ export default function PracticeRushMultistep({
                           </p>
                         )} */}
                       </div>
-
-                      <Pill className="text-md font-semibold">
-                        {currentQuestion.plainQuestion.difficulty == "E" ? (
-                          <React.Fragment>
-                            <PillIndicator variant="success" pulse />
-                            Easy
-                          </React.Fragment>
-                        ) : currentQuestion.plainQuestion.difficulty == "M" ? (
-                          <React.Fragment>
-                            <PillIndicator variant="warning" pulse />
-                            Medium
-                          </React.Fragment>
-                        ) : (
-                          <React.Fragment>
-                            <PillIndicator variant="error" pulse />
-                            Hard
-                          </React.Fragment>
-                        )}
-                      </Pill>
                     </div>
                   </div>
                 </div>
@@ -3740,6 +3823,64 @@ export default function PracticeRushMultistep({
                                 : "Save question for later review";
                             } catch {
                               return "Save question for later review";
+                            }
+                          })()}
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="default"
+                          className="justify-center items-center cursor-pointer bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-6 rounded-2xl border-b-4 border-gray-800 hover:border-gray-900 shadow-md hover:shadow-lg transform transition-all duration-200 active:translate-y-0.5 active:border-b-2"
+                          onClick={() => {
+                            dispatch({ type: "TOGGLE_NOTES_POPUP" });
+                            playSound("button-pressed.wav");
+                          }}
+                        >
+                          {(() => {
+                            try {
+                              const assessmentNotes =
+                                questionNotes[practiceSelections.assessment] ||
+                                [];
+                              const hasNote = assessmentNotes.some(
+                                (note: QuestionNote) =>
+                                  note.questionId ===
+                                  currentQuestion?.plainQuestion.questionId
+                              );
+
+                              return (
+                                <NotebookPen
+                                  className={`group-hover:rotate-12 duration-300 mr-2`}
+                                />
+                              );
+                            } catch {
+                              return (
+                                <NotebookPen className="group-hover:rotate-12 duration-300 mr-2" />
+                              );
+                            }
+                          })()}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>
+                          {(() => {
+                            try {
+                              const assessmentNotes =
+                                questionNotes[practiceSelections.assessment] ||
+                                [];
+                              const hasNote = assessmentNotes.some(
+                                (note: QuestionNote) =>
+                                  note.questionId ===
+                                  currentQuestion?.plainQuestion.questionId
+                              );
+
+                              return hasNote
+                                ? "Edit personal note for this question"
+                                : "Add personal note to this question";
+                            } catch {
+                              return "Add personal note to this question";
                             }
                           })()}
                         </p>
@@ -4202,6 +4343,29 @@ export default function PracticeRushMultistep({
       <DraggableReferencePopup
         isOpen={state.isReferencePopupOpen}
         onClose={() => dispatch({ type: "TOGGLE_REFERENCE_POPUP" })}
+      />
+
+      {/* Notes Popup */}
+      <DraggableNotesPopup
+        isOpen={state.isNotesPopupOpen}
+        onClose={() => dispatch({ type: "TOGGLE_NOTES_POPUP" })}
+        questionId={currentQuestion?.plainQuestion.questionId || ""}
+        assessment={practiceSelections.assessment}
+        questionNotes={questionNotes}
+        onSaveNote={handleSaveNote}
+        currentNote={(() => {
+          try {
+            const assessmentNotes =
+              questionNotes[practiceSelections.assessment] || [];
+            const existingNote = assessmentNotes.find(
+              (note: QuestionNote) =>
+                note.questionId === currentQuestion?.plainQuestion.questionId
+            );
+            return existingNote?.note || "";
+          } catch {
+            return "";
+          }
+        })()}
       />
 
       {/* Success Feedback - only show for newly answered questions, not when reviewing */}

@@ -83,3 +83,8 @@ export function popupReducer(
       return state;
   }
 }
+
+// Export popup components
+export { DraggableReferencePopup } from "./reference-popup";
+export { DraggableDesmosPopup } from "./desmos-popup";
+export { DraggableNotesPopup } from "./notes-popup";

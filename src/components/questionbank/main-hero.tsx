@@ -368,7 +368,7 @@ export function QB_MainHero() {
       <WarpBackground
         disableAnimation={state.isExpanded}
         className={`${
-          state.isExpanded ? "border-0 " : "min-h-screen"
+          state.isExpanded ? "border-0 " : "min-h-[1100px]"
         } flex items-center justify-center p-0`}
       >
         <motion.div
@@ -446,8 +446,9 @@ export function QB_MainHero() {
                             SAT/PSAT Question Bank
                           </h1>
                           <p className="text-gray-500 max-w-md">
-                            Search and explore a vast collection of SAT and PSAT
-                            questions to enhance your test preparation.
+                            Search and explore a vast of SAT and PSAT questions
+                            directly from Collegeboard question bank collections
+                            to enhance your test preparation.
                           </p>
                         </motion.div>
                       </div>

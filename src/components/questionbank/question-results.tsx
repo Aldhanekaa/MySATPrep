@@ -6,12 +6,18 @@ import React, {
   useMemo,
   useReducer,
   useRef,
+  useState,
 } from "react";
 import { PlainQuestionType, QuestionDifficulty } from "@/types/question";
 import { Card, CardContent } from "@/components/ui/card";
 import { OptimizedQuestionCard } from "../dashboard/shared/OptimizedQuestionCard";
 import { MultiSelectCombobox } from "../ui/multiselect-combobox";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
+import {
+  PersistentPopover,
+  PersistentPopoverContent,
+  PersistentPopoverTrigger,
+} from "../ui/persistent-popover";
 import { Button } from "../ui/button";
 import { Switch } from "../ui/switch";
 import {
@@ -37,6 +43,46 @@ import {
   filterQuestions,
   fetchQuestionData,
 } from "@/lib/questionbank";
+import { AlertDialog } from "../ui/alert-dialog";
+import { TourAlertDialog } from "../ui/tour";
+import {
+  InteractiveOnboardingChecklist,
+  Step,
+} from "../ui/onboarding-checklist";
+
+// Tour state interface
+interface TourState {
+  showTourDialog: boolean;
+  onboardingOpen: boolean;
+  completedSteps: Set<string>;
+}
+
+// Tour actions
+type TourAction =
+  | { type: "SET_SHOW_TOUR_DIALOG"; payload: boolean }
+  | { type: "SET_ONBOARDING_OPEN"; payload: boolean }
+  | { type: "ADD_COMPLETED_STEP"; payload: string }
+  | { type: "RESET_COMPLETED_STEPS" };
+
+// Tour reducer
+const tourReducer = (state: TourState, action: TourAction): TourState => {
+  switch (action.type) {
+    case "SET_SHOW_TOUR_DIALOG":
+      return { ...state, showTourDialog: action.payload };
+    case "SET_ONBOARDING_OPEN":
+      return { ...state, onboardingOpen: action.payload };
+    case "ADD_COMPLETED_STEP":
+      return {
+        ...state,
+        completedSteps: new Set([...state.completedSteps, action.payload]),
+      };
+    case "RESET_COMPLETED_STEPS":
+      return { ...state, completedSteps: new Set() };
+    default:
+      return state;
+  }
+};
+
 interface QuestionResultsProps {
   questions: PlainQuestionType[];
   assessmentName: string;
@@ -64,6 +110,104 @@ export function QuestionResults({
   selectedDomains,
   bluebookExternalIds,
 }: QuestionResultsProps) {
+  // Use reducer for tour state management
+  const [tourState, tourDispatch] = useReducer(tourReducer, {
+    showTourDialog: false, // Start with false, will be set by useEffect
+    onboardingOpen: false,
+    completedSteps: new Set<string>(),
+  });
+
+  // Check localStorage to determine if tour should be shown
+  useEffect(() => {
+    const tourKey = "questionbank-onboarding";
+    const hasCompletedTour = localStorage.getItem(tourKey) === "true";
+    tourDispatch({ type: "SET_SHOW_TOUR_DIALOG", payload: !hasCompletedTour });
+  }, []);
+
+  const steps: Step[] = [
+    {
+      id: "welcome",
+      title: "Filter Questions by Difficulty",
+      description:
+        "Filter questions by difficulty level. Now try select at least 2 difficulty levels.",
+      targetSelector: "[data-onboard='select-difficulties']",
+      completed: tourState.completedSteps.has("welcome"),
+    },
+    {
+      id: "skills",
+      title: "Filter Questions by Skills or Topics",
+      description:
+        "Filter the questions by specific skills or topics to find the most relevant ones. Now try select at least 3 topics.",
+      targetSelector: "[data-onboard='select-skills']",
+      completed: tourState.completedSteps.has("skills"),
+    },
+    {
+      id: "advanced-filter",
+      title: "Advanced Filter Options",
+      description:
+        "Here you can find more specific filtering options, including created date sorting, excluding bluebook options, and more. Open the advanced filter menu to explore these options.",
+      targetSelector: "[data-onboard='advanced-filter']",
+      completed: tourState.completedSteps.has("advanced-filter"),
+    },
+    {
+      id: "exclude-bluebook-toggler",
+      title: "Exclude Bluebook Questions",
+      description:
+        "Toggle this option to exclude questions that are part of the Bluebook. This can help you focus on non-Bluebook content.",
+      targetSelector: "[data-onboard='exclude-bluebook-toggler']",
+      completed: tourState.completedSteps.has("exclude-bluebook-toggler"),
+      biggerZIndex: true,
+      requirePreviousStep: true,
+    },
+    {
+      id: "bluebook-only-toggler",
+      title: "Show Bluebook Questions Only",
+      description:
+        "Toggle this option to show only questions that are appear on Bluebook app.",
+      targetSelector: "[data-onboard='bluebook-only-toggler']",
+      completed: tourState.completedSteps.has("bluebook-only-toggler"),
+      biggerZIndex: true,
+      requirePreviousStep: true,
+    },
+    {
+      id: "time-sort",
+      title: "Sort by Time",
+      description:
+        "You can sort questions by their created time, sort it by newest or oldest.",
+      targetSelector: "[data-onboard='time-sort']",
+      completed: tourState.completedSteps.has("time-sort"),
+      biggerZIndex: true,
+    },
+    {
+      id: "date-range-filter",
+      title: "Time Filter",
+      description:
+        "Here you can filter questions by their creation date. Use this option to find questions created within a specific date range.",
+      targetSelector: "[data-onboard='date-range-filter']",
+      completed: tourState.completedSteps.has("date-range-filter"),
+      biggerZIndex: true,
+    },
+  ];
+
+  const handleCompleteStep = (stepId: string) => {
+    tourDispatch({ type: "ADD_COMPLETED_STEP", payload: stepId });
+  };
+
+  const handleFinish = () => {
+    console.log("Onboarding completed!");
+    tourDispatch({ type: "SET_ONBOARDING_OPEN", payload: false });
+  };
+
+  const resetDemo = () => {
+    tourDispatch({ type: "RESET_COMPLETED_STEPS" });
+    tourDispatch({ type: "SET_ONBOARDING_OPEN", payload: true });
+  };
+
+  const completedCount = steps.filter((step) =>
+    tourState.completedSteps.has(step.id)
+  ).length;
+  const isOnboardingComplete = completedCount === steps.length;
+
   const observerRef = useRef<IntersectionObserver | null>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
 
@@ -414,6 +558,49 @@ export function QuestionResults({
     [skillOptions]
   );
 
+  useEffect(() => {
+    if (tourState.onboardingOpen && !isOnboardingComplete) {
+      if (
+        !tourState.completedSteps.has("welcome") &&
+        state.selectedDifficulties.length > 1
+      ) {
+        handleCompleteStep("welcome");
+      }
+      if (
+        !tourState.completedSteps.has("skills") &&
+        state.selectedSkills.length > 2
+      ) {
+        handleCompleteStep("skills");
+      }
+
+      if (
+        !tourState.completedSteps.has("exclude-bluebook-toggler") &&
+        state.excludeBluebookQuestions
+      ) {
+        handleCompleteStep("exclude-bluebook-toggler");
+      }
+      if (
+        !tourState.completedSteps.has("bluebook-only-toggler") &&
+        state.onlyBluebookQuestions
+      ) {
+        handleCompleteStep("bluebook-only-toggler");
+      }
+
+      if (
+        !tourState.completedSteps.has("time-sort") &&
+        state.sortOrder !== "default"
+      ) {
+        handleCompleteStep("time-sort");
+      }
+    }
+  }, [
+    state.selectedDifficulties,
+    state.selectedSkills,
+    state.excludeBluebookQuestions,
+    state.onlyBluebookQuestions,
+    state.sortOrder,
+  ]);
+
   if (!state.isInitialized) {
     return (
       <div className="space-y-4">
@@ -590,6 +777,32 @@ export function QuestionResults({
   // console.log("state.filteredQuestions", state.filteredQuestions);
   return (
     <div className="space-y-6 px-2 max-w-full lg:max-w-7xl xl:max-w-[92rem] mx-auto">
+      <TourAlertDialog
+        startTour={() => {
+          tourDispatch({ type: "SET_ONBOARDING_OPEN", payload: true });
+          tourDispatch({ type: "SET_SHOW_TOUR_DIALOG", payload: false });
+        }}
+        isOpen={tourState.showTourDialog}
+        setIsOpen={(isOpen) =>
+          tourDispatch({ type: "SET_SHOW_TOUR_DIALOG", payload: isOpen })
+        }
+        tourLocalStorageKey="questionbank-onboarding"
+        tourTitle="Welcome to Question Bank!"
+        tourDescription="This short tour will guide you through filtering and finding questions effectively."
+      />
+
+      <InteractiveOnboardingChecklist
+        steps={steps}
+        open={tourState.onboardingOpen}
+        onOpenChange={(open) =>
+          tourDispatch({ type: "SET_ONBOARDING_OPEN", payload: open })
+        }
+        onCompleteStep={handleCompleteStep}
+        onFinish={handleFinish}
+        mode="standard"
+        tourLocalStorageKey="questionbank-onboarding"
+      />
+
       <div className="px-8 lg:px-28 grid grid-cols-12 py-3">
         <div className="col-span-12 md:col-span-5 flex flex-col flex-wrap gap-2 items-start text-sm">
           <h2 className="text-lg font-semibold">Question Results</h2>
@@ -661,6 +874,7 @@ export function QuestionResults({
         </div>
         <div className="mt-10 md:mt-0 col-span-12 md:col-span-7 flex flex-col lg:flex-row items-end justify-end gap-3">
           <MultiSelectCombobox
+            data-onboard="select-difficulties"
             label={"by Difficulty"}
             options={DIFFICULTY_OPTIONS}
             value={state.selectedDifficulties}
@@ -674,6 +888,7 @@ export function QuestionResults({
             renderSelectedItem={renderSelectedDifficulties}
           />
           <MultiSelectCombobox
+            data-onboard="select-skills"
             label={"by Skills"}
             options={skillOptions}
             value={state.selectedSkills}
@@ -688,16 +903,35 @@ export function QuestionResults({
             grouped={true}
           />
 
-          <Popover>
-            <PopoverTrigger asChild className="h-full cursor-pointer">
-              <Button variant="outline" className="h-full">
+          <PersistentPopover>
+            <PersistentPopoverTrigger asChild className="h-full cursor-pointer">
+              <Button
+                data-onboard="advanced-filter"
+                onClick={() => {
+                  if (
+                    tourState.onboardingOpen &&
+                    !tourState.completedSteps.has("advanced-filter")
+                  ) {
+                    handleCompleteStep("advanced-filter");
+                  }
+                }}
+                variant="outline"
+                className="h-full"
+              >
                 Filter <SlidersHorizontalIcon />
               </Button>
-            </PopoverTrigger>
+            </PersistentPopoverTrigger>
 
-            <PopoverContent side="bottom" align="end">
+            <PersistentPopoverContent
+              side="bottom"
+              align="end"
+              preventClose={tourState.onboardingOpen}
+            >
               <div className="flex flex-col gap-y-2">
-                <div className="flex items-center gap-2">
+                <div
+                  className="flex items-center gap-2"
+                  data-onboard="exclude-bluebook-toggler"
+                >
                   <Switch
                     checked={state.excludeBluebookQuestions}
                     onCheckedChange={(checked) => {
@@ -709,7 +943,10 @@ export function QuestionResults({
                   />
                   <span className="text-sm">Exclude Bluebook Questions</span>
                 </div>
-                <div className="flex items-center gap-2">
+                <div
+                  className="flex items-center gap-2"
+                  data-onboard="bluebook-only-toggler"
+                >
                   <Switch
                     checked={state.onlyBluebookQuestions}
                     onCheckedChange={(checked) => {
@@ -733,6 +970,7 @@ export function QuestionResults({
                   <SelectTrigger
                     className="bg-white h-full"
                     icon={ClockFadingIcon}
+                    data-onboard="time-sort"
                   >
                     <SelectValue placeholder={"Filter by Date"} />
                   </SelectTrigger>
@@ -751,17 +989,23 @@ export function QuestionResults({
 
                 <Calendar
                   allowClear
+                  dataOnboard="date-range-filter"
                   disableFuture
                   isDocsPage
                   showTimeInput={false}
                   onChange={(dateRange) =>
                     dispatch({ type: "SET_DATE_RANGE", payload: dateRange })
                   }
+                  onClick={() => {
+                    if (!tourState.completedSteps.has("date-range-filter")) {
+                      handleCompleteStep("date-range-filter");
+                    }
+                  }}
                   value={state.dateRange}
                 />
               </div>
-            </PopoverContent>
-          </Popover>
+            </PersistentPopoverContent>
+          </PersistentPopover>
         </div>
       </div>
 
