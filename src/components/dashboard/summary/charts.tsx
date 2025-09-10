@@ -211,7 +211,35 @@ export default function SummaryCharts({
                 >
                   <ChartTooltip
                     cursor={false}
-                    content={<ChartTooltipContent indicator="line" />}
+                    content={
+                      <ChartTooltipContent
+                        indicator="line"
+                        formatter={(value, name, item, index) => (
+                          <>
+                            <div
+                              className="h-2.5 w-2.5 shrink-0 rounded-[2px] bg-(--color-bg)"
+                              style={
+                                {
+                                  "--color-bg": `${
+                                    chartConfig[
+                                      name as keyof typeof chartConfig
+                                    ]?.color
+                                  }`,
+                                } as React.CSSProperties
+                              }
+                            />
+                            {chartConfig[name as keyof typeof chartConfig]
+                              ?.label || name}
+                            <div className="text-foreground ml-auto flex items-baseline gap-0.5 font-mono font-medium tabular-nums">
+                              {Math.round(value as number)}
+                              <span className="text-muted-foreground font-normal">
+                                %
+                              </span>
+                            </div>
+                          </>
+                        )}
+                      />
+                    }
                   />
                   <PolarAngleAxis dataKey="text" axisLineType="polygon" />
                   <PolarGrid strokeDasharray="3 3" />
