@@ -15,14 +15,33 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+// import {
+//   ChartConfig,
+//   ChartContainer,
+//   ChartTooltip,
+//   ChartTooltipContent,
+// } from "@/components/ui/radar-chart";
+
 import {
   ChartConfig,
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
-} from "@/components/ui/radar-chart";
+  ChartLegend,
+  ChartLegendContent,
+} from "@/components/ui/chart";
+
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp } from "lucide-react";
+import {
+  BadgeQuestionMark,
+  Code2,
+  FolderOpen,
+  Plus,
+  Rocket,
+  TrendingUp,
+} from "lucide-react";
+import { EmptyState } from "@/components/ui/empty-state";
+import { useRouter } from "next/navigation";
 
 const chartData = [
   { month: "January", desktop: 80, mobile: 20 },
@@ -42,11 +61,11 @@ const chartData = [
 const chartConfig = {
   correctPercantage: {
     label: "Correct",
-    color: "var(--chart-1)",
+    color: "var(--color-blue-300)",
   },
   incorrectPercentage: {
     label: "Incorrect",
-    color: "var(--chart-4)",
+    color: "var(--color-red-300)",
   },
 } satisfies ChartConfig;
 
@@ -59,6 +78,7 @@ export default function SummaryCharts({
 }: {
   selectedAssessment: AssessmentWorkspace | undefined;
 }) {
+  const router = useRouter();
   const summaryData = useMemo(() => {
     const finalData: {
       [key: string]: { [primaryClassCd: string]: SummaryData };
@@ -191,7 +211,7 @@ export default function SummaryCharts({
                 >
                   <ChartTooltip
                     cursor={false}
-                    content={<ChartTooltipContent />}
+                    content={<ChartTooltipContent indicator="line" />}
                   />
                   <PolarAngleAxis dataKey="text" axisLineType="polygon" />
                   <PolarGrid strokeDasharray="3 3" />
@@ -207,10 +227,30 @@ export default function SummaryCharts({
                     fill="var(--color-red-300)"
                     fillOpacity={0.1}
                   />
+                  <ChartLegend
+                    className="mt-8"
+                    content={<ChartLegendContent />}
+                  />
                 </RadarChart>
               </ChartContainer>
             ) : (
-              <div>Start Practice to See the Data</div>
+              <EmptyState
+                theme={"light"}
+                className=" border-0"
+                title="No Data Available"
+                description="Start practice to view your reading & writing skills."
+                icons={[
+                  <FolderOpen key="p1" className="h-6 w-6" />,
+                  <BadgeQuestionMark key="p2" className="h-6 w-6" />,
+                  <Rocket key="p3" className="h-6 w-6" />,
+                ]}
+                action={{
+                  label: "Start Practice",
+                  onClick: () => {
+                    router.push("/practice");
+                  },
+                }}
+              />
             )}
           </CardContent>
         </Card>
@@ -235,7 +275,35 @@ export default function SummaryCharts({
                 >
                   <ChartTooltip
                     cursor={false}
-                    content={<ChartTooltipContent />}
+                    content={
+                      <ChartTooltipContent
+                        indicator="line"
+                        formatter={(value, name, item, index) => (
+                          <>
+                            <div
+                              className="h-2.5 w-2.5 shrink-0 rounded-[2px] bg-(--color-bg)"
+                              style={
+                                {
+                                  "--color-bg": `${
+                                    chartConfig[
+                                      name as keyof typeof chartConfig
+                                    ]?.color
+                                  }`,
+                                } as React.CSSProperties
+                              }
+                            />
+                            {chartConfig[name as keyof typeof chartConfig]
+                              ?.label || name}
+                            <div className="text-foreground ml-auto flex items-baseline gap-0.5 font-mono font-medium tabular-nums">
+                              {Math.round(value as number)}
+                              <span className="text-muted-foreground font-normal">
+                                %
+                              </span>
+                            </div>
+                          </>
+                        )}
+                      />
+                    }
                   />
                   <PolarAngleAxis dataKey="text" axisLineType="polygon" />
                   <PolarGrid strokeDasharray="3 3" />
@@ -251,10 +319,30 @@ export default function SummaryCharts({
                     fill="var(--color-red-300)"
                     fillOpacity={0.1}
                   />
+                  <ChartLegend
+                    className="mt-8"
+                    content={<ChartLegendContent />}
+                  />
                 </RadarChart>
               </ChartContainer>
             ) : (
-              <div>Start Practice to See the Data</div>
+              <EmptyState
+                theme={"light"}
+                className=" border-0"
+                title="No Data Available"
+                description="Start practice to view your maths skills."
+                icons={[
+                  <FolderOpen key="p1" className="h-6 w-6" />,
+                  <BadgeQuestionMark key="p2" className="h-6 w-6" />,
+                  <Rocket key="p3" className="h-6 w-6" />,
+                ]}
+                action={{
+                  label: "Start Practice",
+                  onClick: () => {
+                    router.push("/practice");
+                  },
+                }}
+              />
             )}
           </CardContent>
         </Card>
