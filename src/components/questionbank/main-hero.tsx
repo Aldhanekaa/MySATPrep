@@ -37,6 +37,7 @@ import { Assessments } from "@/static-data/assessment";
 import { domains, primaryClassCdObjectData } from "@/static-data/domains";
 import { PlainQuestionType } from "@/types";
 import { QuestionResults } from "./question-results";
+import ButtonsGroup from "../dashboard/buttons-group";
 
 // Bluebook external IDs interface
 interface BluebookExternalIds {
@@ -655,7 +656,7 @@ export function QB_MainHero() {
                                 !state.selectedAssessment ||
                                 !state.selectedSubject ||
                                 state.selected.length === 0
-                                  ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                                  ? "bg-gray-100 text-gray-500 cursor-not-allowed"
                                   : state.isLoading
                                   ? "bg-gray-300 text-gray-600 cursor-not-allowed"
                                   : hasAppliedFilters() && !hasFiltersChanged()
@@ -697,6 +698,7 @@ export function QB_MainHero() {
                           </motion.div>
                         </motion.div>
                       </div>
+                      <ButtonsGroup showReview={false} />
                     </div>
                   </motion.div>
                 </div>
