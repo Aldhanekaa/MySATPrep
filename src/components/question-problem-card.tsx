@@ -642,14 +642,17 @@ export default function QuestionProblemCard({
                               </div>
                             </div>
                             <Label className="col-span-8">
-                              <MathJax inline dynamic className="inline-block">
+                              <MathJax
+                                inline
+                                dynamic
+                                id="question_explanation"
+                                className="inline-block"
+                              >
                                 <span
+                                  id="question_explanation"
                                   className="text-xl inline-block"
                                   dangerouslySetInnerHTML={{
-                                    __html: optionText.replaceAll(
-                                      /\s*style\s*=\s*"[^"]*"/gi,
-                                      ""
-                                    ),
+                                    __html: optionText,
                                   }}
                                 ></span>
                               </MathJax>
@@ -834,7 +837,7 @@ export default function QuestionProblemCard({
         </CardContent>
       </Card>
       {isQuestionAnswered && (
-        <div className="mt-4 w-full md:w-3xl lg:w-5xl px-4">
+        <div className="mt-4 w-full mx-auto xl:w-5xl px-4">
           <Label className="text-lg font-semibold mb-2 block">
             Explanation:
           </Label>

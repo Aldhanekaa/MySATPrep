@@ -8,7 +8,7 @@ import Link from "next/link";
 
 const menuItems = [
   { name: "Dashboard", href: "/dashboard" },
-  // { name: "Leaderboard", href: "/leaderboard" },
+  { name: "Question Bank", href: "/questionbank" },
   { name: "Resources", href: "/resources" },
   // { name: "Feedback", href: "/feedback" },
 ];
@@ -29,7 +29,7 @@ export const SiteHeader = () => {
     <header>
       <nav
         data-state={menuState && "active"}
-        className="fixed group z-30 w-full px-2"
+        className="fixed group z-50 w-full px-2"
       >
         <div
           className={cn(

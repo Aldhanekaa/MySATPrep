@@ -232,6 +232,24 @@ export function DraggableDesmosPopup({
             });
           }
         }}
+        onMouseEnter={() => {
+          // Disable pointer events on iframe when hovering resize handle
+          const iframe = document.querySelector(
+            'iframe[title="Desmos Graphing Calculator"]'
+          ) as HTMLIFrameElement;
+          if (iframe) {
+            iframe.style.pointerEvents = "none";
+          }
+        }}
+        onMouseLeave={() => {
+          // Re-enable pointer events on iframe when leaving resize handle
+          const iframe = document.querySelector(
+            'iframe[title="Desmos Graphing Calculator"]'
+          ) as HTMLIFrameElement;
+          if (iframe) {
+            iframe.style.pointerEvents = "auto";
+          }
+        }}
       >
         <Button
           variant="ghost"

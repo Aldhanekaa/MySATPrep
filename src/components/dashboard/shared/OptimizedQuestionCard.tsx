@@ -40,7 +40,7 @@ interface OptimizedQuestionCardProps {
   question: BaseQuestionWithData | AnsweredQuestionWithData;
   index: number;
   onRetry: (index: number, questionId: string) => void;
-  type: "saved" | "answered";
+  type: "saved" | "answered" | "standard";
 }
 
 // Type guard to check if question is answered type

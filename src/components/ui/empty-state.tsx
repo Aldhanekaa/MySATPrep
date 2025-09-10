@@ -132,27 +132,33 @@ const IconContainer = memo(
 );
 IconContainer.displayName = "IconContainer";
 
-const MultiIconDisplay = memo(({ icons, theme }: MultiIconDisplayProps) => {
-  if (!icons || icons.length < 3) return null;
+export const MultiIconDisplay = memo(
+  ({ icons, theme }: MultiIconDisplayProps) => {
+    if (!icons || icons.length < 3) return null;
 
-  return (
-    <div className="flex justify-center isolate relative">
-      <IconContainer variant="left" className="left-2 top-1 z-10" theme={theme}>
-        {icons[0]}
-      </IconContainer>
-      <IconContainer variant="center" className="z-20" theme={theme}>
-        {icons[1]}
-      </IconContainer>
-      <IconContainer
-        variant="right"
-        className="right-2 top-1 z-10"
-        theme={theme}
-      >
-        {icons[2]}
-      </IconContainer>
-    </div>
-  );
-});
+    return (
+      <div className="flex justify-center isolate relative">
+        <IconContainer
+          variant="left"
+          className="left-2 top-1 z-10"
+          theme={theme}
+        >
+          {icons[0]}
+        </IconContainer>
+        <IconContainer variant="center" className="z-20" theme={theme}>
+          {icons[1]}
+        </IconContainer>
+        <IconContainer
+          variant="right"
+          className="right-2 top-1 z-10"
+          theme={theme}
+        >
+          {icons[2]}
+        </IconContainer>
+      </div>
+    );
+  }
+);
 MultiIconDisplay.displayName = "MultiIconDisplay";
 
 const Background = ({ theme }: { theme?: Theme }) => (

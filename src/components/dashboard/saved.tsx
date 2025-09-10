@@ -243,7 +243,7 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
       })
     );
 
-    console.log("HEYY!", assessmentKey, selectedAssessment);
+    // console.log("HEYY!", assessmentKey, selectedAssessment);
     dispatch({ type: "INITIALIZE_QUESTIONS", payload: initialQuestions });
     dispatch({ type: "RESET_FETCHED_IDS" });
   }, [assessmentKey, savedQuestions]);
@@ -413,10 +413,10 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
       <div className="space-y-4 max-w-full mx-auto lg:px-22">
         {state.questionsWithData
           .filter((question) => {
-            console.log("state.filterSubject", state.filterSubject);
+            // console.log("state.filterSubject", state.filterSubject);
             // Apply subject filter
             if (state.filterSubject !== "all") {
-              console.log("question.questionData", question.questionData);
+              // console.log("question.questionData", question.questionData);
               const subject = question.questionData?.question.primary_class_cd;
 
               if (subject && question.questionData?.question.primary_class_cd) {

@@ -122,10 +122,10 @@ export default function RootLayout({
       >
         <MathJaxContext version={3} config={config}>
           {/* <Banner
-            message="🎉 Maintenance is in progress! If it takes a long time to continue or review your session, please start a new Practice Rush"
+            message="We just released a new feature!"
             height="2rem"
             variant="rainbow"
-            className="mb-4"
+            className="mb-4 relative"
           /> */}
 
           {children}

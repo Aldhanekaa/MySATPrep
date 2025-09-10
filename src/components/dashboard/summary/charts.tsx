@@ -634,7 +634,7 @@ export default function SummaryCharts({
                                   fill="var(--color-blue-400)"
                                   radius={10}
                                   shape={(props: any) => {
-                                    console.log("shape", props);
+                                    // console.log("shape", props);
 
                                     return (
                                       <>
