@@ -67,6 +67,7 @@ import ReferenceSheet from "@/src/sat-math-refrence-sheet.webp";
 import { Confetti, ConfettiRef } from "./ui/confetti";
 import { playSound } from "@/lib/playSound";
 import { useRouter } from "next/navigation";
+import { LookupRequest } from "@/types";
 
 // Duolingo-styled Loading Spinner Component
 interface DuolingoLoadingSpinnerProps {
@@ -1176,6 +1177,8 @@ interface AppState {
   isSavingSession: boolean;
   isShareModalOpen: boolean;
   sessionXPReceived: number; // Track total XP gained/lost during this session
+
+  lookupData: LookupRequest | undefined;
 }
 
 type AppAction =
@@ -1235,8 +1238,8 @@ type AppAction =
       };
     }
   | { type: "SET_SAVING_SESSION"; payload: boolean }
-  | { type: "ADD_SESSION_XP"; payload: number };
-
+  | { type: "ADD_SESSION_XP"; payload: number }
+  | { type: "SET_LOOKUP_DATA"; payload: LookupRequest };
 const initialState: AppState = {
   questionsData: null,
   questions: null,
@@ -1270,6 +1273,8 @@ const initialState: AppState = {
   isSavingSession: false,
   isShareModalOpen: false,
   sessionXPReceived: 0, // Initialize session XP tracking
+
+  lookupData: undefined,
 };
 
 function appReducer(state: AppState, action: AppAction): AppState {
@@ -1419,6 +1424,13 @@ function appReducer(state: AppState, action: AppAction): AppState {
         ...state,
         isExitConfirmationOpen: !state.isExitConfirmationOpen,
       };
+
+    case "SET_LOOKUP_DATA":
+      return {
+        ...state,
+        lookupData: action.payload,
+      };
+
     case "TOGGLE_FINISH_CONFIRMATION":
       return {
         ...state,
@@ -2339,6 +2351,30 @@ export default function PracticeRushMultistep({
 
       try {
         console.log("Selections : ", selections);
+
+        let lookupData: LookupRequest | undefined = state.lookupData;
+        const lookupResponse = await fetch("/api/lookup")
+          .then((res) => res.json())
+          .catch((error) => {
+            console.error("Error fetching questions:", error);
+            toast.error("Failed to Fetch Questions", {
+              description:
+                "Unable to load practice questions. Please check your connection and try again.",
+              duration: 5000,
+            });
+            return [];
+          });
+
+        console.log("lookupResponse", lookupResponse);
+        if ("data" in lookupResponse) {
+          lookupData = lookupResponse.data || null;
+          console.log("lookupData", lookupData);
+
+          if (lookupData) {
+            dispatch({ type: "SET_LOOKUP_DATA", payload: lookupData });
+          }
+        }
+
         // Handle review mode - only fetch previously answered questions
         // This includes: explicit review mode OR sessions with COMPLETED status
         if (effectiveReviewMode && restoredSessionData) {
@@ -2537,13 +2573,26 @@ export default function PracticeRushMultistep({
         if (questionsData && !state.questionsData) {
           console.log(`questionsData before excluding ${questionsData.length}`);
 
+          console.log("STATE LOOKUP ", lookupData);
           // if user want to exluce Bluebook questions
-          if (selections.excludeBluebook) {
-            questionsData = questionsData.filter(
-              (item) =>
-                (item.ibn == null && item.external_id) ||
-                (item.ibn && item.external_id == null)
-            );
+          if (selections.excludeBluebook && lookupData) {
+            questionsData = questionsData.filter((item) => {
+              if (!item.external_id) {
+                return true;
+              }
+
+              if (selections.subject == "reading-writing") {
+                return !lookupData.readingLiveItems.includes(item.external_id);
+              }
+
+              if (selections.subject == "math") {
+                return !lookupData.mathLiveItems.includes(item.external_id);
+              }
+
+              return true;
+            });
+          } else if (!lookupData) {
+            // sonner
           }
 
           console.log(
