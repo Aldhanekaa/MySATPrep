@@ -1523,7 +1523,10 @@ function appReducer(state: AppState, action: AppAction): AppState {
 
 interface PracticeRushMultistepProps {
   practiceSelections: PracticeSelections;
-  onSessionComplete?: (sessionData: PracticeSession) => void;
+  onSessionComplete?: (
+    sessionData: PracticeSession,
+    correctAnswers: { [questionId: string]: Array<string> }
+  ) => void;
   restoredSessionData?: PracticeSession; // New prop for passing down localStorage data
   isReviewMode?: boolean; // New prop for review-only mode
 }
@@ -2095,7 +2098,13 @@ export default function PracticeRushMultistep({
 
       // Call the parent callback with completed session data
       if (onSessionComplete) {
-        onSessionComplete(completedSession);
+        let correctAnswers: { [questionId: string]: Array<string> } = {};
+        console.log("questions data", state.questions);
+        state.questions?.forEach((q) => {
+          correctAnswers[q.plainQuestion.questionId] = q.correct_answer;
+        });
+
+        onSessionComplete(completedSession, correctAnswers);
       }
     } catch (error) {
       console.error("Failed to save completed session:", error);

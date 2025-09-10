@@ -110,6 +110,10 @@ function Practice() {
     useState<PracticeSelections | null>(null);
   const [sessionComplete, setSessionComplete] = useState<boolean>(false);
   const [sessionData, setSessionData] = useState<PracticeSession | null>(null);
+  const [correctAnswers, setCorrectAnswers] = useState<{
+    [questionId: string]: Array<string>;
+  } | null>(null);
+
   const [showValidationBanner, setShowValidationBanner] =
     useState<boolean>(false);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
@@ -811,8 +815,12 @@ function Practice() {
     playSound("loading.wav");
   };
 
-  const handleSessionComplete = (sessionData: PracticeSession) => {
+  const handleSessionComplete = (
+    sessionData: PracticeSession,
+    correctAnswers: { [questionId: string]: Array<string> }
+  ) => {
     setSessionData(sessionData);
+    setCorrectAnswers(correctAnswers);
     setSessionComplete(true);
   };
 
@@ -855,6 +863,7 @@ function Practice() {
         <PracticeRushCelebration
           sessionData={sessionData}
           onContinue={handleContinuePracticing}
+          correctAnswerChoices={correctAnswers || {}}
         />
       ) : !shouldRestoreSession && !onboardingComplete ? (
         <React.Fragment>

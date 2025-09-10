@@ -1,10 +1,94 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useMemo } from "react";
 import { PracticeSession } from "@/types/session";
 import { Button } from "@/components/ui/button";
 import { Trophy, Clock, Target, Zap } from "lucide-react";
 import { playSound } from "@/lib/playSound";
+
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardHeading,
+  CardTitle,
+} from "@/components/ui/card-v2";
+import {
+  Chart,
+  type ChartConfig,
+  ChartTooltip,
+  ChartTooltipContent,
+} from "@/components/ui/bar-chart";
+import { Bar, BarChart, Rectangle, XAxis, YAxis } from "recharts";
+import {
+  primaryClassCdObjectData,
+  skillCdsObjectData,
+} from "@/static-data/domains";
+import { cn } from "@/lib/utils";
+
+const chartData = [
+  {
+    country: "United States",
+    count: 45000,
+    percentage: 45.0,
+  },
+  {
+    country: "Canada",
+    count: 34000,
+    percentage: 18.0,
+  },
+  {
+    country: "United Kingdom",
+    count: 30000,
+    percentage: 12.0,
+  },
+  {
+    country: "Germany",
+    count: 25000,
+    percentage: 9.0,
+  },
+  {
+    country: "Australia",
+    count: 22000,
+    percentage: 7.5,
+  },
+  {
+    country: "France",
+    count: 18000,
+    percentage: 6.0,
+  },
+  {
+    country: "Japan",
+    count: 15000,
+    percentage: 4.5,
+  },
+  {
+    country: "Brazil",
+    count: 13000,
+    percentage: 5.0,
+  },
+  {
+    country: "Indonesia",
+    count: 10030,
+    percentage: 6.0,
+  },
+];
+
+const chartConfig = {
+  correctAnswers: {
+    label: "Count",
+    color: "var(--chart-1)",
+  },
+  incorrectAnswers: {
+    label: "Count",
+    color: "var(--chart-2)",
+  },
+  summary: {
+    label: "Correct Answers",
+    color: "var(--chart-3)",
+  },
+} satisfies ChartConfig;
 
 interface PracticeRushCelebrationProps {
   sessionData: PracticeSession & {
@@ -12,11 +96,13 @@ interface PracticeRushCelebrationProps {
     accuracyPercentage?: number;
   };
   onContinue: () => void;
+  correctAnswerChoices: { [questionId: string]: Array<string> };
 }
 
 export default function PracticeRushCelebration({
   sessionData,
   onContinue,
+  correctAnswerChoices,
 }: PracticeRushCelebrationProps) {
   // Play celebration sound when component mounts
   useEffect(() => {
@@ -86,8 +172,94 @@ export default function PracticeRushCelebration({
     }
   };
 
+  const answeredQuestionsDataSummary = useMemo(() => {
+    let skills: {
+      [primaryClassCd: string]: {
+        [skillCd: string]: {
+          correctAnswers: number;
+          incorrectAnswers: number;
+        };
+      };
+    } = {};
+    let domains: {
+      [key: string]: {
+        text: string;
+        id: string;
+        summary: Array<any>;
+      };
+    } = {};
+
+    sessionData.practiceSelections.domains.forEach((domain) => {
+      domains[domain.primaryClassCd] = {
+        text: domain.text,
+        id: domain.id,
+        summary: [],
+      };
+    });
+
+    // console.log("doma ins", domains);
+
+    sessionData.answeredQuestionDetails.forEach((aq) => {
+      const questionSelection = sessionData.questionAnswers[aq.questionId];
+      // console.log("QUESTION SELECTION", questionSelection, aq);
+      if (questionSelection && aq.plainQuestion) {
+        if (!(aq.plainQuestion.primary_class_cd in skills)) {
+          skills[aq.plainQuestion.primary_class_cd] = {};
+        }
+
+        if (
+          !(
+            aq.plainQuestion.skill_cd in
+            skills[aq.plainQuestion.primary_class_cd]
+          )
+        ) {
+          skills[aq.plainQuestion.primary_class_cd][aq.plainQuestion.skill_cd] =
+            {
+              correctAnswers: 0,
+              incorrectAnswers: 0,
+            };
+        }
+
+        let skillCdData =
+          skills[aq.plainQuestion.primary_class_cd][aq.plainQuestion.skill_cd];
+
+        if (correctAnswerChoices[aq.questionId].includes(questionSelection)) {
+          skillCdData.correctAnswers += 1;
+        } else {
+          skillCdData.incorrectAnswers += 1;
+        }
+
+        // console.log("DOMAIN ", questionSelection);
+      }
+    });
+
+    Object.keys(domains).forEach((domainKey) => {
+      const domain = domains[domainKey];
+      const domainSkills = skills[domainKey] || {};
+      domain.summary = Object.keys(domainSkills).map((skillKey) => {
+        const skillData = domainSkills[skillKey];
+        return {
+          text: skillKey,
+          correctAnswers: skillData.correctAnswers,
+          incorrectAnswers: skillData.incorrectAnswers,
+          summary: `${skillData.correctAnswers} out of ${
+            skillData.correctAnswers + skillData.incorrectAnswers
+          }`,
+        };
+      });
+    });
+
+    // console.log("domains!!", domains);
+    // console.log("skillCdsObjectData S", skillCdsObjectData);
+
+    // console.log("SKILLS", skills);
+
+    return domains;
+  }, [sessionData]);
+
+  console.log("HEY,", sessionData, answeredQuestionsDataSummary);
   return (
-    <div className="min-h-screen  flex items-center justify-center p-4">
+    <div className="min-h-screen pt-32  flex items-center justify-center p-4">
       <div className="max-w-2xl w-full space-y-8">
         {/* Header Section */}
         <div className="text-center space-y-4">
@@ -226,15 +398,142 @@ export default function PracticeRushCelebration({
         </div>
 
         {/* Session Details */}
-        <div className="relative">
-          <div className="bg-gray-400 rounded-2xl p-6 shadow-lg border-b-4 border-gray-600 transform transition-all duration-200 hover:shadow-xl hover:border-gray-700">
-            <div className="bg-white rounded-xl p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center justify-center">
-                <div className="bg-yellow-100 rounded-full p-2 mr-3">
+        <div className="relative space-y-10">
+          <Card
+            variant={"accent"}
+            className={cn(
+              "relative h-full rounded-3xl",
+              "transition-all duration-300",
+              "h-full w-full"
+            )}
+          >
+            <CardHeader>
+              <CardHeading className="py-2">
+                <CardTitle>
+                  <div className="text-lg  space-x-2 font-semibold text-gray-900 mb-4 flex items-start justify-center pt-5">
+                    <Zap className="h-5 w-5 mt-2 text-yellow-500" />
+                    <div>
+                      <p> Your Practice Session Statistics</p>
+                      <p className="text-sm font-normal">
+                        Hover to see detailed summary
+                      </p>
+                    </div>
+                  </div>
+                </CardTitle>
+              </CardHeading>
+            </CardHeader>
+            <CardContent className=" space-y-5 ">
+              {Object.keys(answeredQuestionsDataSummary).map(
+                (domainKey) =>
+                  answeredQuestionsDataSummary[domainKey].summary.length >
+                    0 && (
+                    <div>
+                      <p>{primaryClassCdObjectData[domainKey].text}</p>
+
+                      <Chart
+                        className="aspect-[20/12] sm:aspect-[17/5]"
+                        config={chartConfig}
+                      >
+                        <BarChart
+                          accessibilityLayer
+                          data={answeredQuestionsDataSummary[domainKey].summary}
+                          layout="vertical"
+                          margin={{
+                            left: 0,
+                          }}
+                        >
+                          <XAxis type="number" dataKey="correctAnswers" hide />
+                          <YAxis dataKey="text" type="category" hide />
+                          <ChartTooltip
+                            cursor={false}
+                            content={
+                              <ChartTooltipContent
+                                indicator="dot"
+                                labelKey="eee"
+                                hideLabel
+                                className=" w-[14rem] bg-white"
+                              />
+                            }
+                          />
+                          <Bar
+                            dataKey="summary"
+                            background={{
+                              radius: 10,
+                              fill: "var(--color-blue-300)",
+                              opacity: 0.2,
+                            }}
+                            fill="var(--color-blue-400)"
+                            radius={10}
+                            shape={(props: any) => {
+                              console.log("shape", props);
+
+                              return (
+                                <>
+                                  <Rectangle
+                                    {...props}
+                                    width={
+                                      (props.payload.correctAnswers /
+                                        (props.payload.correctAnswers +
+                                          props.payload.incorrectAnswers)) *
+                                      props.background.width
+                                    }
+                                  />
+                                  <text
+                                    x={props.x + 25}
+                                    y={
+                                      props.y + props.background.height / 2 + 3
+                                    }
+                                    fill="var(--color-blue-900)"
+                                    fontSize={12.5}
+                                  >
+                                    {
+                                      skillCdsObjectData[props.payload.text]
+                                        .text
+                                    }
+                                  </text>
+                                  <text
+                                    x={props.background.width - 10}
+                                    y={
+                                      props.y + props.background.height / 2 + 3
+                                    }
+                                    textAnchor="end"
+                                    fill="var(--fg)"
+                                  >
+                                    {(props.payload.correctAnswers /
+                                      (props.payload.correctAnswers +
+                                        props.payload.incorrectAnswers)) *
+                                      100}{" "}
+                                    %
+                                  </text>
+                                </>
+                              );
+                            }}
+                          />
+                        </BarChart>
+                      </Chart>
+                    </div>
+                  )
+              )}
+            </CardContent>
+          </Card>
+
+          <Card
+            variant={"accent"}
+            className={cn(
+              "relative h-full rounded-3xl",
+              "transition-all duration-300",
+              "h-full w-full"
+            )}
+          >
+            <CardHeader>
+              <CardHeading>
+                <h3 className="text-lg space-x-2 font-semibold text-gray-900 mb-4 flex items-center justify-center pt-5">
                   <Zap className="h-5 w-5 text-yellow-500" />
-                </div>
-                Session Summary
-              </h3>
+                  <p> Session Summary</p>
+                </h3>
+              </CardHeading>
+            </CardHeader>
+            <CardContent className="bg-white rounded-xl p-6 rounded-b-4xl overflow-hidden">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                 <div className="bg-gray-50 rounded-lg p-3">
                   <p className="text-gray-600 font-medium">Assessment:</p>
@@ -263,8 +562,8 @@ export default function PracticeRushCelebration({
                   </p>
                 </div>
               </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Continue Button */}
