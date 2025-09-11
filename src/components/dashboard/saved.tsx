@@ -224,10 +224,10 @@ const savedTabReducer = (
         ),
       };
     case "SET_QUESTION_SUCCESS":
+      console.log("SET_QUESTION_SUCCESS", action.payload);
       return {
         ...state,
-        allSavedQuestions: state.allSavedQuestions.map((q, i) => {
-          // console.log("SET_QUESTION_SUCCESS", q, action.payload);
+        allSavedQuestions: state.allSavedQuestions.map((q) => {
           return q.questionId === action.payload.qId
             ? {
                 ...q,
@@ -237,7 +237,7 @@ const savedTabReducer = (
               }
             : q;
         }),
-        questionsWithData: state.questionsWithData.map((q, i) =>
+        questionsWithData: state.questionsWithData.map((q) =>
           q.questionId === action.payload.qId
             ? {
                 ...q,
@@ -390,6 +390,7 @@ const savedTabReducer = (
         const collectionQuestionIds = action.payload.questionDetails.map(
           (detail) => detail.questionId
         );
+        console.log(collectionQuestionIds);
         let questionsForSubjectFilter = state.allSavedQuestions.filter(
           (question) => collectionQuestionIds.includes(question.questionId)
         );
@@ -415,6 +416,17 @@ const savedTabReducer = (
           isLoadingMore: false,
         };
       }
+
+      return {
+        ...state,
+        selectedCollection: action.payload,
+        viewMode: action.payload ? "questions" : "folders",
+        // Reset filters when changing collections
+        filterSubject: "all",
+        filterDifficulty: "all",
+
+        isLoadingMore: false,
+      };
 
     default:
       return state;
@@ -667,7 +679,7 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
     });
     dispatch({ type: "RESET_FETCHED_IDS" });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [assessmentKey, savedQuestions, currentSelectedCollection?.id]);
+  }, [assessmentKey, savedQuestions, state.viewMode]);
 
   // Fetch question data progressively
   useEffect(() => {
@@ -675,14 +687,14 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
       "useEffect for fetching questions",
       state.viewMode,
       state.isInitialized,
-      state.questionsWithData,
-      state.fetchedQuestionIds
+      state.questionsWithData.length,
+      state.fetchedQuestionIds.size
     );
     if (state.viewMode == "folders") return;
     if (!state.isInitialized || state.questionsWithData.length === 0) return;
 
     const fetchQuestionsProgressively = async () => {
-      console.log(state.questionsWithData);
+      console.log("questionsWithData in fetch:", state.questionsWithData);
       // Find questions that need to be fetched
       const questionsToFetch = state.questionsWithData
         .map((question, index) => ({ question, index }))
@@ -693,6 +705,8 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
             !question.hasError &&
             !state.fetchedQuestionIds.has(question.questionId)
         );
+
+      console.log("questionsToFetch:", questionsToFetch.length);
 
       if (questionsToFetch.length === 0) return;
 
@@ -747,6 +761,7 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
               },
             },
           });
+          dispatch({ type: "ADD_FETCHED_ID", payload: question.questionId });
 
           // Small delay between requests
           await new Promise((resolve) => setTimeout(resolve, 100));
@@ -758,9 +773,9 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
             type: "SET_QUESTION_ERROR",
             payload: { index, errorMessage, qId: question.questionId },
           });
+          dispatch({ type: "ADD_FETCHED_ID", payload: question.questionId });
         }
         // Mark these questions as being fetched
-        dispatch({ type: "ADD_FETCHED_ID", payload: question.questionId });
       }
     };
 
@@ -884,7 +899,7 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
 
         <div className="mt-10 md:mt-0 col-span-12 md:col-span-4 flex flex-col items-end justify-end gap-3">
           {/* View mode toggle */}
-          <div className="flex gap-2 w-full lg:w-[80%]">
+          <div className=" flex gap-2">
             <Button
               variant={state.viewMode === "folders" ? "default" : "outline"}
               size="sm"
@@ -908,80 +923,77 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
               Questions
             </Button>
           </div>
-
-          {state.viewMode === "questions" && (
-            <>
-              <Select
-                onValueChange={(value) =>
-                  dispatch({
-                    type: "SET_FILTER_SUBJECT",
-                    payload: {
-                      subject: value,
-                      selectedCollection: currentSelectedCollection,
-                    },
-                  })
-                }
-              >
-                <SelectTrigger
-                  icon={
-                    state.filterSubject === "all"
-                      ? ListFilterIcon
-                      : state.filterSubject == "math"
-                      ? SigmaIcon
-                      : PencilRuler
-                  }
-                  className="w-full lg:w-[80%] bg-background"
-                >
-                  <SelectValue placeholder="Sort by subject" />
-                </SelectTrigger>
-                <SelectContent className="font-medium absolute">
-                  <SelectItem value="all" icon={AlignJustifyIcon}>
-                    All Subjects
-                  </SelectItem>
-                  <SelectItem value="math" icon={SigmaIcon}>
-                    Maths
-                  </SelectItem>
-                  <SelectItem value="reading" icon={PencilRuler}>
-                    Reading & Writing
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-              <Select
-                onValueChange={(value) =>
-                  dispatch({
-                    type: "SET_FILTER_DIFFICULTY",
-                    payload: {
-                      difficulty: value,
-                      selectedCollection: currentSelectedCollection,
-                    },
-                  })
-                }
-              >
-                <SelectTrigger
-                  icon={ListFilterIcon}
-                  className="w-full lg:w-[80%] bg-background"
-                >
-                  <SelectValue placeholder="Filter by difficulty" />
-                </SelectTrigger>
-                <SelectContent className="font-medium absolute">
-                  <SelectItem value="all" icon={AlignJustifyIcon}>
-                    All Difficulties
-                  </SelectItem>
-                  <SelectItem value="E" icon={Star}>
-                    Easy
-                  </SelectItem>
-                  <SelectItem value="M" icon={Minus}>
-                    Medium
-                  </SelectItem>
-                  <SelectItem value="H" icon={Zap}>
-                    Hard
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </>
-          )}
         </div>
       </div>
+
+      {state.viewMode === "questions" && (
+        <div className="col-span-12 flex flex-col flex-wrap">
+          <Select
+            onValueChange={(value) =>
+              dispatch({
+                type: "SET_FILTER_SUBJECT",
+                payload: {
+                  subject: value,
+                  selectedCollection: currentSelectedCollection,
+                },
+              })
+            }
+          >
+            <SelectTrigger
+              icon={
+                state.filterSubject === "all"
+                  ? ListFilterIcon
+                  : state.filterSubject == "math"
+                  ? SigmaIcon
+                  : PencilRuler
+              }
+              className=" bg-background"
+            >
+              <SelectValue placeholder="Sort by subject" />
+            </SelectTrigger>
+            <SelectContent className="font-medium absolute">
+              <SelectItem value="all" icon={AlignJustifyIcon}>
+                All Subjects
+              </SelectItem>
+              <SelectItem value="math" icon={SigmaIcon}>
+                Maths
+              </SelectItem>
+              <SelectItem value="reading" icon={PencilRuler}>
+                Reading & Writing
+              </SelectItem>
+            </SelectContent>
+          </Select>
+          <Select
+            onValueChange={(value) =>
+              dispatch({
+                type: "SET_FILTER_DIFFICULTY",
+                payload: {
+                  difficulty: value,
+                  selectedCollection: currentSelectedCollection,
+                },
+              })
+            }
+          >
+            <SelectTrigger icon={ListFilterIcon} className=" bg-background">
+              <SelectValue placeholder="Filter by difficulty" />
+            </SelectTrigger>
+            <SelectContent className="font-medium absolute">
+              <SelectItem value="all" icon={AlignJustifyIcon}>
+                All Difficulties
+              </SelectItem>
+              <SelectItem value="E" icon={Star}>
+                Easy
+              </SelectItem>
+              <SelectItem value="M" icon={Minus}>
+                Medium
+              </SelectItem>
+              <SelectItem value="H" icon={Zap}>
+                Hard
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       {/* Main content area */}
       <div className="space-y-4 max-w-full mx-auto mt-10">
@@ -1118,7 +1130,7 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
                     key={`${question.questionId}-${index}`}
                     className=" mb-32"
                   >
-                    {JSON.stringify(question)}
+                    {/* {JSON.stringify(question)} */}
                     <OptimizedQuestionCard
                       key={`${question.questionId}-${index}-card`}
                       question={question}
