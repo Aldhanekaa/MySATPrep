@@ -116,8 +116,10 @@ export default function QuestionProblemCard({
   );
 
   // State for tracking if this question is saved and answered before
-  const [isQuestionSaved, setIsQuestionSaved] = useState<boolean>(false);
-  const [isQuestionAnswered, setIsQuestionAnswered] = useState<boolean>(false);
+  const [isQuestionSaved, setIsQuestionSaved] = useState<boolean>(() => false);
+  const [isQuestionAnswered, setIsQuestionAnswered] = useState<boolean>(
+    () => false
+  );
   const [questionStats, setQuestionStats] = useState<{
     isCorrect?: boolean;
     timeSpent?: number;
@@ -131,8 +133,10 @@ export default function QuestionProblemCard({
   const [hasNote, setHasNote] = useState<boolean>(false);
 
   // State for answer selection
-  const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
-  const [isAnswerChecked, setIsAnswerChecked] = useState<boolean>(false);
+  const [selectedAnswer, setSelectedAnswer] = useState<string | null>(
+    () => null
+  );
+  const [isAnswerChecked, setIsAnswerChecked] = useState<boolean>(() => false);
   const [questionStartTime] = useState<number>(Date.now());
 
   // Share modal state
