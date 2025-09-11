@@ -2,7 +2,7 @@ import LearnVocab from "@/components/dashboard/vocabs/learn";
 
 import { Banner } from "@/components/ui/banner-v2";
 import { MessageCircleWarningIcon } from "lucide-react";
-import React from "react";
+import React, { Suspense } from "react";
 
 function PageBanner() {
   return (
@@ -28,7 +28,15 @@ export default function VocabsPage() {
     <React.Fragment>
       <PageBanner />
       <section className="space-y-4 max-w-full lg:max-w-2xl w-full mx-auto px-3 py-10 ">
-        <LearnVocab />
+        <Suspense
+          fallback={
+            <div className="flex justify-center items-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+            </div>
+          }
+        >
+          <LearnVocab />
+        </Suspense>
       </section>
     </React.Fragment>
   );
