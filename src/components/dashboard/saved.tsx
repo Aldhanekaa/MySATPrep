@@ -177,11 +177,23 @@ type SavedTabAction =
   | { type: "ADD_FETCHED_ID"; payload: string }
   | { type: "REMOVE_FETCHED_ID"; payload: string }
   | { type: "RESET_FETCHED_IDS" }
-  | { type: "SET_FILTER_SUBJECT"; payload: string }
-  | { type: "SET_FILTER_DIFFICULTY"; payload: string }
+  | {
+      type: "SET_FILTER_SUBJECT";
+      payload: { subject: string; selectedCollection?: SavedCollection | null };
+    }
+  | {
+      type: "SET_FILTER_DIFFICULTY";
+      payload: {
+        difficulty: string;
+        selectedCollection?: SavedCollection | null;
+      };
+    }
   | { type: "SET_VIEW_MODE"; payload: ViewMode }
   | { type: "SET_SELECTED_COLLECTION"; payload: SavedCollection | null }
-  | { type: "LOAD_MORE" }
+  | {
+      type: "LOAD_MORE";
+      payload: { selectedCollection?: SavedCollection | null };
+    }
   | { type: "SET_LOADING_MORE"; payload: boolean };
 
 const savedTabReducer = (
@@ -259,36 +271,55 @@ const savedTabReducer = (
         ]),
       };
     case "SET_FILTER_SUBJECT":
+      // Apply collection filtering first if there's a selected collection
+      let questionsForSubjectFilter = state.allSavedQuestions;
+      if (action.payload.selectedCollection) {
+        const collectionQuestionIds =
+          action.payload.selectedCollection.questionDetails.map(
+            (detail) => detail.questionId
+          );
+        questionsForSubjectFilter = state.allSavedQuestions.filter((question) =>
+          collectionQuestionIds.includes(question.questionId)
+        );
+      }
+
       const filteredSubjectQuestions = filterQuestions(
-        state.allSavedQuestions,
-        action.payload,
+        questionsForSubjectFilter,
+        action.payload.subject,
         state.filterDifficulty
       ).slice(0, 10);
 
-      // console.log(
-      //   "filteredSubjectQuestions",
-      //   filteredSubjectQuestions,
-      //   action.payload
-      // );
       return {
         ...state,
         questionsWithData: filteredSubjectQuestions,
         displayedQuestionsCount: filteredSubjectQuestions.length,
-        filterSubject: action.payload,
+        filterSubject: action.payload.subject,
         isLoadingMore: false,
       };
     case "SET_FILTER_DIFFICULTY":
+      // Apply collection filtering first if there's a selected collection
+      let questionsForDifficultyFilter = state.allSavedQuestions;
+      if (action.payload.selectedCollection) {
+        const collectionQuestionIds =
+          action.payload.selectedCollection.questionDetails.map(
+            (detail) => detail.questionId
+          );
+        questionsForDifficultyFilter = state.allSavedQuestions.filter(
+          (question) => collectionQuestionIds.includes(question.questionId)
+        );
+      }
+
       const filteredDifficultyQuestions = filterQuestions(
-        state.allSavedQuestions,
+        questionsForDifficultyFilter,
         state.filterSubject,
-        action.payload
+        action.payload.difficulty
       ).slice(0, 10);
 
       return {
         ...state,
         questionsWithData: filteredDifficultyQuestions,
         displayedQuestionsCount: filteredDifficultyQuestions.length,
-        filterDifficulty: action.payload,
+        filterDifficulty: action.payload.difficulty,
         isLoadingMore: false,
       };
     case "REMOVE_FETCHED_ID":
@@ -304,8 +335,20 @@ const savedTabReducer = (
         fetchedQuestionIds: new Set(),
       };
     case "LOAD_MORE":
+      // Apply collection filtering first if there's a selected collection
+      let questionsForLoadMore = state.allSavedQuestions;
+      if (action.payload.selectedCollection) {
+        const collectionQuestionIds =
+          action.payload.selectedCollection.questionDetails.map(
+            (detail) => detail.questionId
+          );
+        questionsForLoadMore = state.allSavedQuestions.filter((question) =>
+          collectionQuestionIds.includes(question.questionId)
+        );
+      }
+
       const filteredQuestions = filterQuestions(
-        state.allSavedQuestions,
+        questionsForLoadMore,
         state.filterSubject,
         state.filterDifficulty
       );
@@ -341,11 +384,38 @@ const savedTabReducer = (
           action.payload === "folders" ? null : state.selectedCollection,
       };
     case "SET_SELECTED_COLLECTION":
-      return {
-        ...state,
-        selectedCollection: action.payload,
-        viewMode: action.payload ? "questions" : "folders",
-      };
+      console.log("SET_SELECTED_COLLECTION", action.payload);
+      // Apply collection filtering first if there's a selected collection
+      if (action.payload) {
+        const collectionQuestionIds = action.payload.questionDetails.map(
+          (detail) => detail.questionId
+        );
+        let questionsForSubjectFilter = state.allSavedQuestions.filter(
+          (question) => collectionQuestionIds.includes(question.questionId)
+        );
+
+        let filteredCollectionQuestions = filterQuestions(
+          questionsForSubjectFilter,
+          state.filterSubject,
+          state.filterDifficulty
+        ).slice(0, Math.min(10, questionsForSubjectFilter.length));
+
+        console.log("filteredCollectionQuestions", filteredCollectionQuestions);
+
+        return {
+          ...state,
+          questionsWithData: filteredCollectionQuestions,
+          displayedQuestionsCount: filteredCollectionQuestions.length,
+          selectedCollection: action.payload,
+          viewMode: action.payload ? "questions" : "folders",
+          // Reset filters when changing collections
+          filterSubject: "all",
+          filterDifficulty: "all",
+
+          isLoadingMore: false,
+        };
+      }
+
     default:
       return state;
   }
@@ -507,16 +577,44 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
     [selectedAssessment?.name]
   );
 
+  // Get the current fresh collection data from savedCollections
+  const currentSelectedCollection = useMemo(() => {
+    if (!state.selectedCollection) return null;
+
+    // Find the collection in the migrated collections array to get fresh data
+    const freshCollection = collectionsArray.find(
+      (collection) => collection.id === state.selectedCollection?.id
+    );
+
+    return freshCollection || state.selectedCollection;
+  }, [state.selectedCollection, collectionsArray]);
+
   // Memoize filtered count to prevent unnecessary recalculations
-  const filteredCount = useMemo(
-    () =>
-      filterQuestions(
-        state.allSavedQuestions,
-        state.filterSubject,
-        state.filterDifficulty
-      ).length,
-    [state.allSavedQuestions, state.filterSubject, state.filterDifficulty]
-  );
+  const filteredCount = useMemo(() => {
+    let questionsToFilter = state.allSavedQuestions;
+
+    // If we have a selected collection, only count questions in that collection
+    if (currentSelectedCollection) {
+      const collectionQuestionIds =
+        currentSelectedCollection.questionDetails.map(
+          (detail) => detail.questionId
+        );
+      questionsToFilter = state.allSavedQuestions.filter((question) =>
+        collectionQuestionIds.includes(question.questionId)
+      );
+    }
+
+    return filterQuestions(
+      questionsToFilter,
+      state.filterSubject,
+      state.filterDifficulty
+    ).length;
+  }, [
+    state.allSavedQuestions,
+    state.filterSubject,
+    state.filterDifficulty,
+    currentSelectedCollection,
+  ]);
 
   // Fetch question data from API (memoized)
   const fetchQuestionData = useCallback(FetchQuestionByID, []);
@@ -533,10 +631,10 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
 
     let questionsToShow: QuestionWithData[];
 
-    if (state.selectedCollection) {
+    if (currentSelectedCollection) {
       // Filter questions based on selected collection
       const collectionQuestionIds =
-        state.selectedCollection.questionDetails.map(
+        currentSelectedCollection.questionDetails.map(
           (detail) => detail.questionId
         );
       questionsToShow = assessmentSavedQuestions
@@ -569,10 +667,18 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
     });
     dispatch({ type: "RESET_FETCHED_IDS" });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [assessmentKey, savedQuestions, state.selectedCollection?.id]);
+  }, [assessmentKey, savedQuestions, currentSelectedCollection?.id]);
 
   // Fetch question data progressively
   useEffect(() => {
+    console.log(
+      "useEffect for fetching questions",
+      state.viewMode,
+      state.isInitialized,
+      state.questionsWithData,
+      state.fetchedQuestionIds
+    );
+    if (state.viewMode == "folders") return;
     if (!state.isInitialized || state.questionsWithData.length === 0) return;
 
     const fetchQuestionsProgressively = async () => {
@@ -664,6 +770,7 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
     state.isLoadingMore,
     state.filterSubject,
     state.filterDifficulty,
+    state.viewMode,
     fetchQuestionData,
   ]);
 
@@ -676,7 +783,10 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
 
     dispatch({ type: "SET_LOADING_MORE", payload: true });
     setTimeout(() => {
-      dispatch({ type: "LOAD_MORE" });
+      dispatch({
+        type: "LOAD_MORE",
+        payload: { selectedCollection: currentSelectedCollection },
+      });
     }, 100);
   }, [state.isLoadingMore, filteredCount, state.displayedQuestionsCount]);
 
@@ -803,7 +913,13 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
             <>
               <Select
                 onValueChange={(value) =>
-                  dispatch({ type: "SET_FILTER_SUBJECT", payload: value })
+                  dispatch({
+                    type: "SET_FILTER_SUBJECT",
+                    payload: {
+                      subject: value,
+                      selectedCollection: currentSelectedCollection,
+                    },
+                  })
                 }
               >
                 <SelectTrigger
@@ -832,7 +948,13 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
               </Select>
               <Select
                 onValueChange={(value) =>
-                  dispatch({ type: "SET_FILTER_DIFFICULTY", payload: value })
+                  dispatch({
+                    type: "SET_FILTER_DIFFICULTY",
+                    payload: {
+                      difficulty: value,
+                      selectedCollection: currentSelectedCollection,
+                    },
+                  })
                 }
               >
                 <SelectTrigger
@@ -996,7 +1118,9 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
                     key={`${question.questionId}-${index}`}
                     className=" mb-32"
                   >
+                    {JSON.stringify(question)}
                     <OptimizedQuestionCard
+                      key={`${question.questionId}-${index}-card`}
                       question={question}
                       index={index}
                       onRetry={handleRetry}
