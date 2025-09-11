@@ -23,6 +23,7 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { QuestionDifficulty } from "@/types/question";
 import { Separator } from "@/components/ui/separator";
+import { AssessmentsId } from "@/static-data/assessment";
 
 // Import Task type from tracker-card
 type Task = {
@@ -116,11 +117,26 @@ export default function Tracker() {
     try {
       dispatch({ type: "FETCH_START" });
 
-      console.log("state", state);
+      // console.log("state", state);
+      const activeAssessmentId = state.activeAssessmentId || "99";
+      const assessmentTextId =
+        AssessmentsId[activeAssessmentId as keyof typeof AssessmentsId]?.textId;
+
+      if (!assessmentTextId) {
+        throw new Error("Invalid assessment ID");
+      }
+
+      // console.log(
+      //   "activeAssessmentId",
+      //   activeAssessmentId,
+      //   "assessmentTextId",
+      //   assessmentTextId
+      // );
       const fetchResponse = await fetch(
-        `/api/get-questions?assessment=${
-          state.selectedAssessment?.name
-        }&domains=${[...mathDomains, ...rwDomains].join(",")}`
+        `/api/get-questions?assessment=${assessmentTextId}&domains=${[
+          ...mathDomains,
+          ...rwDomains,
+        ].join(",")}`
       );
       const fetchData = await fetchResponse.json();
 
@@ -142,210 +158,225 @@ export default function Tracker() {
   }
 
   useEffect(() => {
-    fetchInitialData();
-  }, []);
+    // Only fetch if we have an active assessment
+    if (state.activeAssessmentId) {
+      fetchInitialData();
+    } else {
+      // Reset state if no assessment is selected
+      dispatch({ type: "RESET" });
+    }
+  }, [state.activeAssessmentId]);
 
   // Transform questions data to tasks format for TrackerCard, separated by subject
-  const transformQuestionsToTasksBySubject = (
-    questions: PlainQuestionType[]
-  ) => {
-    // First, separate questions by subject (Math vs R&W)
-    const mathQuestions = questions.filter((q) => {
-      const primaryClassInfo = primaryClassCdObjectData[q.primary_class_cd];
-      return primaryClassInfo?.subject === "Math";
-    });
+  const transformQuestionsToTasksBySubject = useMemo(() => {
+    return (questions: PlainQuestionType[]) => {
+      // First, separate questions by subject (Math vs R&W)
+      const mathQuestions = questions.filter((q) => {
+        const primaryClassInfo = primaryClassCdObjectData[q.primary_class_cd];
+        return primaryClassInfo?.subject === "Math";
+      });
 
-    const rwQuestions = questions.filter((q) => {
-      const primaryClassInfo = primaryClassCdObjectData[q.primary_class_cd];
-      return primaryClassInfo?.subject === "R&W";
-    });
+      const rwQuestions = questions.filter((q) => {
+        const primaryClassInfo = primaryClassCdObjectData[q.primary_class_cd];
+        return primaryClassInfo?.subject === "R&W";
+      });
 
-    // Helper function to transform questions for a specific subject
-    const transformSubjectQuestions = (
-      subjectQuestions: PlainQuestionType[]
-    ): Task[] => {
-      // Get practice statistics for answered questions
-      const practiceStats = getPracticeStatistics();
-      const assessmentStats =
-        practiceStats[state.selectedAssessment?.name || ""];
-      const answeredQuestionIds = new Set(
-        assessmentStats?.answeredQuestions || []
-      );
+      // Helper function to transform questions for a specific subject
+      const transformSubjectQuestions = (
+        subjectQuestions: PlainQuestionType[]
+      ): Task[] => {
+        // Get practice statistics for answered questions
+        const practiceStats = getPracticeStatistics();
+        const activeAssessmentId = state.activeAssessmentId || "99";
+        const assessmentTextId =
+          AssessmentsId[activeAssessmentId as keyof typeof AssessmentsId]
+            ?.textId || "";
+        const assessmentStats = practiceStats[assessmentTextId];
+        const answeredQuestionIds = new Set(
+          assessmentStats?.answeredQuestions || []
+        );
 
-      // Get detailed answered questions for correct/incorrect status
-      const answeredQuestionsDetailed =
-        assessmentStats?.answeredQuestionsDetailed || [];
-      const answeredQuestionsMap = new Map(
-        answeredQuestionsDetailed.map((q) => [q.questionId, q])
-      );
+        // Get detailed answered questions for correct/incorrect status
+        const answeredQuestionsDetailed =
+          assessmentStats?.answeredQuestionsDetailed || [];
+        const answeredQuestionsMap = new Map(
+          answeredQuestionsDetailed.map((q) => [q.questionId, q])
+        );
 
-      // Group questions by primaryClassCd first
-      const groupedByPrimaryClass = subjectQuestions.reduce((acc, question) => {
-        const primaryClassCd = question.primary_class_cd;
-        if (!acc[primaryClassCd]) {
-          acc[primaryClassCd] = [];
-        }
-        acc[primaryClassCd].push(question);
-        return acc;
-      }, {} as Record<string, PlainQuestionType[]>);
-
-      // Convert to tasks format: primaryClassCd → skillCd → questionId
-      return Object.entries(groupedByPrimaryClass).map(
-        ([primaryClassCd, primaryClassQuestions], primaryIndex) => {
-          // Get domain info from the lookup data
-          const primaryClassInfo = primaryClassCdObjectData[primaryClassCd];
-          const domainTitle = primaryClassInfo
-            ? primaryClassInfo.text
-            : primaryClassCd;
-
-          // Group questions within this primary class by skill
-          const groupedBySkill = primaryClassQuestions.reduce(
-            (acc, question) => {
-              const skillCd = question.skill_cd;
-              if (!acc[skillCd]) {
-                acc[skillCd] = [];
-              }
-              acc[skillCd].push(question);
-              return acc;
-            },
-            {} as Record<string, PlainQuestionType[]>
-          );
-
-          // Create subtasks for each skill within this primary class
-          const skillSubtasks = Object.entries(groupedBySkill).map(
-            ([skillCd, skillQuestions], skillIndex) => {
-              // Get skill info from the lookup data
-              const skillInfo = skillCdsObjectData[skillCd];
-              const skillTitle = skillInfo ? skillInfo.text : skillCd;
-
-              // Calculate answered questions for this skill
-              const answeredInSkill = skillQuestions.filter((q) =>
-                answeredQuestionIds.has(q.questionId)
-              ).length;
-              const correctInSkill = skillQuestions.filter((q) => {
-                const detail = answeredQuestionsMap.get(q.questionId);
-                return detail && detail.isCorrect;
-              }).length;
-              const totalInSkill = skillQuestions.length;
-              const skillProgress = `${answeredInSkill}/${totalInSkill}`;
-
-              // Create description with more detail
-              const descriptionParts = [
-                `${totalInSkill} questions in ${skillTitle}`,
-              ];
-              if (answeredInSkill > 0) {
-                if (correctInSkill !== answeredInSkill) {
-                  descriptionParts.push(
-                    `(${correctInSkill} correct, ${
-                      answeredInSkill - correctInSkill
-                    } incorrect)`
-                  );
-                } else {
-                  descriptionParts.push(`(${answeredInSkill} answered)`);
-                }
-              }
-
-              return {
-                id: `${primaryClassCd}-${skillCd}`,
-                title: skillTitle,
-                description: descriptionParts.join(" "),
-                status:
-                  answeredInSkill === totalInSkill
-                    ? "completed"
-                    : answeredInSkill > 0
-                    ? "in-progress"
-                    : "pending",
-                priority: "medium",
-                href: `/questionbank?assessment=${
-                  state.selectedAssessment?.name
-                }&subject=${
-                  primaryClassInfo?.subject || ""
-                }&primaryClassCd=${primaryClassCd}&skillCd=${skillCd}`,
-                dependencies: [skillProgress],
-                // Add individual questions as nested data (can be expanded later if needed)
-                questions: skillQuestions.map((question) => {
-                  const questionDetail = answeredQuestionsMap.get(
-                    question.questionId
-                  );
-                  let status = "pending";
-
-                  if (questionDetail) {
-                    status = questionDetail.isCorrect
-                      ? "completed"
-                      : "incorrect";
-                  } else if (answeredQuestionIds.has(question.questionId)) {
-                    status = "completed"; // Fallback for basic answered status
-                  }
-
-                  return {
-                    id: question.questionId,
-                    title: `Question ${question.questionId}`,
-                    description: question.skill_desc,
-                    difficulty: question.difficulty,
-                    status: status,
-                    href: `/question/${question.questionId}`, // Link to individual question page
-                  };
-                }),
-              };
+        // Group questions by primaryClassCd first
+        const groupedByPrimaryClass = subjectQuestions.reduce(
+          (acc, question) => {
+            const primaryClassCd = question.primary_class_cd;
+            if (!acc[primaryClassCd]) {
+              acc[primaryClassCd] = [];
             }
-          );
+            acc[primaryClassCd].push(question);
+            return acc;
+          },
+          {} as Record<string, PlainQuestionType[]>
+        );
 
-          // Calculate overall progress for this primary class
-          const totalQuestionsInDomain = primaryClassQuestions.length;
-          const answeredQuestionsInDomain = primaryClassQuestions.filter((q) =>
-            answeredQuestionIds.has(q.questionId)
-          ).length;
-          const domainProgress = `${answeredQuestionsInDomain}/${totalQuestionsInDomain}`;
+        // Convert to tasks format: primaryClassCd → skillCd → questionId
+        return Object.entries(groupedByPrimaryClass).map(
+          ([primaryClassCd, primaryClassQuestions], primaryIndex) => {
+            // Get domain info from the lookup data
+            const primaryClassInfo = primaryClassCdObjectData[primaryClassCd];
+            const domainTitle = primaryClassInfo
+              ? primaryClassInfo.text
+              : primaryClassCd;
 
-          return {
-            id: `primary-${primaryClassCd}`,
-            title: domainTitle,
-            description: `${Object.keys(groupedBySkill).length} subtopics, ${
-              primaryClassQuestions.length
-            } questions`,
-            status:
-              answeredQuestionsInDomain === totalQuestionsInDomain
-                ? "completed"
-                : answeredQuestionsInDomain > 0
-                ? "in-progress"
-                : "pending",
-            priority: "high",
-            level: 0,
-            dependencies: [domainProgress],
-            subtasks: skillSubtasks,
-          };
-        }
-      );
+            // Group questions within this primary class by skill
+            const groupedBySkill = primaryClassQuestions.reduce(
+              (acc, question) => {
+                const skillCd = question.skill_cd;
+                if (!acc[skillCd]) {
+                  acc[skillCd] = [];
+                }
+                acc[skillCd].push(question);
+                return acc;
+              },
+              {} as Record<string, PlainQuestionType[]>
+            );
+
+            // Create subtasks for each skill within this primary class
+            const skillSubtasks = Object.entries(groupedBySkill).map(
+              ([skillCd, skillQuestions], skillIndex) => {
+                // Get skill info from the lookup data
+                const skillInfo = skillCdsObjectData[skillCd];
+                const skillTitle = skillInfo ? skillInfo.text : skillCd;
+
+                // Calculate answered questions for this skill
+                const answeredInSkill = skillQuestions.filter((q) =>
+                  answeredQuestionIds.has(q.questionId)
+                ).length;
+                const correctInSkill = skillQuestions.filter((q) => {
+                  const detail = answeredQuestionsMap.get(q.questionId);
+                  return detail && detail.isCorrect;
+                }).length;
+                const totalInSkill = skillQuestions.length;
+                const skillProgress = `${answeredInSkill}/${totalInSkill}`;
+
+                // Create description with more detail
+                const descriptionParts = [
+                  `${totalInSkill} questions in ${skillTitle}`,
+                ];
+                if (answeredInSkill > 0) {
+                  if (correctInSkill !== answeredInSkill) {
+                    descriptionParts.push(
+                      `(${correctInSkill} correct, ${
+                        answeredInSkill - correctInSkill
+                      } incorrect)`
+                    );
+                  } else {
+                    descriptionParts.push(`(${answeredInSkill} answered)`);
+                  }
+                }
+
+                return {
+                  id: `${primaryClassCd}-${skillCd}`,
+                  title: skillTitle,
+                  description: descriptionParts.join(" "),
+                  status:
+                    answeredInSkill === totalInSkill
+                      ? "completed"
+                      : answeredInSkill > 0
+                      ? "in-progress"
+                      : "pending",
+                  priority: "medium",
+                  href: `/questionbank?assessment=${assessmentTextId}&subject=${
+                    primaryClassInfo?.subject || ""
+                  }&primaryClassCd=${primaryClassCd}&skillCd=${skillCd}`,
+                  dependencies: [skillProgress],
+                  // Add individual questions as nested data (can be expanded later if needed)
+                  questions: skillQuestions.map((question) => {
+                    const questionDetail = answeredQuestionsMap.get(
+                      question.questionId
+                    );
+                    let status = "pending";
+
+                    if (questionDetail) {
+                      status = questionDetail.isCorrect
+                        ? "completed"
+                        : "incorrect";
+                    } else if (answeredQuestionIds.has(question.questionId)) {
+                      status = "completed"; // Fallback for basic answered status
+                    }
+
+                    return {
+                      id: question.questionId,
+                      title: `Question ${question.questionId}`,
+                      description: question.skill_desc,
+                      difficulty: question.difficulty,
+                      status: status,
+                      href: `/question/${question.questionId}`, // Link to individual question page
+                    };
+                  }),
+                };
+              }
+            );
+
+            // Calculate overall progress for this primary class
+            const totalQuestionsInDomain = primaryClassQuestions.length;
+            const answeredQuestionsInDomain = primaryClassQuestions.filter(
+              (q) => answeredQuestionIds.has(q.questionId)
+            ).length;
+            const domainProgress = `${answeredQuestionsInDomain}/${totalQuestionsInDomain}`;
+
+            return {
+              id: `primary-${primaryClassCd}`,
+              title: domainTitle,
+              description: `${Object.keys(groupedBySkill).length} subtopics, ${
+                primaryClassQuestions.length
+              } questions`,
+              status:
+                answeredQuestionsInDomain === totalQuestionsInDomain
+                  ? "completed"
+                  : answeredQuestionsInDomain > 0
+                  ? "in-progress"
+                  : "pending",
+              priority: "high",
+              level: 0,
+              dependencies: [domainProgress],
+              subtasks: skillSubtasks,
+            };
+          }
+        );
+      };
+
+      return {
+        mathTasks:
+          mathQuestions.length > 0
+            ? transformSubjectQuestions(mathQuestions)
+            : undefined,
+        rwTasks:
+          rwQuestions.length > 0
+            ? transformSubjectQuestions(rwQuestions)
+            : undefined,
+      };
     };
+  }, [state.activeAssessmentId]);
 
-    return {
-      mathTasks:
-        mathQuestions.length > 0
-          ? transformSubjectQuestions(mathQuestions)
-          : undefined,
-      rwTasks:
-        rwQuestions.length > 0
-          ? transformSubjectQuestions(rwQuestions)
-          : undefined,
-    };
-  };
-
-  const { mathTasks, rwTasks } =
-    questionsState.allQuestions.length > 0
+  const { mathTasks, rwTasks } = useMemo(() => {
+    return questionsState.allQuestions.length > 0
       ? transformQuestionsToTasksBySubject(questionsState.allQuestions)
       : { mathTasks: undefined, rwTasks: undefined };
+  }, [questionsState.allQuestions, transformQuestionsToTasksBySubject]);
 
   // Debug log
   console.log("Transformed tasks:", { mathTasks, rwTasks });
 
   // Calculate difficulty statistics
   const difficultyStats = useMemo(() => {
-    if (!questionsState.allQuestions.length || !state.selectedAssessment) {
+    if (!questionsState.allQuestions.length || !state.activeAssessmentId) {
       return null;
     }
 
     const practiceStats = getPracticeStatistics();
-    const assessmentStats = practiceStats[state.selectedAssessment.name];
+    const activeAssessmentId = state.activeAssessmentId || "99";
+    const assessmentTextId =
+      AssessmentsId[activeAssessmentId as keyof typeof AssessmentsId]?.textId ||
+      "";
+    const assessmentStats = practiceStats[assessmentTextId];
     const answeredQuestionIds = new Set(
       assessmentStats?.answeredQuestions || []
     );
@@ -419,7 +450,7 @@ export default function Tracker() {
             )
           : 0,
     };
-  }, [questionsState.allQuestions, state.selectedAssessment]);
+  }, [questionsState.allQuestions, state.activeAssessmentId]);
   // Show loading state for the entire component
   if (questionsState.loading) {
     return (
