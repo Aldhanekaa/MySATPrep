@@ -24,20 +24,6 @@ import {
   type AssessmentWorkspace,
 } from "@/contexts/assessment-context";
 
-import {
-  Tabs as VerticalTabs,
-  TabsContent as VerticalTabsContent,
-  TabsList as VerticalTabsList,
-  TabsTrigger as VerticalTabsTrigger,
-} from "@/components/ui/vertical-tabs";
-
-import { ExpandableTabs } from "@/components/ui/expandable-tabs";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import ButtonsGroup from "@/components/dashboard/buttons-group";
 
 // Tab configuration

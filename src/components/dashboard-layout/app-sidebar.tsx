@@ -22,6 +22,7 @@ import {
   Send,
   Settings2,
   SquareTerminal,
+  TrendingUpIcon,
 } from "lucide-react";
 
 import { NavMain } from "@/components/dashboard-layout/nav-main";
@@ -107,6 +108,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         title: "Practice Sessions",
         url: "/dashboard/sessions",
         icon: ClockIcon,
+      },
+      {
+        title: "Question Bank Tracker",
+        url: "/dashboard/tracker",
+        icon: TrendingUpIcon,
       },
     ],
     teams: [

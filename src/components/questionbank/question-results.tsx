@@ -115,6 +115,7 @@ interface QuestionResultsProps {
     mathLiveItems: string[];
     readingLiveItems: string[];
   };
+  skillsFilter?: string[]; // Skills filter from URL parameters
 }
 
 export function QuestionResults({
@@ -123,6 +124,7 @@ export function QuestionResults({
   selectedSubject,
   selectedDomains,
   bluebookExternalIds,
+  skillsFilter = [], // Default to empty array if not provided
 }: QuestionResultsProps) {
   const id = useId();
 
@@ -176,6 +178,17 @@ export function QuestionResults({
     const hasCompletedTour = localStorage.getItem(tourKey) === "true";
     tourDispatch({ type: "SET_SHOW_TOUR_DIALOG", payload: !hasCompletedTour });
   }, []);
+
+  // Auto-apply skills filter from URL parameters
+  useEffect(() => {
+    if (skillsFilter.length > 0) {
+      console.log("Auto-applying skills filter:", skillsFilter);
+      dispatch({
+        type: "SET_SKILL_FILTER",
+        payload: skillsFilter,
+      });
+    }
+  }, [skillsFilter]);
 
   const steps: Step[] = [
     {

@@ -1,6 +1,7 @@
 /**
  * Saved Collections TypeScript interfaces
- * These types handle the localStorage structure for saved question collections/folders
+ * These types handle the localStorage structure for saved question collections
+ *
  */
 
 import { SavedQuestion } from "./savedQuestions";

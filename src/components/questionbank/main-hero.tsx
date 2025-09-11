@@ -2,7 +2,8 @@
 
 import React from "react";
 
-import { useReducer, useCallback } from "react";
+import { useReducer, useCallback, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   BookOpen,
   BookOpenCheckIcon,
@@ -56,11 +57,13 @@ interface MainHeroState {
     assessment: string;
     subject: string;
     domains: string[];
+    skills: string[];
   };
   questions: PlainQuestionType[];
   isLoading: boolean;
   error: string | null;
   bluebookExternalIds: BluebookExternalIds;
+  skillsFilter: string[]; // Skills filter from URL parameters
 }
 
 type MainHeroAction =
@@ -69,9 +72,15 @@ type MainHeroAction =
   | { type: "SET_SELECTED_SUBJECT"; payload: string }
   | { type: "SET_IS_EXPANDED"; payload: boolean }
   | { type: "SET_SHOW_RESULTS"; payload: boolean }
+  | { type: "SET_SKILLS_FILTER"; payload: string[] }
   | {
       type: "SET_APPLIED_FILTERS";
-      payload: { assessment: string; subject: string; domains: string[] };
+      payload: {
+        assessment: string;
+        subject: string;
+        domains: string[];
+        skills: string[];
+      };
     }
   | { type: "SET_QUESTIONS"; payload: PlainQuestionType[] }
   | { type: "SET_LOADING"; payload: boolean }
@@ -101,6 +110,8 @@ const mainHeroReducer = (
       return { ...state, isExpanded: action.payload };
     case "SET_SHOW_RESULTS":
       return { ...state, showResults: action.payload };
+    case "SET_SKILLS_FILTER":
+      return { ...state, skillsFilter: action.payload };
     case "SET_APPLIED_FILTERS":
       return { ...state, appliedFilters: action.payload };
     case "SET_QUESTIONS":
@@ -110,7 +121,11 @@ const mainHeroReducer = (
     case "SET_ERROR":
       return { ...state, error: action.payload };
     case "RESET_SUBJECT_AND_DOMAINS":
-      return { ...state, selectedSubject: "", selected: [] };
+      return {
+        ...state,
+        selectedSubject: "",
+        selected: [],
+      };
     case "RESET_DOMAINS":
       return { ...state, selected: [] };
     case "SET_BLUEBOOK_MATH_IDS":
@@ -148,6 +163,9 @@ const mainHeroReducer = (
 };
 
 export function QB_MainHero() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
   const [state, dispatch] = useReducer(mainHeroReducer, {
     selected: [],
     selectedAssessment: "",
@@ -158,6 +176,7 @@ export function QB_MainHero() {
       assessment: "",
       subject: "",
       domains: [],
+      skills: [],
     },
     questions: [],
     isLoading: false,
@@ -166,7 +185,86 @@ export function QB_MainHero() {
       mathLiveItems: [],
       readingLiveItems: [],
     },
+    skillsFilter: [], // Initialize empty skills filter
   });
+
+  // Function to update URL parameters
+  const updateURLParams = useCallback(
+    (assessment: string, subject: string, domains: string[]) => {
+      const params = new URLSearchParams(searchParams.toString());
+
+      // Set assessment parameter
+      if (assessment) {
+        params.set("assessment", assessment);
+      } else {
+        params.delete("assessment");
+      }
+
+      // Set subject parameter
+      if (subject) {
+        params.set("subject", subject);
+      } else {
+        params.delete("subject");
+      }
+
+      // Set primaryClassCd parameter (domains)
+      if (domains.length > 0) {
+        params.set("primaryClassCd", domains.join(","));
+      } else {
+        params.delete("primaryClassCd");
+      }
+
+      // Keep skillCd parameter if it exists (for skills filtering in question-results)
+      // Don't delete it as it's used by the question results component
+
+      // Update the URL without triggering a page reload
+      const newUrl = `${window.location.pathname}?${params.toString()}`;
+      router.push(newUrl, { scroll: false });
+    },
+    [router, searchParams]
+  );
+
+  // Initialize form state from URL parameters on component mount
+  useEffect(() => {
+    const assessment = searchParams.get("assessment");
+    const subject = searchParams.get("subject");
+    const primaryClassCd = searchParams.get("primaryClassCd");
+    const skillCd = searchParams.get("skillCd");
+
+    if (assessment) {
+      dispatch({ type: "SET_SELECTED_ASSESSMENT", payload: assessment });
+    }
+
+    // If subject is provided (from tracker), use it to determine the correct subject
+    if (subject) {
+      dispatch({ type: "SET_SELECTED_SUBJECT", payload: subject });
+    }
+
+    // Handle domain selection from URL parameters
+    const selectedDomains: string[] = [];
+
+    // primaryClassCd represents the domains (main categories)
+    if (primaryClassCd) {
+      const domainCodes = primaryClassCd.split(",").filter(Boolean);
+      selectedDomains.push(...domainCodes);
+    }
+
+    // Set the selected domains if any were found
+    if (selectedDomains.length > 0) {
+      // Remove duplicates
+      const uniqueDomains = [...new Set(selectedDomains)];
+      dispatch({ type: "SET_SELECTED", payload: uniqueDomains });
+    }
+
+    // Handle skillCd parameter for skills filtering
+    if (skillCd) {
+      const skillCodes = skillCd.split(",").filter(Boolean);
+      if (skillCodes.length > 0) {
+        const uniqueSkills = [...new Set(skillCodes)];
+        dispatch({ type: "SET_SKILLS_FILTER", payload: uniqueSkills });
+      }
+    }
+  }, []); // Only run on mount
 
   // Get available domains based on selected subject (memoized)
   const getAvailableDomains = useCallback(() => {
@@ -230,7 +328,8 @@ export function QB_MainHero() {
     return (
       state.appliedFilters.assessment !== "" &&
       state.appliedFilters.subject !== "" &&
-      state.appliedFilters.domains.length > 0
+      (state.appliedFilters.domains.length > 0 ||
+        state.appliedFilters.skills.length > 0)
     );
   }, [state.appliedFilters]);
 
@@ -239,11 +338,12 @@ export function QB_MainHero() {
     dispatch({ type: "RESET_SUBJECT_AND_DOMAINS" });
     dispatch({ type: "SET_SHOW_RESULTS", payload: false });
     dispatch({ type: "SET_IS_EXPANDED", payload: false });
-    console.log(
-      "Selected assessment:",
-      value,
-      Assessments[value as keyof typeof Assessments]
-    );
+
+    // console.log(
+    //   "Selected assessment:",
+    //   value,
+    //   Assessments[value as keyof typeof Assessments]
+    // );
   }, []);
 
   const handleSubjectChange = useCallback((value: string) => {
@@ -251,6 +351,7 @@ export function QB_MainHero() {
     dispatch({ type: "RESET_DOMAINS" });
     dispatch({ type: "SET_SHOW_RESULTS", payload: false });
     dispatch({ type: "SET_IS_EXPANDED", payload: false });
+
     console.log("Selected subject:", value);
   }, []);
 
@@ -264,9 +365,17 @@ export function QB_MainHero() {
       domainData: state.selected
         .map((domainId) => primaryClassCdObjectData[domainId])
         .filter(Boolean),
+      skills: [], // Skills filtering is handled by question-results component
     };
 
     console.log("Applying filter with:", filterData);
+
+    // Update URL parameters
+    updateURLParams(
+      state.selectedAssessment,
+      state.selectedSubject,
+      state.selected
+    );
 
     // Save applied filters
     dispatch({
@@ -275,6 +384,7 @@ export function QB_MainHero() {
         assessment: state.selectedAssessment,
         subject: state.selectedSubject,
         domains: [...state.selected],
+        skills: [], // Skills filtering is handled by question-results component
       },
     });
 
@@ -291,6 +401,7 @@ export function QB_MainHero() {
     dispatch({ type: "SET_ERROR", payload: null });
 
     try {
+      // Skills filtering is handled by question-results component, not in the initial API call
       const response = await fetch(
         `/api/get-questions?assessment=${
           state.selectedAssessment
@@ -318,8 +429,8 @@ export function QB_MainHero() {
         const responseLookup = await fetch(`/api/lookup`);
         const responseLookupData = await responseLookup.json();
 
-        console.log("responseLookupData", responseLookupData);
-        console.log("responseLookupData", responseLookupData.data);
+        // console.log("responseLookupData", responseLookupData);
+        // console.log("responseLookupData", responseLookupData.data);
 
         if (
           responseLookupData &&
@@ -361,7 +472,58 @@ export function QB_MainHero() {
     } finally {
       dispatch({ type: "SET_LOADING", payload: false });
     }
-  }, [state.selectedAssessment, state.selectedSubject, state.selected]);
+  }, [
+    state.selectedAssessment,
+    state.selectedSubject,
+    state.selected,
+    updateURLParams,
+  ]);
+
+  // Auto-apply filters when coming from URL parameters (e.g., from tracker)
+  useEffect(() => {
+    const assessment = searchParams.get("assessment");
+    const subject = searchParams.get("subject");
+    const primaryClassCd = searchParams.get("primaryClassCd");
+    const skillCd = searchParams.get("skillCd");
+
+    // Check if we have URL parameters and the component state is populated
+    const hasUrlParams = assessment && subject && primaryClassCd;
+    const stateIsPopulated =
+      state.selectedAssessment &&
+      state.selectedSubject &&
+      state.selected.length > 0;
+
+    // Auto-apply if:
+    // 1. We have URL parameters
+    // 2. Component state is populated from those parameters
+    // 3. Filters haven't been applied yet
+    // 4. Not currently loading
+    if (
+      hasUrlParams &&
+      stateIsPopulated &&
+      !hasAppliedFilters() &&
+      !state.isLoading
+    ) {
+      console.log("Auto-applying filters from URL parameters:", {
+        assessment: state.selectedAssessment,
+        subject: state.selectedSubject,
+        domains: state.selected,
+      });
+
+      // Small delay to ensure UI is ready
+      setTimeout(() => {
+        handleApplyFilter();
+      }, 100);
+    }
+  }, [
+    state.selectedAssessment,
+    state.selectedSubject,
+    state.selected,
+    searchParams,
+    hasAppliedFilters,
+    handleApplyFilter,
+    state.isLoading,
+  ]);
 
   return (
     <React.Fragment>
@@ -586,12 +748,12 @@ export function QB_MainHero() {
                                       }
                                       options={getAvailableDomains()}
                                       value={state.selected}
-                                      onChange={(value) =>
+                                      onChange={(value) => {
                                         dispatch({
                                           type: "SET_SELECTED",
                                           payload: value,
-                                        })
-                                      }
+                                        });
+                                      }}
                                       renderItem={renderDomain}
                                       renderSelectedItem={renderSelectedDomains}
                                     />
@@ -726,6 +888,7 @@ export function QB_MainHero() {
                 ?.text || state.selectedAssessment
             }
             bluebookExternalIds={state.bluebookExternalIds}
+            skillsFilter={state.skillsFilter}
           />
         </div>
       )}
