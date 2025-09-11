@@ -27,13 +27,15 @@ import {
   ListFilterIcon,
   PencilRuler,
   SigmaIcon,
-  Star,
-  Minus,
-  Zap,
+  TargetIcon,
+  BookOpenIcon,
+  SearchIcon,
+  RotateCcwIcon,
 } from "lucide-react";
 import { mathDomains, rwDomains } from "@/static-data/validation";
 import { FetchQuestionByUniqueID } from "@/lib/functions/fetchQuestionDatabyUniqueID";
 import { FetchQuestionByID } from "@/lib/functions/fetchQuestionByID";
+import { EmptyState } from "@/components/ui/empty-state";
 
 // Simple skeleton component
 const Skeleton = ({
@@ -67,47 +69,7 @@ interface SavedTabState {
   isInitialized: boolean;
   filterSubject: string; // Add this new state property for subject filter
   filterDifficulty: string; // Add this new state property for difficulty filter
-}
-
-function filterQuestions(
-  questions: QuestionWithData[],
-  subject: string,
-  difficulty: string
-) {
-  let filteredBySubject = questions.filter((question) => {
-    // Apply subject filter
-    if (subject !== "all") {
-      const primaryClassCd = question.plainQuestion?.primary_class_cd;
-
-      if (primaryClassCd) {
-        if (subject === "math" && mathDomains.includes(primaryClassCd)) {
-          // Subject matches
-        } else if (
-          subject === "reading" &&
-          rwDomains.includes(primaryClassCd)
-        ) {
-          // Subject matches
-        } else {
-          return false;
-        }
-      } else {
-        return false;
-      }
-    }
-    return true;
-  });
-
-  const filteredByDifficulty = filteredBySubject.filter((question) => {
-    // Apply difficulty filter
-    if (difficulty !== "all") {
-      const questionDifficulty = question.plainQuestion?.difficulty;
-      return questionDifficulty === difficulty;
-    }
-
-    return true;
-  });
-
-  return filteredByDifficulty;
+  filteredQuestions: QuestionWithData[]; // Filtered questions based on current filters
 }
 
 type SavedTabAction =
@@ -121,21 +83,18 @@ type SavedTabAction =
     }
   | {
       type: "SET_QUESTION_SUCCESS";
-      payload: {
-        index: number;
-        questionData: QuestionById_Data | null;
-        qId: string;
-      };
+      payload: { index: number; questionData: QuestionById_Data | null };
     }
   | {
       type: "SET_QUESTION_ERROR";
-      payload: { index: number; errorMessage: string; qId: string };
+      payload: { index: number; errorMessage: string };
     }
   | { type: "ADD_FETCHED_ID"; payload: string }
   | { type: "REMOVE_FETCHED_ID"; payload: string }
   | { type: "RESET_FETCHED_IDS" }
   | { type: "SET_FILTER_SUBJECT"; payload: string }
   | { type: "SET_FILTER_DIFFICULTY"; payload: string }
+  | { type: "SET_FILTERED_QUESTIONS"; payload: QuestionWithData[] }
   | { type: "LOAD_MORE" }
   | { type: "SET_LOADING_MORE"; payload: boolean };
 
@@ -149,7 +108,7 @@ const savedTabReducer = (
         ...state,
         questionsWithData: action.payload.questions,
         allSavedQuestions: action.payload.all,
-        displayedQuestionsCount: action.payload.questions.length,
+        displayedQuestionsCount: 10,
         isInitialized: true,
       };
     case "SET_QUESTION_LOADING":
@@ -169,19 +128,18 @@ const savedTabReducer = (
     case "SET_QUESTION_SUCCESS":
       return {
         ...state,
-        allSavedQuestions: state.allSavedQuestions.map((q, i) => {
-          // console.log("SET_QUESTION_SUCCESS", q, action.payload);
-          return q.questionId === action.payload.qId
+        allSavedQuestions: state.questionsWithData.map((q, i) =>
+          i === action.payload.index
             ? {
                 ...q,
                 questionData: action.payload.questionData || undefined,
                 isLoading: false,
                 hasError: false,
               }
-            : q;
-        }),
+            : q
+        ),
         questionsWithData: state.questionsWithData.map((q, i) =>
-          q.questionId === action.payload.qId
+          i === action.payload.index
             ? {
                 ...q,
                 questionData: action.payload.questionData || undefined,
@@ -195,7 +153,7 @@ const savedTabReducer = (
       return {
         ...state,
         questionsWithData: state.questionsWithData.map((q, i) =>
-          q.questionId === action.payload.qId
+          i === action.payload.index
             ? {
                 ...q,
                 isLoading: false,
@@ -206,6 +164,7 @@ const savedTabReducer = (
         ),
       };
     case "ADD_FETCHED_ID":
+      console.log("Adding fetched ID:", action.payload);
       return {
         ...state,
         fetchedQuestionIds: new Set([
@@ -214,37 +173,19 @@ const savedTabReducer = (
         ]),
       };
     case "SET_FILTER_SUBJECT":
-      const filteredSubjectQuestions = filterQuestions(
-        state.allSavedQuestions,
-        action.payload,
-        state.filterDifficulty
-      ).slice(0, 10);
-
-      // console.log(
-      //   "filteredSubjectQuestions",
-      //   filteredSubjectQuestions,
-      //   action.payload
-      // );
       return {
         ...state,
-        questionsWithData: filteredSubjectQuestions,
-        displayedQuestionsCount: filteredSubjectQuestions.length,
         filterSubject: action.payload,
-        isLoadingMore: false,
       };
     case "SET_FILTER_DIFFICULTY":
-      const filteredDifficultyQuestions = filterQuestions(
-        state.allSavedQuestions,
-        state.filterSubject,
-        action.payload
-      ).slice(0, 10);
-
       return {
         ...state,
-        questionsWithData: filteredDifficultyQuestions,
-        displayedQuestionsCount: filteredDifficultyQuestions.length,
         filterDifficulty: action.payload,
-        isLoadingMore: false,
+      };
+    case "SET_FILTERED_QUESTIONS":
+      return {
+        ...state,
+        filteredQuestions: action.payload,
       };
     case "REMOVE_FETCHED_ID":
       const newFetchedIds = new Set(state.fetchedQuestionIds);
@@ -259,27 +200,13 @@ const savedTabReducer = (
         fetchedQuestionIds: new Set(),
       };
     case "LOAD_MORE":
-      const filteredQuestions = filterQuestions(
-        state.allSavedQuestions,
-        state.filterSubject,
-        state.filterDifficulty
-      );
-
       const nextCount = Math.min(
-        state.displayedQuestionsCount + 10,
-        filteredQuestions.length
+        state.displayedQuestionsCount + 15,
+        state.allSavedQuestions.length
       );
-      const newQuestions = filteredQuestions
-        .slice(state.displayedQuestionsCount, nextCount)
-        .map((q) => ({
-          ...q,
-          isLoading: q.isLoading,
-          hasError: false,
-        }));
 
       return {
         ...state,
-        questionsWithData: [...state.questionsWithData, ...newQuestions],
         displayedQuestionsCount: nextCount,
         isLoadingMore: false,
       };
@@ -310,6 +237,7 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
     isInitialized: false,
     filterSubject: "all", // Default filter value for subject
     filterDifficulty: "all", // Default filter value for difficulty
+    filteredQuestions: [], // Initially empty
   });
 
   const loadMoreRef = useRef<HTMLDivElement>(null);
@@ -343,17 +271,6 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
     [selectedAssessment?.name]
   );
 
-  // Memoize filtered count to prevent unnecessary recalculations
-  const filteredCount = useMemo(
-    () =>
-      filterQuestions(
-        state.allSavedQuestions,
-        state.filterSubject,
-        state.filterDifficulty
-      ).length,
-    [state.allSavedQuestions, state.filterSubject, state.filterDifficulty]
-  );
-
   // Fetch question data from API (memoized)
   const fetchQuestionData = useCallback(FetchQuestionByID, []);
 
@@ -363,6 +280,80 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
     dispatch({ type: "SET_QUESTION_LOADING", payload: { index, questionId } });
   }, []);
 
+  // Function to compute filtered questions
+  const computeFilteredQuestions = useCallback(
+    (
+      questions: QuestionWithData[],
+      filterSubject: string,
+      filterDifficulty: string
+    ): QuestionWithData[] => {
+      return questions
+        .filter((question) => {
+          // Apply subject filter
+          if (filterSubject !== "all") {
+            const subject = question.questionData?.question.primary_class_cd;
+
+            if (subject && question.questionData?.question.primary_class_cd) {
+              if (
+                filterSubject === "math" &&
+                mathDomains.includes(
+                  question.questionData?.question.primary_class_cd
+                )
+              ) {
+                return true;
+              }
+
+              if (
+                filterSubject === "reading" &&
+                rwDomains.includes(
+                  question.questionData?.question.primary_class_cd
+                )
+              ) {
+                return true;
+              }
+            }
+
+            return false;
+          }
+
+          return true;
+        })
+        .filter((question) => {
+          // Apply difficulty filter
+          if (filterDifficulty !== "all") {
+            const difficulty = question.questionData?.question.difficulty;
+
+            if (difficulty) {
+              return filterDifficulty === difficulty.toLowerCase();
+            }
+
+            return false;
+          }
+
+          return true;
+        });
+    },
+    []
+  );
+
+  // Compute filtered questions when questions or filters change
+  useEffect(() => {
+    if (state.isInitialized) {
+      const filtered = computeFilteredQuestions(
+        state.allSavedQuestions,
+        state.filterSubject,
+        state.filterDifficulty
+      );
+      dispatch({ type: "SET_FILTERED_QUESTIONS", payload: filtered });
+    }
+  }, [
+    state.allSavedQuestions,
+    state.filterSubject,
+    state.filterDifficulty,
+    state.isInitialized,
+    computeFilteredQuestions,
+  ]);
+
   // Initialize questions when assessment or saved questions change
   useEffect(() => {
     const assessmentSavedQuestions = savedQuestions[assessmentKey] || [];
@@ -371,12 +362,12 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
     const allQuestions: QuestionWithData[] = assessmentSavedQuestions.map(
       (question) => ({
         ...question,
-        isLoading: true,
+        isLoading: false,
         hasError: false,
       })
     );
 
-    const initialQuestions = allQuestions.slice(0, 10).map((q) => ({
+    const initialQuestions = allQuestions.slice(0, 15).map((q) => ({
       ...q,
       isLoading: true,
       hasError: false,
@@ -395,9 +386,9 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
     if (!state.isInitialized || state.questionsWithData.length === 0) return;
 
     const fetchQuestionsProgressively = async () => {
-      console.log(state.questionsWithData);
       // Find questions that need to be fetched
       const questionsToFetch = state.questionsWithData
+        .slice(0, state.displayedQuestionsCount)
         .map((question, index) => ({ question, index }))
         .filter(
           ({ question }) =>
@@ -409,31 +400,28 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
 
       if (questionsToFetch.length === 0) return;
 
+      // Mark these questions as being fetched
+      questionsToFetch.forEach(({ question }) => {
+        dispatch({ type: "ADD_FETCHED_ID", payload: question.questionId });
+      });
+
       // Process questions with small delays
       for (const { question, index } of questionsToFetch) {
         const id = question.externalId || question.ibn;
         if (!id) {
           dispatch({
             type: "SET_QUESTION_ERROR",
-            payload: {
-              index,
-              errorMessage: "No valid ID to fetch question",
-              qId: question.questionId,
-            },
+            payload: { index, errorMessage: "No valid ID to fetch question" },
           });
           continue;
         }
         try {
-          // console.log("FETCH question", question);
+          console.log("FETCH question", question);
           const questionData = await fetchQuestionData(id);
           if (!questionData) {
             dispatch({
               type: "SET_QUESTION_ERROR",
-              payload: {
-                index,
-                errorMessage: "Failed to fetch question data",
-                qId: question.questionId,
-              },
+              payload: { index, errorMessage: "Failed to fetch question data" },
             });
             continue;
           }
@@ -443,17 +431,14 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
               payload: {
                 index,
                 errorMessage: "Question metadata not available",
-                qId: question.questionId,
               },
             });
             continue;
           }
-
           dispatch({
             type: "SET_QUESTION_SUCCESS",
             payload: {
               index,
-              qId: question.questionId,
               questionData: {
                 problem: questionData,
                 question: question.plainQuestion,
@@ -469,27 +454,27 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
 
           dispatch({
             type: "SET_QUESTION_ERROR",
-            payload: { index, errorMessage, qId: question.questionId },
+            payload: { index, errorMessage },
           });
         }
-        // Mark these questions as being fetched
-        dispatch({ type: "ADD_FETCHED_ID", payload: question.questionId });
       }
     };
 
     fetchQuestionsProgressively();
   }, [
     state.isInitialized,
-    state.isLoadingMore,
-    state.filterSubject,
-    state.filterDifficulty,
+    state.displayedQuestionsCount,
+    state.fetchedQuestionIds,
     fetchQuestionData,
   ]);
 
   // Function to load more questions
   const loadMoreQuestions = useCallback(() => {
-    console.log(state.displayedQuestionsCount);
-    if (state.isLoadingMore || filteredCount <= state.displayedQuestionsCount) {
+    console.log("Load more questions triggered", state.fetchedQuestionIds);
+    if (
+      state.isLoadingMore ||
+      state.allSavedQuestions.length <= state.displayedQuestionsCount
+    ) {
       return;
     }
 
@@ -497,12 +482,15 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
     setTimeout(() => {
       dispatch({ type: "LOAD_MORE" });
     }, 100);
-  }, [state.isLoadingMore, filteredCount, state.displayedQuestionsCount]);
+  }, [state.isLoadingMore]);
 
   // Intersection Observer for infinite scrolling
   useEffect(() => {
     const currentLoadMoreRef = loadMoreRef.current;
-    if (!currentLoadMoreRef || filteredCount <= state.displayedQuestionsCount)
+    if (
+      !currentLoadMoreRef ||
+      state.allSavedQuestions.length <= state.displayedQuestionsCount
+    )
       return;
 
     const observer = new IntersectionObserver(
@@ -522,9 +510,9 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
       }
     };
   }, [
-    filteredCount,
     state.displayedQuestionsCount,
     state.isLoadingMore,
+    state.fetchedQuestionIds,
     loadMoreQuestions,
   ]);
 
@@ -536,6 +524,28 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
           Loading saved questions...
         </p>
         <Skeleton className="h-20 w-full" />
+      </div>
+    );
+  }
+
+  if (state.questionsWithData.length === 0) {
+    return (
+      <div className="space-y-4">
+        <h2 className="text-lg font-semibold">Saved Questions</h2>
+        <p className="text-sm text-muted-foreground">
+          No saved questions found for {assessmentName}.
+        </p>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-center text-gray-500">
+              <p className="text-lg">📚</p>
+              <p className="mt-2">You haven&apos;t saved any questions yet.</p>
+              <p className="text-sm text-muted-foreground">
+                Questions you bookmark will appear here for easy review.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -587,22 +597,24 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
             }
           >
             <SelectTrigger
-              icon={ListFilterIcon}
+              icon={
+                state.filterDifficulty === "all" ? ListFilterIcon : TargetIcon
+              }
               className="w-full lg:w-[80%] bg-background"
             >
-              <SelectValue placeholder="Filter by difficulty" />
+              <SelectValue placeholder="Sort by difficulty" />
             </SelectTrigger>
             <SelectContent className="font-medium absolute">
               <SelectItem value="all" icon={AlignJustifyIcon}>
                 All Difficulties
               </SelectItem>
-              <SelectItem value="E" icon={Star}>
+              <SelectItem value="e" icon={TargetIcon}>
                 Easy
               </SelectItem>
-              <SelectItem value="M" icon={Minus}>
+              <SelectItem value="m" icon={TargetIcon}>
                 Medium
               </SelectItem>
-              <SelectItem value="H" icon={Zap}>
+              <SelectItem value="h" icon={TargetIcon}>
                 Hard
               </SelectItem>
             </SelectContent>
@@ -611,9 +623,30 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
       </div>
 
       <div className="space-y-4 max-w-full mx-auto  mt-10">
-        {state.questionsWithData.length > 0 ? (
-          state.questionsWithData.map((question, index) => {
-            return (
+        {state.filteredQuestions.length === 0 ? (
+          <EmptyState
+            title="No questions found"
+            description="No saved questions match your current filters. Try adjusting the subject or difficulty filters to see more results."
+            icons={[
+              <BookOpenIcon key="book" />,
+              <SearchIcon key="search" />,
+              <RotateCcwIcon key="reset" />,
+            ]}
+            action={{
+              label: "Reset Filters",
+              onClick: () => {
+                dispatch({ type: "SET_FILTER_SUBJECT", payload: "all" });
+                dispatch({ type: "SET_FILTER_DIFFICULTY", payload: "all" });
+              },
+              icon: <RotateCcwIcon />,
+            }}
+            theme="light"
+            size="default"
+          />
+        ) : (
+          state.filteredQuestions
+            .slice(0, state.displayedQuestionsCount)
+            .map((question, index) => (
               <div key={`${question.questionId}-${index}`} className=" mb-32">
                 <OptimizedQuestionCard
                   question={question}
@@ -622,27 +655,12 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
                   type="saved"
                 />
               </div>
-            );
-          })
-        ) : (
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-center text-gray-500">
-                <p className="text-lg">📚</p>
-                <p className="mt-2">
-                  You haven&apos;t saved any questions yet.
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  Questions you bookmark will appear here for easy review.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+            ))
         )}
       </div>
 
       {/* Load more trigger - invisible element for intersection observer */}
-      {filteredCount > state.displayedQuestionsCount && (
+      {state.allSavedQuestions.length > state.displayedQuestionsCount && (
         <div className="space-y-4">
           <div
             ref={loadMoreRef}
@@ -665,19 +683,13 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
                 className="px-6 py-2"
               >
                 Load More Questions (
-                {filteredCount - state.displayedQuestionsCount} remaining)
+                {state.allSavedQuestions.length - state.displayedQuestionsCount}{" "}
+                remaining)
               </Button>
             </div>
           )}
         </div>
       )}
-
-      {filteredCount <= state.displayedQuestionsCount &&
-        state.questionsWithData.length > 0 && (
-          <div className="text-center text-sm text-muted-foreground mt-4">
-            You've reached the end of the questions for the selected filter.
-          </div>
-        )}
 
       {state.questionsWithData.some((q) => q.isLoading) &&
         !state.isLoadingMore && (

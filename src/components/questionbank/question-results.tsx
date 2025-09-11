@@ -49,6 +49,7 @@ import {
   InteractiveOnboardingChecklist,
   Step,
 } from "../ui/onboarding-checklist";
+import { Separator } from "../ui/separator";
 
 // Tour state interface
 interface TourState {
@@ -610,170 +611,6 @@ export function QuestionResults({
     );
   }
 
-  if (actualFilteredQuestions.length === 0) {
-    const hasQuestionsWithMissingDifficulty = state.questionsWithData.some(
-      (q) => !q.difficulty
-    );
-
-    return (
-      <div className="space-y-6 px-2 max-w-full lg:max-w-7xl xl:max-w-[92rem] mx-auto">
-        <div className="px-8 lg:px-28 grid grid-cols-12 py-4">
-          <div className="col-span-12 md:col-span-5 flex flex-col flex-wrap gap-2 items-start text-sm">
-            <h2 className="text-lg font-semibold">Question Results</h2>
-            <p className="text-sm text-muted-foreground">
-              {state.selectedDifficulties.length > 0 ||
-              state.selectedSkills.length > 0 ||
-              state.dateRange ? (
-                <>
-                  No questions found for the selected filters.
-                  <span className="block text-xs text-blue-600 mt-1">
-                    {state.questionsWithData.length} total questions available
-                  </span>
-                </>
-              ) : (
-                "No questions found."
-              )}
-            </p>
-          </div>
-          <div className="mt-10 md:mt-0 col-span-12 md:col-span-7 flex flex-col lg:flex-row items-end justify-end gap-3">
-            <MultiSelectCombobox
-              label={"by Difficulty"}
-              options={DIFFICULTY_OPTIONS}
-              value={state.selectedDifficulties}
-              onChange={(value) => {
-                dispatch({
-                  type: "SET_DIFFICULTY_FILTER",
-                  payload: value as QuestionDifficulty[],
-                });
-              }}
-              renderItem={renderDifficultyOption}
-              renderSelectedItem={renderSelectedDifficulties}
-            />
-            <MultiSelectCombobox
-              label={"by Skills"}
-              options={skillOptions}
-              value={state.selectedSkills}
-              onChange={(value) => {
-                dispatch({
-                  type: "SET_SKILL_FILTER",
-                  payload: value,
-                });
-              }}
-              renderItem={renderSkillOption}
-              renderSelectedItem={renderSelectedSkills}
-              grouped={true}
-            />
-          </div>
-        </div>
-
-        <div className="px-8 lg:px-28">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-center text-gray-500">
-                <p className="text-4xl mb-4">🔍</p>
-                <h3 className="text-lg font-medium mb-2">
-                  {state.selectedDifficulties.length > 0 ||
-                  state.selectedSkills.length > 0 ||
-                  state.dateRange
-                    ? "No questions match your filter criteria"
-                    : "No questions available"}
-                </h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  {state.selectedDifficulties.length > 0 ||
-                  state.selectedSkills.length > 0 ||
-                  state.dateRange ? (
-                    <>
-                      We couldn't find any questions matching the selected
-                      {state.selectedDifficulties.length > 0 &&
-                      state.selectedSkills.length > 0 &&
-                      state.dateRange
-                        ? " difficulty, skill, and date filters"
-                        : state.selectedDifficulties.length > 0 &&
-                          state.selectedSkills.length > 0
-                        ? " difficulty and skill filters"
-                        : state.selectedDifficulties.length > 0 &&
-                          state.dateRange
-                        ? " difficulty and date filters"
-                        : state.selectedSkills.length > 0 && state.dateRange
-                        ? " skill and date filters"
-                        : state.selectedDifficulties.length > 0
-                        ? " difficulty levels"
-                        : state.selectedSkills.length > 0
-                        ? " skills"
-                        : " date range"}
-                      .
-                      {hasQuestionsWithMissingDifficulty && (
-                        <span className="block mt-2 text-xs text-amber-600">
-                          Note: Some questions may not have difficulty data
-                          assigned. Try selecting "Easy" to include questions
-                          with missing difficulty information.
-                        </span>
-                      )}
-                    </>
-                  ) : (
-                    "There are no questions available for this assessment."
-                  )}
-                </p>
-
-                {(state.selectedDifficulties.length > 0 ||
-                  state.selectedSkills.length > 0 ||
-                  state.dateRange) && (
-                  <div className="space-y-3">
-                    <p className="text-sm font-medium">Try these options:</p>
-                    <div className="flex flex-col sm:flex-row gap-2 justify-center">
-                      <button
-                        onClick={() => {
-                          dispatch({ type: "RESET_DIFFICULTY_FILTER" });
-                          dispatch({ type: "RESET_SKILL_FILTER" });
-                          dispatch({ type: "SET_DATE_RANGE", payload: null });
-                        }}
-                        className="px-4 py-2 text-sm bg-blue-50 text-blue-700 rounded-md hover:bg-blue-100 transition-colors"
-                      >
-                        Clear all filters
-                      </button>
-                      {!state.selectedDifficulties.includes("E") &&
-                        hasQuestionsWithMissingDifficulty && (
-                          <button
-                            onClick={() =>
-                              dispatch({
-                                type: "SET_DIFFICULTY_FILTER",
-                                payload: [...state.selectedDifficulties, "E"],
-                              })
-                            }
-                            className="px-4 py-2 text-sm bg-amber-50 text-amber-700 rounded-md hover:bg-amber-100 transition-colors"
-                          >
-                            Include Easy (+ missing data)
-                          </button>
-                        )}
-                    </div>
-                  </div>
-                )}
-
-                {state.questionsWithData.length > 0 && (
-                  <div className="mt-4 pt-4 border-t border-gray-200">
-                    <p className="text-xs text-muted-foreground">
-                      Total questions in database:{" "}
-                      {state.questionsWithData.length}
-                      {hasQuestionsWithMissingDifficulty && (
-                        <span className="block mt-1">
-                          Questions with missing difficulty data:{" "}
-                          {
-                            state.questionsWithData.filter((q) => !q.difficulty)
-                              .length
-                          }
-                        </span>
-                      )}
-                    </p>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    );
-  }
-
   // console.log("state.filteredQuestions", state.filteredQuestions);
   return (
     <div className="space-y-6 px-2 max-w-full lg:max-w-7xl xl:max-w-[92rem] mx-auto">
@@ -783,9 +620,9 @@ export function QuestionResults({
           tourDispatch({ type: "SET_SHOW_TOUR_DIALOG", payload: false });
         }}
         isOpen={tourState.showTourDialog}
-        setIsOpen={(isOpen) =>
-          tourDispatch({ type: "SET_SHOW_TOUR_DIALOG", payload: isOpen })
-        }
+        setIsOpen={(isOpen) => {
+          tourDispatch({ type: "SET_SHOW_TOUR_DIALOG", payload: isOpen });
+        }}
         tourLocalStorageKey="questionbank-onboarding"
         tourTitle="Welcome to Question Bank!"
         tourDescription="This short tour will guide you through filtering and finding questions effectively."
@@ -800,10 +637,11 @@ export function QuestionResults({
         onCompleteStep={handleCompleteStep}
         onFinish={handleFinish}
         mode="standard"
+        placement="right"
         tourLocalStorageKey="questionbank-onboarding"
       />
 
-      <div className="px-8 lg:px-28 grid grid-cols-12 py-3">
+      <div className="px-8 lg:px-28 grid grid-cols-12 pt-3">
         <div className="col-span-12 md:col-span-5 flex flex-col flex-wrap gap-2 items-start text-sm">
           <h2 className="text-lg font-semibold">Question Results</h2>
           <p className="text-sm text-muted-foreground">
@@ -872,157 +710,280 @@ export function QuestionResults({
             )}
           </p>
         </div>
-        <div className="mt-10 md:mt-0 col-span-12 md:col-span-7 flex flex-col lg:flex-row items-end justify-end gap-3">
-          <MultiSelectCombobox
-            data-onboard="select-difficulties"
-            label={"by Difficulty"}
-            options={DIFFICULTY_OPTIONS}
-            value={state.selectedDifficulties}
-            onChange={(value) => {
-              dispatch({
-                type: "SET_DIFFICULTY_FILTER",
-                payload: value as QuestionDifficulty[],
-              });
-            }}
-            renderItem={renderDifficultyOption}
-            renderSelectedItem={renderSelectedDifficulties}
-          />
-          <MultiSelectCombobox
-            data-onboard="select-skills"
-            label={"by Skills"}
-            options={skillOptions}
-            value={state.selectedSkills}
-            onChange={(value) => {
-              dispatch({
-                type: "SET_SKILL_FILTER",
-                payload: value,
-              });
-            }}
-            renderItem={renderSkillOption}
-            renderSelectedItem={renderSelectedSkills}
-            grouped={true}
-          />
+        <div className="mt-10 md:mt-0 col-span-12 md:col-span-7 flex flex-col lg:flex-row items-end justify-end gap-3"></div>
+      </div>
+      <div className="px-8 lg:px-28 flex flex-col lg:flex-row items-start justify-start gap-3">
+        <MultiSelectCombobox
+          data-onboard="select-difficulties"
+          label={"by Difficulty"}
+          options={DIFFICULTY_OPTIONS}
+          value={state.selectedDifficulties}
+          onChange={(value) => {
+            dispatch({
+              type: "SET_DIFFICULTY_FILTER",
+              payload: value as QuestionDifficulty[],
+            });
+          }}
+          renderItem={renderDifficultyOption}
+          renderSelectedItem={renderSelectedDifficulties}
+        />
+        <MultiSelectCombobox
+          data-onboard="select-skills"
+          label={"by Skills"}
+          options={skillOptions}
+          value={state.selectedSkills}
+          onChange={(value) => {
+            dispatch({
+              type: "SET_SKILL_FILTER",
+              payload: value,
+            });
+          }}
+          renderItem={renderSkillOption}
+          renderSelectedItem={renderSelectedSkills}
+          grouped={true}
+        />
 
-          <PersistentPopover>
-            <PersistentPopoverTrigger asChild className="h-full cursor-pointer">
-              <Button
-                data-onboard="advanced-filter"
-                onClick={() => {
-                  if (
-                    tourState.onboardingOpen &&
-                    !tourState.completedSteps.has("advanced-filter")
-                  ) {
-                    handleCompleteStep("advanced-filter");
-                  }
-                }}
-                variant="outline"
-                className="h-full"
-              >
-                Filter <SlidersHorizontalIcon />
-              </Button>
-            </PersistentPopoverTrigger>
-
-            <PersistentPopoverContent
-              side="bottom"
-              align="end"
-              preventClose={tourState.onboardingOpen}
+        <PersistentPopover>
+          <PersistentPopoverTrigger asChild className="h-full cursor-pointer">
+            <Button
+              data-onboard="advanced-filter"
+              onClick={() => {
+                if (
+                  tourState.onboardingOpen &&
+                  !tourState.completedSteps.has("advanced-filter")
+                ) {
+                  handleCompleteStep("advanced-filter");
+                }
+              }}
+              variant="outline"
+              className="h-full"
             >
-              <div className="flex flex-col gap-y-2">
-                <div
-                  className="flex items-center gap-2"
-                  data-onboard="exclude-bluebook-toggler"
-                >
-                  <Switch
-                    checked={state.excludeBluebookQuestions}
-                    onCheckedChange={(checked) => {
-                      dispatch({
-                        type: "TOGGLE_EXCLUDE_BLUEBOOK",
-                        payload: checked,
-                      });
-                    }}
-                  />
-                  <span className="text-sm">Exclude Bluebook Questions</span>
-                </div>
-                <div
-                  className="flex items-center gap-2"
-                  data-onboard="bluebook-only-toggler"
-                >
-                  <Switch
-                    checked={state.onlyBluebookQuestions}
-                    onCheckedChange={(checked) => {
-                      dispatch({
-                        type: "TOGGLE_ONLY_BLUEBOOK",
-                        payload: checked,
-                      });
-                    }}
-                  />
-                  <span className="text-sm"> Bluebook Questions Only</span>
-                </div>
-                <Select
-                  value={state.sortOrder}
-                  onValueChange={(value: "default" | "newest" | "oldest") => {
+              Filter <SlidersHorizontalIcon />
+            </Button>
+          </PersistentPopoverTrigger>
+
+          <PersistentPopoverContent
+            side="bottom"
+            align="end"
+            preventClose={tourState.onboardingOpen}
+          >
+            <div className="flex flex-col gap-y-2">
+              <div
+                className="flex items-center gap-2"
+                data-onboard="exclude-bluebook-toggler"
+              >
+                <Switch
+                  checked={state.excludeBluebookQuestions}
+                  onCheckedChange={(checked) => {
                     dispatch({
-                      type: "SET_SORT_ORDER",
-                      payload: value,
+                      type: "TOGGLE_EXCLUDE_BLUEBOOK",
+                      payload: checked,
                     });
                   }}
-                >
-                  <SelectTrigger
-                    className="bg-white h-full"
-                    icon={ClockFadingIcon}
-                    data-onboard="time-sort"
-                  >
-                    <SelectValue placeholder={"Filter by Date"} />
-                  </SelectTrigger>
-                  <SelectContent className="font-medium">
-                    <SelectItem value="default" icon={ClockIcon}>
-                      Default
-                    </SelectItem>
-                    <SelectItem value="newest" icon={ClockArrowUpIcon}>
-                      Newest First
-                    </SelectItem>
-                    <SelectItem value="oldest" icon={ClockArrowDownIcon}>
-                      Oldest First
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-
-                <Calendar
-                  allowClear
-                  dataOnboard="date-range-filter"
-                  disableFuture
-                  isDocsPage
-                  showTimeInput={false}
-                  onChange={(dateRange) =>
-                    dispatch({ type: "SET_DATE_RANGE", payload: dateRange })
-                  }
-                  onClick={() => {
-                    if (!tourState.completedSteps.has("date-range-filter")) {
-                      handleCompleteStep("date-range-filter");
-                    }
-                  }}
-                  value={state.dateRange}
                 />
+                <span className="text-sm">Exclude Bluebook Questions</span>
               </div>
-            </PersistentPopoverContent>
-          </PersistentPopover>
-        </div>
-      </div>
+              <div
+                className="flex items-center gap-2"
+                data-onboard="bluebook-only-toggler"
+              >
+                <Switch
+                  checked={state.onlyBluebookQuestions}
+                  onCheckedChange={(checked) => {
+                    dispatch({
+                      type: "TOGGLE_ONLY_BLUEBOOK",
+                      payload: checked,
+                    });
+                  }}
+                />
+                <span className="text-sm"> Bluebook Questions Only</span>
+              </div>
+              <Select
+                value={state.sortOrder}
+                onValueChange={(value: "default" | "newest" | "oldest") => {
+                  dispatch({
+                    type: "SET_SORT_ORDER",
+                    payload: value,
+                  });
+                }}
+              >
+                <SelectTrigger
+                  className="bg-white h-full"
+                  icon={ClockFadingIcon}
+                  data-onboard="time-sort"
+                >
+                  <SelectValue placeholder={"Filter by Date"} />
+                </SelectTrigger>
+                <SelectContent className="font-medium">
+                  <SelectItem value="default" icon={ClockIcon}>
+                    Default
+                  </SelectItem>
+                  <SelectItem value="newest" icon={ClockArrowUpIcon}>
+                    Newest First
+                  </SelectItem>
+                  <SelectItem value="oldest" icon={ClockArrowDownIcon}>
+                    Oldest First
+                  </SelectItem>
+                </SelectContent>
+              </Select>
 
-      <div className=" max-w-full mx-auto lg:px-22">
-        {actualFilteredQuestions
-          .slice(0, state.visibleCount)
-          .map((question, index) => (
-            <div key={`${question.questionId}-${index}`} className="mb-32">
-              <OptimizedQuestionCard
-                withDate
-                question={question}
-                index={index}
-                onRetry={handleRetry}
-                type="standard"
+              <Calendar
+                allowClear
+                dataOnboard="date-range-filter"
+                disableFuture
+                isDocsPage
+                showTimeInput={false}
+                onChange={(dateRange) =>
+                  dispatch({ type: "SET_DATE_RANGE", payload: dateRange })
+                }
+                onClick={() => {
+                  if (!tourState.completedSteps.has("date-range-filter")) {
+                    handleCompleteStep("date-range-filter");
+                  }
+                }}
+                value={state.dateRange}
               />
             </div>
-          ))}
+          </PersistentPopoverContent>
+        </PersistentPopover>
+      </div>
+
+      <Separator className="my-6 lg:my-10" />
+
+      <div className=" max-w-full mx-auto lg:px-22">
+        {actualFilteredQuestions.length > 0
+          ? actualFilteredQuestions
+              .slice(0, state.visibleCount)
+              .map((question, index) => (
+                <div key={`${question.questionId}-${index}`} className="mb-32">
+                  <OptimizedQuestionCard
+                    withDate
+                    question={question}
+                    index={index}
+                    onRetry={handleRetry}
+                    type="standard"
+                  />
+                </div>
+              ))
+          : (() => {
+              const hasQuestionsWithMissingDifficulty =
+                state.questionsWithData.some((q) => !q.difficulty);
+
+              return (
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-center text-gray-500">
+                      <p className="text-4xl mb-4">🔍</p>
+                      <h3 className="text-lg font-medium mb-2">
+                        {state.selectedDifficulties.length > 0 ||
+                        state.selectedSkills.length > 0 ||
+                        state.dateRange
+                          ? "No questions match your filter criteria"
+                          : "No questions available"}
+                      </h3>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        {state.selectedDifficulties.length > 0 ||
+                        state.selectedSkills.length > 0 ||
+                        state.dateRange ? (
+                          <>
+                            We couldn't find any questions matching the selected
+                            {state.selectedDifficulties.length > 0 &&
+                            state.selectedSkills.length > 0 &&
+                            state.dateRange
+                              ? " difficulty, skill, and date filters"
+                              : state.selectedDifficulties.length > 0 &&
+                                state.selectedSkills.length > 0
+                              ? " difficulty and skill filters"
+                              : state.selectedDifficulties.length > 0 &&
+                                state.dateRange
+                              ? " difficulty and date filters"
+                              : state.selectedSkills.length > 0 &&
+                                state.dateRange
+                              ? " skill and date filters"
+                              : state.selectedDifficulties.length > 0
+                              ? " difficulty levels"
+                              : state.selectedSkills.length > 0
+                              ? " skills"
+                              : " date range"}
+                            .
+                            {hasQuestionsWithMissingDifficulty && (
+                              <span className="block mt-2 text-xs text-amber-600">
+                                Note: Some questions may not have difficulty
+                                data assigned. Try selecting "Easy" to include
+                                questions with missing difficulty information.
+                              </span>
+                            )}
+                          </>
+                        ) : (
+                          "There are no questions available for this assessment."
+                        )}
+                      </p>
+
+                      {(state.selectedDifficulties.length > 0 ||
+                        state.selectedSkills.length > 0 ||
+                        state.dateRange) && (
+                        <div className="space-y-3">
+                          <p className="text-sm font-medium">
+                            Try these options:
+                          </p>
+                          <div className="flex flex-col sm:flex-row gap-2 justify-center">
+                            <button
+                              onClick={() => {
+                                dispatch({ type: "RESET_DIFFICULTY_FILTER" });
+                                dispatch({ type: "RESET_SKILL_FILTER" });
+                                dispatch({
+                                  type: "SET_DATE_RANGE",
+                                  payload: null,
+                                });
+                              }}
+                              className="px-4 py-2 text-sm bg-blue-50 text-blue-700 rounded-md hover:bg-blue-100 transition-colors"
+                            >
+                              Clear all filters
+                            </button>
+                            {!state.selectedDifficulties.includes("E") &&
+                              hasQuestionsWithMissingDifficulty && (
+                                <button
+                                  onClick={() =>
+                                    dispatch({
+                                      type: "SET_DIFFICULTY_FILTER",
+                                      payload: [
+                                        ...state.selectedDifficulties,
+                                        "E",
+                                      ],
+                                    })
+                                  }
+                                  className="px-4 py-2 text-sm bg-amber-50 text-amber-700 rounded-md hover:bg-amber-100 transition-colors"
+                                >
+                                  Include Easy (+ missing data)
+                                </button>
+                              )}
+                          </div>
+                        </div>
+                      )}
+
+                      {state.questionsWithData.length > 0 && (
+                        <div className="mt-4 pt-4 border-t border-gray-200">
+                          <p className="text-xs text-muted-foreground">
+                            Total questions in database:{" "}
+                            {state.questionsWithData.length}
+                            {hasQuestionsWithMissingDifficulty && (
+                              <span className="block mt-1">
+                                Questions with missing difficulty data:{" "}
+                                {
+                                  state.questionsWithData.filter(
+                                    (q) => !q.difficulty
+                                  ).length
+                                }
+                              </span>
+                            )}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })()}
       </div>
 
       {loadingIndicator}

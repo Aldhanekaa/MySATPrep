@@ -20,6 +20,7 @@ import {
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
+import { playSound } from "@/lib/playSound";
 
 interface QuestionResult {
   questionId: string;
@@ -124,6 +125,7 @@ export function SessionsTab() {
         currentSession &&
         JSON.parse(currentSession).sessionId === session.sessionId
       );
+      playSound("popup-confirm-up.wav");
 
       setSessionToDelete(session);
       setIsCurrentSession(isCurrentActiveSession);
@@ -181,6 +183,8 @@ export function SessionsTab() {
   };
 
   const cancelDeleteSession = () => {
+    playSound("popup-confirm-down.wav");
+
     setDeleteModalOpen(false);
     setSessionToDelete(null);
     setIsCurrentSession(false);

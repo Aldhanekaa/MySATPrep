@@ -75,6 +75,10 @@ export interface QuestionAnswers {
   [questionId: string]: string | null;
 }
 
+export interface QuestionCorrectChoices {
+  [questionId: string]: string[];
+}
+
 /**
  * Question timing data mapping
  * Maps question IDs to response time in milliseconds
@@ -127,6 +131,8 @@ export interface PracticeSession {
   questionAnswers: QuestionAnswers;
   questionTimes: QuestionTimes;
   answeredQuestionDetails: AnsweredQuestionDetails; // New field for question metadata
+
+  questionCorrectChoices?: QuestionCorrectChoices;
 
   // Analytics (computed values)
   totalQuestions: number;

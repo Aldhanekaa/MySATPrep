@@ -580,7 +580,9 @@ export function InteractiveOnboardingChecklist({
       <Dialog.Root open={open} onOpenChange={handleOpenChange} modal={false}>
         <Dialog.Portal>
           <Dialog.Content
-            className="fixed bottom-4 left-4 z-100 w-80 max-h-[calc(100vh-2rem)] bg-card border rounded-xl shadow-xl pointer-events-auto"
+            className={`fixed bottom-4 ${
+              placement == "left" ? "left-4" : "right-4"
+            } z-100 w-80 max-h-[calc(100vh-2rem)] bg-card border rounded-xl shadow-xl pointer-events-auto`}
             onOpenAutoFocus={(e) => e.preventDefault()}
             onEscapeKeyDown={(e) => e.preventDefault()}
             onPointerDownOutside={(e) => e.preventDefault()}

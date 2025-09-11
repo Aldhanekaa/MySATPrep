@@ -436,6 +436,7 @@ export default function QuestionProblemCard({
     }
   };
 
+  // console.log(question);
   return (
     <React.Fragment>
       {/* Subject and Skill Headers */}
@@ -577,7 +578,7 @@ export default function QuestionProblemCard({
                           updatedSavedQuestions[assessment].push(
                             newSavedQuestion
                           );
-                          console.log("Question saved successfully!");
+                          // console.log("Question saved successfully!");
                         } else {
                           // Question already saved, so remove it
                           playSound("tap-checkbox-unchecked.wav");
@@ -585,7 +586,7 @@ export default function QuestionProblemCard({
                             questionIndex,
                             1
                           );
-                          console.log("Question removed from saved!");
+                          // console.log("Question removed from saved!");
                         }
 
                         // Update the localStorage through the hook
