@@ -23,6 +23,9 @@ import {
   Calculator,
   Maximize2Icon,
   NotebookPen,
+  SquareArrowDown,
+  ArrowDown,
+  EllipsisIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MathJax } from "better-react-mathjax";
@@ -39,6 +42,7 @@ import { DraggableReferencePopup } from "./popups/reference-popup";
 import { DraggableDesmosPopup } from "./popups/desmos-popup";
 import { DraggableNotesPopup } from "./popups/notes-popup";
 import { getSubjectByPrimaryClassCd } from "@/static-data/domains";
+import { SaveButton } from "./ui/save-button";
 
 // Duolingo-styled Input Component
 interface DuolingoInputProps {
@@ -90,11 +94,13 @@ export default function QuestionProblemCard({
   hideToolsPopup = false,
   hideViewQuestionButton = false,
   hideSubjectHeaders = false,
+  answerVisibility,
 }: {
   question: QuestionById_Data;
   hideToolsPopup?: boolean;
   hideViewQuestionButton?: boolean;
   hideSubjectHeaders?: boolean;
+  answerVisibility?: string;
 }) {
   const sonner = useSonner();
   const router = useRouter();
@@ -115,11 +121,18 @@ export default function QuestionProblemCard({
     {}
   );
 
+  // Load answer choice history from localStorage (for hidden answer mode)
+  const [answerChoiceHistory, setAnswerChoiceHistory] = useLocalStorage<{
+    [questionId: string]: Array<{
+      userChoice: string;
+      time: number;
+      status: "incorrect" | "correct";
+    }>;
+  }>("answerChoiceHistory", {});
+
   // State for tracking if this question is saved and answered before
-  const [isQuestionSaved, setIsQuestionSaved] = useState<boolean>(() => false);
-  const [isQuestionAnswered, setIsQuestionAnswered] = useState<boolean>(
-    () => false
-  );
+  const [isQuestionSaved, setIsQuestionSaved] = useState<boolean>(false);
+  const [isQuestionAnswered, setIsQuestionAnswered] = useState<boolean>(false);
   const [questionStats, setQuestionStats] = useState<{
     isCorrect?: boolean;
     timeSpent?: number;
@@ -133,10 +146,8 @@ export default function QuestionProblemCard({
   const [hasNote, setHasNote] = useState<boolean>(false);
 
   // State for answer selection
-  const [selectedAnswer, setSelectedAnswer] = useState<string | null>(
-    () => null
-  );
-  const [isAnswerChecked, setIsAnswerChecked] = useState<boolean>(() => false);
+  const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
+  const [isAnswerChecked, setIsAnswerChecked] = useState<boolean>(false);
   const [questionStartTime] = useState<number>(Date.now());
 
   // Share modal state
@@ -180,8 +191,9 @@ export default function QuestionProblemCard({
       }
 
       // Check if question has been answered before in practice statistics
+      // Only check and show previous answers if answerVisibility is not "hide"
       const assessmentStats = practiceStatistics[assessment];
-      if (assessmentStats) {
+      if (assessmentStats && answerVisibility !== "hide") {
         // Check in legacy answered questions list
         const isAnsweredLegacy =
           assessmentStats.answeredQuestions?.includes(questionId) || false;
@@ -201,9 +213,30 @@ export default function QuestionProblemCard({
             selectedAnswer: detailedAnswer.selectedAnswer, // Get the stored selected answer
           });
         }
+      } else {
+        // When answerVisibility is "hide", reset the question state
+        setIsQuestionAnswered(false);
+        setQuestionStats(null);
       }
     }
-  }, [question, savedQuestions, questionNotes, practiceStatistics, assessment]);
+  }, [
+    question,
+    savedQuestions,
+    questionNotes,
+    practiceStatistics,
+    assessment,
+    answerVisibility,
+  ]);
+
+  // Reset current session state when answerVisibility changes to "hide"
+  useEffect(() => {
+    if (answerVisibility === "hide") {
+      setSelectedAnswer(null);
+      setIsAnswerChecked(false);
+      // Don't reset questionStats or isQuestionAnswered in the useEffect because
+      // they're managed by the main useEffect that processes previous answers
+    }
+  }, [answerVisibility]);
 
   // Set share URL when component mounts
   useEffect(() => {
@@ -324,21 +357,35 @@ export default function QuestionProblemCard({
 
   // Handle answer selection (for both multiple choice and text input)
   const handleAnswerSelect = (optionKey: string) => {
-    if (isAnswerChecked || isQuestionAnswered) return;
+    // When answerVisibility is "hide", always allow answering (reset each time)
+    // Otherwise, prevent if already checked in current session or previously answered
+    if (answerVisibility === "hide") {
+      // Always allow interaction in hide mode
+    } else if (isAnswerChecked || isQuestionAnswered) {
+      return;
+    }
 
     setSelectedAnswer(optionKey);
-    setIsQuestionAnswered(true);
 
     // For multiple choice, immediately validate and submit
     if (question.problem.answerOptions) {
       setIsAnswerChecked(true);
+      if (answerVisibility !== "hide") {
+        setIsQuestionAnswered(true);
+      }
       submitAnswer(optionKey);
     }
   };
 
   // Handle text input change with immediate validation
   const handleTextInputChange = (value: string) => {
-    if (isAnswerChecked || isQuestionAnswered) return;
+    // When answerVisibility is "hide", always allow interaction
+    // Otherwise, prevent if already checked in current session or previously answered
+    if (answerVisibility === "hide") {
+      // Always allow interaction in hide mode
+    } else if (isAnswerChecked || isQuestionAnswered) {
+      return;
+    }
     setSelectedAnswer(value);
   };
 
@@ -364,78 +411,120 @@ export default function QuestionProblemCard({
       playSound("incorrect-answer.wav");
     }
 
-    // Update practice statistics
-    const updatedStats = { ...practiceStatistics };
+    // Save to different storage based on answerVisibility
+    if (answerVisibility === "hide") {
+      // Save to answerChoiceHistory when answer visibility is hidden
+      const updatedHistory = { ...answerChoiceHistory };
 
-    // Initialize assessment stats if they don't exist
-    if (!updatedStats[assessment]) {
-      updatedStats[assessment] = {
-        answeredQuestions: [],
-        answeredQuestionsDetailed: [],
-        statistics: {},
-      };
+      if (!updatedHistory[questionId]) {
+        updatedHistory[questionId] = [];
+      }
+
+      updatedHistory[questionId].push({
+        userChoice: answer,
+        time: Math.floor(Date.now() / 1000), // Unix timestamp
+        status: isCorrect ? "correct" : "incorrect",
+      });
+
+      setAnswerChoiceHistory(updatedHistory);
+
+      console.log("Question answered and saved to answerChoiceHistory:", {
+        questionId,
+        selectedAnswer: answer,
+        isCorrect,
+        assessment,
+        questionType: question.problem.answerOptions
+          ? "multiple-choice"
+          : "text-input",
+        updatedHistory: updatedHistory[questionId],
+      });
+    } else {
+      // Save to practiceStatistics when answer visibility is shown
+      const updatedStats = { ...practiceStatistics };
+
+      // Initialize assessment stats if they don't exist
+      if (!updatedStats[assessment]) {
+        updatedStats[assessment] = {
+          answeredQuestions: [],
+          answeredQuestionsDetailed: [],
+          statistics: {},
+        };
+      }
+
+      const assessmentStats = updatedStats[assessment];
+
+      // Add to answered questions if not already there
+      if (!assessmentStats.answeredQuestions?.includes(questionId)) {
+        assessmentStats.answeredQuestions =
+          assessmentStats.answeredQuestions || [];
+        assessmentStats.answeredQuestions.push(questionId);
+      }
+
+      // Add detailed answer information
+      assessmentStats.answeredQuestionsDetailed =
+        assessmentStats.answeredQuestionsDetailed || [];
+
+      // Remove existing entry if it exists (for re-answering)
+      assessmentStats.answeredQuestionsDetailed =
+        assessmentStats.answeredQuestionsDetailed.filter(
+          (q) => q.questionId !== questionId
+        );
+
+      // Add new entry
+      assessmentStats.answeredQuestionsDetailed.push({
+        questionId,
+        difficulty: question.question.difficulty || "M", // Default to Medium if not specified
+        isCorrect,
+        timeSpent: timeElapsed,
+        timestamp: new Date().toISOString(),
+        selectedAnswer: answer, // Store user's selected answer
+        plainQuestion: question.question,
+      });
+
+      // Save to localStorage
+      setPracticeStatistics(updatedStats);
+
+      // Debug logging
+      console.log("Question answered and saved to practiceStatistics:", {
+        questionId,
+        selectedAnswer: answer,
+        isCorrect,
+        assessment,
+        questionType: question.problem.answerOptions
+          ? "multiple-choice"
+          : "text-input",
+        updatedStats: updatedStats[assessment]?.answeredQuestionsDetailed,
+      });
     }
-
-    const assessmentStats = updatedStats[assessment];
-
-    // Add to answered questions if not already there
-    if (!assessmentStats.answeredQuestions?.includes(questionId)) {
-      assessmentStats.answeredQuestions =
-        assessmentStats.answeredQuestions || [];
-      assessmentStats.answeredQuestions.push(questionId);
-    }
-
-    // Add detailed answer information
-    assessmentStats.answeredQuestionsDetailed =
-      assessmentStats.answeredQuestionsDetailed || [];
-
-    // Remove existing entry if it exists (for re-answering)
-    assessmentStats.answeredQuestionsDetailed =
-      assessmentStats.answeredQuestionsDetailed.filter(
-        (q) => q.questionId !== questionId
-      );
-
-    // Add new entry
-    assessmentStats.answeredQuestionsDetailed.push({
-      questionId,
-      difficulty: question.question.difficulty || "M", // Default to Medium if not specified
-      isCorrect,
-      timeSpent: timeElapsed,
-      timestamp: new Date().toISOString(),
-      selectedAnswer: answer, // Store user's selected answer
-      plainQuestion: question.question,
-    });
-
-    // Save to localStorage
-    setPracticeStatistics(updatedStats);
-
-    // Debug logging
-    console.log("Question answered and saved to practiceStatistics:", {
-      questionId,
-      selectedAnswer: answer,
-      isCorrect,
-      assessment,
-      questionType: question.problem.answerOptions
-        ? "multiple-choice"
-        : "text-input",
-      updatedStats: updatedStats[assessment]?.answeredQuestionsDetailed,
-    });
 
     // Update local state
-    setIsQuestionAnswered(true);
+    if (answerVisibility !== "hide") {
+      setIsQuestionAnswered(true);
+    }
     setQuestionStats({
       isCorrect,
       timeSpent: timeElapsed,
       timestamp: new Date().toISOString(),
       selectedAnswer: answer, // Store the user's selected answer
     });
+
+    // In hide mode, reset the visual state after a brief delay to allow re-answering
+    if (answerVisibility === "hide") {
+      setTimeout(() => {
+        setSelectedAnswer(null);
+        setIsAnswerChecked(false);
+        setQuestionStats(null);
+      }, 3000); // Show feedback for 3 seconds, then reset
+    }
   };
 
   // Handle text input submission
   const handleTextInputSubmit = () => {
     if (selectedAnswer && selectedAnswer.trim()) {
       setIsAnswerChecked(true);
-      setIsQuestionAnswered(true);
+      if (answerVisibility !== "hide") {
+        setIsQuestionAnswered(true);
+      }
       submitAnswer(selectedAnswer.trim());
     }
   };
@@ -545,70 +634,15 @@ export default function QuestionProblemCard({
                       {hasNote ? "Edit Note" : "Add Note"}
                     </span>
                   </Button>
-                  <Button
-                    variant="default"
-                    className={`flex cursor-pointer items-center gap-1 md:gap-2 font-bold py-2 md:py-3 px-3 md:px-6 rounded-xl md:rounded-2xl border-b-4 shadow-md hover:shadow-lg transform transition-all duration-200 active:translate-y-0.5 active:border-b-2 text-xs md:text-sm ${
-                      isQuestionSaved
-                        ? "bg-yellow-500 hover:bg-yellow-600 text-white border-yellow-700 hover:border-yellow-800"
-                        : "bg-yellow-500 hover:bg-yellow-600 text-white border-yellow-700 hover:border-yellow-800"
-                    }`}
-                    onClick={() => {
-                      try {
-                        const questionId = question.question.questionId;
-                        const updatedSavedQuestions = { ...savedQuestions };
 
-                        // Initialize array if it doesn't exist
-                        if (!updatedSavedQuestions[assessment]) {
-                          updatedSavedQuestions[assessment] = [];
-                        }
+                  <SaveButton
+                    question={question}
+                    assessment={assessment}
+                    isQuestionSaved={isQuestionSaved}
+                    savedQuestions={savedQuestions}
+                    setSavedQuestions={setSavedQuestions}
+                  />
 
-                        // Check if question is already saved
-                        const questionIndex = updatedSavedQuestions[
-                          assessment
-                        ].findIndex(
-                          (q: SavedQuestion) => q.questionId === questionId
-                        );
-
-                        if (questionIndex === -1) {
-                          // Question not saved, so save it
-                          playSound("tap-checkbox-checked.wav");
-                          const newSavedQuestion: SavedQuestion = {
-                            questionId: questionId,
-                            externalId: question.question.external_id || null,
-                            ibn: question.question.ibn || null,
-                            plainQuestion: question.question, // Include full question data
-                            timestamp: new Date().toISOString(),
-                          };
-                          updatedSavedQuestions[assessment].push(
-                            newSavedQuestion
-                          );
-                          // console.log("Question saved successfully!");
-                        } else {
-                          // Question already saved, so remove it
-                          playSound("tap-checkbox-unchecked.wav");
-                          updatedSavedQuestions[assessment].splice(
-                            questionIndex,
-                            1
-                          );
-                          // console.log("Question removed from saved!");
-                        }
-
-                        // Update the localStorage through the hook
-                        setSavedQuestions(updatedSavedQuestions);
-                      } catch (error) {
-                        console.error("Failed to save/remove question:", error);
-                      }
-                    }}
-                  >
-                    <BookmarkIcon
-                      className={`w-3 h-3 md:w-4 md:h-4 duration-300 group-hover:rotate-12 ${
-                        isQuestionSaved ? "fill-current" : ""
-                      }`}
-                    />
-                    <span className="font-medium hidden sm:inline">
-                      {isQuestionSaved ? "Saved" : "Save"}
-                    </span>
-                  </Button>
                   <Button
                     variant="default"
                     className="flex cursor-pointer items-center gap-1 md:gap-2 font-bold py-2 md:py-3 px-3 md:px-6 rounded-xl md:rounded-2xl border-b-4 shadow-md hover:shadow-lg transform transition-all duration-200 active:translate-y-0.5 active:border-b-2 bg-neutral-500 hover:bg-neutral-600 text-white border-neutral-700 hover:border-neutral-800 text-xs md:text-sm"
@@ -700,17 +734,28 @@ export default function QuestionProblemCard({
                       isAnswerChecked && isSelected && !isCorrect;
 
                     // For previously answered questions - check if this was the user's choice
+                    // Only show previous answers when answerVisibility is not "hide"
                     const isPreviousUserAnswer =
+                      answerVisibility !== "hide" &&
                       isQuestionAnswered &&
                       !isAnswerChecked &&
                       questionStats?.selectedAnswer === optionKey;
 
                     // Show correct answers when question is answered (either current session or previous)
+                    // Only show when answerVisibility is not "hide" for previous answers
+                    // In hide mode, only show correct answers for current session (isAnswerChecked)
                     const showCorrectAnswer =
-                      (isAnswerChecked || isQuestionAnswered) && isCorrect;
+                      answerVisibility === "hide"
+                        ? isAnswerChecked && isCorrect
+                        : (isAnswerChecked ||
+                            (isQuestionAnswered &&
+                              answerVisibility !== "hide")) &&
+                          isCorrect;
 
                     // Show user's wrong answer from previous session
+                    // Only show when answerVisibility is not "hide"
                     const isPreviousWrongAnswer =
+                      answerVisibility !== "hide" &&
                       isQuestionAnswered &&
                       !isAnswerChecked &&
                       isPreviousUserAnswer &&
@@ -720,7 +765,11 @@ export default function QuestionProblemCard({
                       <div
                         key={optionKey}
                         onMouseEnter={() => {
-                          if (!isAnswerChecked && !isQuestionAnswered) {
+                          // In hide mode, always allow hover sounds
+                          // Otherwise, only if not answered in current session and not previously answered
+                          if (answerVisibility === "hide") {
+                            playSound("on-hover.wav");
+                          } else if (!isAnswerChecked && !isQuestionAnswered) {
                             playSound("on-hover.wav");
                           }
                         }}
@@ -728,12 +777,20 @@ export default function QuestionProblemCard({
                       >
                         <label
                           onClick={() => {
-                            if (!isAnswerChecked && !isQuestionAnswered) {
+                            // In hide mode, always allow clicks
+                            // Otherwise, only if not answered in current session and not previously answered
+                            if (answerVisibility === "hide") {
+                              handleAnswerSelect(optionKey);
+                            } else if (
+                              !isAnswerChecked &&
+                              !isQuestionAnswered
+                            ) {
                               handleAnswerSelect(optionKey);
                             }
                           }}
                           className={`relative ${
-                            !isAnswerChecked && !isQuestionAnswered
+                            answerVisibility === "hide" ||
+                            (!isAnswerChecked && !isQuestionAnswered)
                               ? "cursor-pointer"
                               : "cursor-default"
                           } w-full transition duration-500 ${
@@ -741,7 +798,9 @@ export default function QuestionProblemCard({
                               ? "border-2 border-green-500 bg-green-500/10"
                               : isSelectedWrongAnswer || isPreviousWrongAnswer
                               ? "border-2 border-red-500 bg-red-500/10"
-                              : isSelected || isPreviousUserAnswer
+                              : (isSelected && answerVisibility === "hide") ||
+                                (isPreviousUserAnswer &&
+                                  answerVisibility !== "hide")
                               ? "border-2 border-blue-500 bg-blue-500/10"
                               : "border-2 border-input"
                           } has-[[data-disabled]]:opacity-50 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-ring/70 flex flex-col items-start gap-4 rounded-lg p-3 shadow-sm shadow-black/5`}
@@ -755,7 +814,10 @@ export default function QuestionProblemCard({
                                     : isSelectedWrongAnswer ||
                                       isPreviousWrongAnswer
                                     ? "border-red-500 bg-red-500 text-white"
-                                    : isSelected || isPreviousUserAnswer
+                                    : (isSelected &&
+                                        answerVisibility === "hide") ||
+                                      (isPreviousUserAnswer &&
+                                        answerVisibility !== "hide")
                                     ? "border-blue-500 bg-blue-500 text-white"
                                     : "border-gray-300 bg-gray-50 text-gray-600"
                                 }`}
@@ -836,16 +898,23 @@ export default function QuestionProblemCard({
             <div className="space-y-4 mt-6">
               <DuolingoInput
                 value={
-                  // If question was previously answered, show the previous answer
-                  isQuestionAnswered &&
-                  !isAnswerChecked &&
-                  questionStats?.selectedAnswer
+                  // If answerVisibility is "hide", only show current session selection, never show previous answers
+                  // Otherwise, show previous answer if available and not in current session
+                  answerVisibility === "hide"
+                    ? selectedAnswer || ""
+                    : isQuestionAnswered &&
+                      !isAnswerChecked &&
+                      questionStats?.selectedAnswer
                     ? questionStats.selectedAnswer
                     : selectedAnswer || ""
                 }
                 onChange={handleTextInputChange}
                 onSubmit={handleTextInputSubmit}
-                disabled={isAnswerChecked || isQuestionAnswered}
+                disabled={
+                  answerVisibility === "hide"
+                    ? false // Never disable in hide mode
+                    : isAnswerChecked || isQuestionAnswered
+                }
                 placeholder="Type your answer here..."
               />
 
@@ -853,7 +922,7 @@ export default function QuestionProblemCard({
               {selectedAnswer &&
                 selectedAnswer.trim() &&
                 !isAnswerChecked &&
-                !isQuestionAnswered && (
+                (answerVisibility === "hide" || !isQuestionAnswered) && (
                   <div className="mt-2">
                     {checkAnswerCorrectness(selectedAnswer) && (
                       <div className="p-2 rounded-lg border-2 border-green-500 bg-green-500/10">
@@ -869,7 +938,8 @@ export default function QuestionProblemCard({
                 )}
 
               {/* Show status indicator for previously answered text input questions */}
-              {isQuestionAnswered &&
+              {answerVisibility !== "hide" &&
+                isQuestionAnswered &&
                 !isAnswerChecked &&
                 questionStats?.selectedAnswer && (
                   <div
@@ -906,85 +976,121 @@ export default function QuestionProblemCard({
                 )}
 
               {/* Show immediate feedback for current session answers */}
-              {isAnswerChecked &&
-                !isQuestionAnswered &&
-                selectedAnswer &&
-                questionStats && (
-                  <div
-                    className={`mt-2 p-3 rounded-lg border-2 ${
-                      questionStats.isCorrect
-                        ? "border-green-500 bg-green-500/10"
-                        : "border-red-500 bg-red-500/10"
-                    }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <div
-                        className={`w-6 h-6 rounded-full flex items-center justify-center ${
-                          questionStats.isCorrect
-                            ? "bg-green-500"
-                            : "bg-red-500"
-                        }`}
-                      >
-                        <span className="text-white text-sm font-semibold">
-                          {questionStats.isCorrect ? "✓" : "✗"}
-                        </span>
-                      </div>
-                      <span
-                        className={`text-sm font-medium ${
-                          questionStats.isCorrect
-                            ? "text-green-700"
-                            : "text-red-700"
-                        }`}
-                      >
-                        Your answer is{" "}
-                        {questionStats.isCorrect ? "correct!" : "incorrect."}
+              {isAnswerChecked && selectedAnswer && questionStats && (
+                <div
+                  className={`mt-2 p-3 rounded-lg border-2 ${
+                    questionStats.isCorrect
+                      ? "border-green-500 bg-green-500/10"
+                      : "border-red-500 bg-red-500/10"
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <div
+                      className={`w-6 h-6 rounded-full flex items-center justify-center ${
+                        questionStats.isCorrect ? "bg-green-500" : "bg-red-500"
+                      }`}
+                    >
+                      <span className="text-white text-sm font-semibold">
+                        {questionStats.isCorrect ? "✓" : "✗"}
                       </span>
                     </div>
+                    <span
+                      className={`text-sm font-medium ${
+                        questionStats.isCorrect
+                          ? "text-green-700"
+                          : "text-red-700"
+                      }`}
+                    >
+                      Your answer is{" "}
+                      {questionStats.isCorrect ? "correct!" : "incorrect."}
+                    </span>
                   </div>
-                )}
+                </div>
+              )}
 
               {/* Show correct answers for text input after answering */}
-              {(isAnswerChecked || isQuestionAnswered) &&
-                question.problem.correct_answer && (
-                  <div className="mt-2 p-3 rounded-lg border-2 border-green-500 bg-green-500/10">
-                    <div className="flex items-center gap-2">
-                      <CheckCircle className="h-5 w-5 text-green-600" />
-                      <span className="text-sm font-medium text-green-700">
-                        Correct answer
-                        {question.problem.correct_answer.length > 1
-                          ? "s"
-                          : ""}:{" "}
-                        <strong>
-                          {question.problem.correct_answer.join(", ")}
-                        </strong>
-                      </span>
+              {answerVisibility === "hide"
+                ? isAnswerChecked &&
+                  question.problem.correct_answer && (
+                    <div className="mt-2 p-3 rounded-lg border-2 border-green-500 bg-green-500/10">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="h-5 w-5 text-green-600" />
+                        <span className="text-sm font-medium text-green-700">
+                          Correct answer
+                          {question.problem.correct_answer.length > 1
+                            ? "s"
+                            : ""}
+                          :{" "}
+                          <strong>
+                            {question.problem.correct_answer.join(", ")}
+                          </strong>
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )
+                : (isAnswerChecked || isQuestionAnswered) &&
+                  question.problem.correct_answer && (
+                    <div className="mt-2 p-3 rounded-lg border-2 border-green-500 bg-green-500/10">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="h-5 w-5 text-green-600" />
+                        <span className="text-sm font-medium text-green-700">
+                          Correct answer
+                          {question.problem.correct_answer.length > 1
+                            ? "s"
+                            : ""}
+                          :{" "}
+                          <strong>
+                            {question.problem.correct_answer.join(", ")}
+                          </strong>
+                        </span>
+                      </div>
+                    </div>
+                  )}
             </div>
           )}
         </CardContent>
       </Card>
-      {isQuestionAnswered && (
-        <div className="mt-4 w-full mx-auto xl:w-5xl px-4">
-          <Label className="text-lg font-semibold mb-2 block">
-            Explanation:
-          </Label>
-          <MathJax
-            inline
-            dynamic
-            id="question_explanation"
-            className=" text-justify"
-          >
-            <span
-              className="text-sm md:text-lg lg:text-xl"
-              dangerouslySetInnerHTML={{
-                __html: question.problem.rationale,
-              }}
-            ></span>
-          </MathJax>
-        </div>
-      )}
+      {answerVisibility === "hide"
+        ? isAnswerChecked && (
+            <div className="mt-4 w-full mx-auto xl:w-5xl px-4">
+              <Label className="text-lg font-semibold mb-2 block">
+                Explanation:
+              </Label>
+              <MathJax
+                inline
+                dynamic
+                id="question_explanation"
+                className=" text-justify"
+              >
+                <span
+                  className="text-sm md:text-lg lg:text-xl"
+                  dangerouslySetInnerHTML={{
+                    __html: question.problem.rationale,
+                  }}
+                ></span>
+              </MathJax>
+            </div>
+          )
+        : (isAnswerChecked || isQuestionAnswered) && (
+            <div className="mt-4 w-full mx-auto xl:w-5xl px-4">
+              <Label className="text-lg font-semibold mb-2 block">
+                Explanation:
+              </Label>
+              <MathJax
+                inline
+                dynamic
+                id="question_explanation"
+                className=" text-justify"
+              >
+                <span
+                  className="text-sm md:text-lg lg:text-xl"
+                  dangerouslySetInnerHTML={{
+                    __html: question.problem.rationale,
+                  }}
+                ></span>
+              </MathJax>
+            </div>
+          )}
 
       {/* Share Modal */}
       {isShareModalOpen && (

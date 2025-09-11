@@ -157,6 +157,7 @@ export default function QB_Single_Render({
       {/* Current Question */}
       <div className="w-full px-4">
         <OptimizedQuestionCard
+          key={currentQuestion.questionId}
           withDate
           question={currentQuestion}
           index={currentQuestionIndex}

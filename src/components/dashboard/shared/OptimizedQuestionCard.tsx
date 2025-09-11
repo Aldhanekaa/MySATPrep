@@ -266,7 +266,7 @@ export const OptimizedQuestionCard = memo(
                 hideToolsPopup={true}
                 hideViewQuestionButton={false}
                 hideSubjectHeaders
-                // answerVisibility={answerVisibility}
+                answerVisibility={answerVisibility}
               />
             </div>
             <Separator className="my-6" />
