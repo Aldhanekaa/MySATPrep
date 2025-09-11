@@ -420,6 +420,86 @@ export default function Tracker() {
           : 0,
     };
   }, [questionsState.allQuestions, state.selectedAssessment]);
+  // Show loading state for the entire component
+  if (questionsState.loading) {
+    return (
+      <React.Fragment>
+        <h3 className="text-3xl font-bold Tracker flex items-center mb-6 gap-2">
+          <DatabaseIcon className="text-2xl text-blue-500" /> Collegeboard{"'"}s
+          Question Bank Tracker
+        </h3>
+        <div className="w-full grid grid-cols-9 gap-6">
+          <div className="col-span-12 xl:col-span-3">
+            <Card
+              variant="accent"
+              className={cn(
+                "rounded-3xl sticky top-16",
+                "transition-all duration-300"
+              )}
+            >
+              <CardHeader>
+                <CardHeading>
+                  <CardTitle>
+                    <div className="flex items-center gap-2">Your Progress</div>
+                  </CardTitle>
+                </CardHeading>
+              </CardHeader>
+              <CardContent className="p-6">
+                <div className="text-center py-8">
+                  <Activity className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-500" />
+                  <p className="text-sm text-muted-foreground mb-2">
+                    Loading your progress...
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Fetching questions from the question bank
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="col-span-12 xl:col-span-6">
+            <div className="space-y-8">
+              {/* Loading skeleton for Mathematics */}
+              <div>
+                <h2 className="pl-5 text-lg mb-4">Mathematics</h2>
+                <Card className="rounded-3xl">
+                  <CardContent className="p-6">
+                    <div className="space-y-4">
+                      {[1, 2, 3].map((i) => (
+                        <div key={i} className="animate-pulse">
+                          <div className="h-4 bg-gray-200 rounded mb-2"></div>
+                          <div className="h-3 bg-gray-100 rounded w-3/4"></div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Loading skeleton for Reading & Writing */}
+              <div>
+                <h2 className="pl-5 text-lg mb-4">Reading & Writing</h2>
+                <Card className="rounded-3xl">
+                  <CardContent className="p-6">
+                    <div className="space-y-4">
+                      {[1, 2, 3].map((i) => (
+                        <div key={i} className="animate-pulse">
+                          <div className="h-4 bg-gray-200 rounded mb-2"></div>
+                          <div className="h-3 bg-gray-100 rounded w-3/4"></div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </div>
+        </div>
+      </React.Fragment>
+    );
+  }
+
   return (
     <React.Fragment>
       <h3 className="text-3xl font-bold Tracker flex  items-center mb-6 gap-2">
@@ -444,177 +524,258 @@ export default function Tracker() {
             </CardHeader>
 
             <CardContent className="p-6">
-              {questionsState.loading && (
-                <div className="text-center py-4">
-                  <Activity className="h-6 w-6 animate-spin mx-auto mb-2" />
-                  <p className="text-sm text-muted-foreground">
-                    Loading questions...
+              {questionsState.error && (
+                <div className="text-center py-8">
+                  <div className="text-red-500 mb-4">
+                    <svg
+                      className="h-8 w-8 mx-auto mb-2"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.988-.833-2.598 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
+                      />
+                    </svg>
+                  </div>
+                  <p className="text-sm text-red-600 mb-2">
+                    Failed to load questions
+                  </p>
+                  <p className="text-xs text-muted-foreground mb-4">
+                    {questionsState.error}
+                  </p>
+                  <button
+                    onClick={fetchInitialData}
+                    className="px-4 py-2 bg-blue-500 text-white text-sm rounded-lg hover:bg-blue-600 transition-colors"
+                  >
+                    Try Again
+                  </button>
+                </div>
+              )}
+
+              {!questionsState.error && difficultyStats && (
+                <div className="space-y-6">
+                  {/* Overall Progress - New Design */}
+                  <div className="space-y-4">
+                    {/* Large Percentage Display */}
+                    <div className="flex flex-row items-center justify-between">
+                      <h3 className="text-lg font-medium text-center">
+                        Overall completion
+                      </h3>
+
+                      <div className="text-lg font-bold text-foreground mb-2">
+                        {difficultyStats.overallPercentage}%
+                      </div>
+                    </div>
+
+                    {/* Progress Bar */}
+                    <div className="w-full bg-muted rounded-full h-2 mb-4">
+                      <div
+                        className="bg-blue-600 rounded-full h-2 transition-all duration-300"
+                        style={{
+                          width: `${difficultyStats.overallPercentage}%`,
+                        }}
+                      />
+                    </div>
+
+                    {/* Correct/Incorrect Cards */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <Card className="p-4 text-center border-neutral-300 bg-white">
+                        <div className="text-sm text-muted-foreground mb-1">
+                          Correct
+                        </div>
+                        <div className="text-2xl font-bold text-green-600">
+                          {difficultyStats.correctAnswers}
+                        </div>
+                      </Card>
+
+                      <Card className="p-4 text-center border-neutral-300 bg-white">
+                        <div className="text-sm text-muted-foreground mb-1">
+                          Incorrect
+                        </div>
+                        <div className="text-2xl font-bold text-red-600">
+                          {difficultyStats.incorrectAnswers}
+                        </div>
+                      </Card>
+                    </div>
+                  </div>
+
+                  {/* Difficulty Breakdown */}
+                  <div className="space-y-4 border-t border-border pt-4">
+                    <h3 className="text-lg font-semibold">
+                      Difficulty Breakdown
+                    </h3>
+                    {difficultyStats.stats.map(
+                      ({ difficulty, label, total, answered, percentage }) => (
+                        <div key={difficulty} className="space-y-2">
+                          <div className="flex justify-between items-center">
+                            <div className="flex items-center gap-2">
+                              <p
+                                className={`text-xs ${
+                                  difficulty === "E"
+                                    ? " text-green-700"
+                                    : difficulty === "M"
+                                    ? " text-yellow-600"
+                                    : "text-red-500"
+                                }`}
+                              >
+                                {label}
+                              </p>
+                              <span className="text-xs text-muted-foreground">
+                                {answered}/{total}
+                              </span>
+                            </div>
+                            <span className="text-xs font-medium">
+                              {percentage}%
+                            </span>
+                          </div>
+                          <div className="w-full bg-muted rounded-full h-2">
+                            <div
+                              className=" rounded-full h-2 transition-all duration-300 bg-blue-600"
+                              style={{ width: `${percentage}%` }}
+                            />
+                          </div>
+                        </div>
+                      )
+                    )}
+                  </div>
+
+                  {/* Summary Stats */}
+                  <div className="grid grid-cols-2 gap-4 pt-4 border-t border-border">
+                    <div className="text-center">
+                      <div className="text-lg font-semibold">
+                        {difficultyStats.totalAnswered}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        Answered
+                      </div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-lg font-semibold">
+                        {difficultyStats.totalQuestions -
+                          difficultyStats.totalAnswered}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        Remaining
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {!questionsState.error && !difficultyStats && (
+                <div className="text-center py-8">
+                  <div className="text-muted-foreground mb-4">
+                    <svg
+                      className="h-8 w-8 mx-auto mb-2"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                      />
+                    </svg>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-1">
+                    No assessment selected
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Please select an assessment to view your progress
                   </p>
                 </div>
               )}
-
-              {questionsState.error && (
-                <div className="text-center py-4">
-                  <p className="text-sm text-red-600">{questionsState.error}</p>
-                </div>
-              )}
-
-              {!questionsState.loading &&
-                !questionsState.error &&
-                difficultyStats && (
-                  <div className="space-y-6">
-                    {/* Overall Progress - New Design */}
-                    <div className="space-y-4">
-                      {/* Large Percentage Display */}
-                      <div className="flex flex-row items-center justify-between">
-                        <h3 className="text-lg font-medium text-center">
-                          Overall completion
-                        </h3>
-
-                        <div className="text-lg font-bold text-foreground mb-2">
-                          {difficultyStats.overallPercentage}%
-                        </div>
-                      </div>
-
-                      {/* Progress Bar */}
-                      <div className="w-full bg-muted rounded-full h-2 mb-4">
-                        <div
-                          className="bg-blue-600 rounded-full h-2 transition-all duration-300"
-                          style={{
-                            width: `${difficultyStats.overallPercentage}%`,
-                          }}
-                        />
-                      </div>
-
-                      {/* Correct/Incorrect Cards */}
-                      <div className="grid grid-cols-2 gap-3">
-                        <Card className="p-4 text-center border-neutral-300 bg-white">
-                          <div className="text-sm text-muted-foreground mb-1">
-                            Correct
-                          </div>
-                          <div className="text-2xl font-bold text-green-600">
-                            {difficultyStats.correctAnswers}
-                          </div>
-                        </Card>
-
-                        <Card className="p-4 text-center border-neutral-300 bg-white">
-                          <div className="text-sm text-muted-foreground mb-1">
-                            Incorrect
-                          </div>
-                          <div className="text-2xl font-bold text-red-600">
-                            {difficultyStats.incorrectAnswers}
-                          </div>
-                        </Card>
-                      </div>
-                    </div>
-
-                    {/* Difficulty Breakdown */}
-                    <div className="space-y-4 border-t border-border pt-4">
-                      <h3 className="text-lg font-semibold">
-                        Difficulty Breakdown
-                      </h3>
-                      {difficultyStats.stats.map(
-                        ({
-                          difficulty,
-                          label,
-                          total,
-                          answered,
-                          percentage,
-                        }) => (
-                          <div key={difficulty} className="space-y-2">
-                            <div className="flex justify-between items-center">
-                              <div className="flex items-center gap-2">
-                                <p
-                                  className={`text-xs ${
-                                    difficulty === "E"
-                                      ? " text-green-700"
-                                      : difficulty === "M"
-                                      ? " text-yellow-600"
-                                      : "text-red-500"
-                                  }`}
-                                >
-                                  {label}
-                                </p>
-                                <span className="text-xs text-muted-foreground">
-                                  {answered}/{total}
-                                </span>
-                              </div>
-                              <span className="text-xs font-medium">
-                                {percentage}%
-                              </span>
-                            </div>
-                            <div className="w-full bg-muted rounded-full h-2">
-                              <div
-                                className=" rounded-full h-2 transition-all duration-300 bg-blue-600"
-                                style={{ width: `${percentage}%` }}
-                              />
-                            </div>
-                          </div>
-                        )
-                      )}
-                    </div>
-
-                    {/* Summary Stats */}
-                    <div className="grid grid-cols-2 gap-4 pt-4 border-t border-border">
-                      <div className="text-center">
-                        <div className="text-lg font-semibold">
-                          {difficultyStats.totalAnswered}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          Answered
-                        </div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-lg font-semibold">
-                          {difficultyStats.totalQuestions -
-                            difficultyStats.totalAnswered}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          Remaining
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-              {!questionsState.loading &&
-                !questionsState.error &&
-                !difficultyStats && (
-                  <div className="text-center py-4">
-                    <p className="text-sm text-muted-foreground">
-                      No assessment selected or no questions available
-                    </p>
-                  </div>
-                )}
             </CardContent>
           </Card>
         </div>
 
         <div className="col-span-12 xl:col-span-6">
           <div className="space-y-8">
-            {/* Mathematics Section */}
-            {mathTasks && (
-              <div>
-                <h2 className="pl-5 text-lg">Mathematics</h2>
-                <TrackerCard tasks={mathTasks} />
-              </div>
-            )}
-
-            {/* Reading & Writing Section */}
-            {rwTasks && (
-              <div>
-                <h2 className="pl-5 text-lg">Reading & Writing</h2>
-                <TrackerCard tasks={rwTasks} />
-              </div>
-            )}
-
-            {/* No data message */}
-            {!mathTasks && !rwTasks && (
-              <div className="text-center py-8">
-                <p className="text-muted-foreground">
-                  No questions data available
+            {/* Error state */}
+            {questionsState.error && (
+              <div className="text-center py-12">
+                <div className="text-red-500 mb-4">
+                  <svg
+                    className="h-12 w-12 mx-auto mb-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.988-.833-2.598 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
+                    />
+                  </svg>
+                </div>
+                <p className="text-lg text-muted-foreground mb-2">
+                  Unable to load tracker data
                 </p>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Please try refreshing the page
+                </p>
+                <button
+                  onClick={fetchInitialData}
+                  className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                >
+                  Retry
+                </button>
               </div>
+            )}
+
+            {/* Success state - show tracker cards */}
+            {!questionsState.error && (
+              <>
+                {/* Mathematics Section */}
+                {mathTasks && (
+                  <div>
+                    <h2 className="pl-5 text-lg">Mathematics</h2>
+                    <TrackerCard tasks={mathTasks} />
+                  </div>
+                )}
+
+                {/* Reading & Writing Section */}
+                {rwTasks && (
+                  <div>
+                    <h2 className="pl-5 text-lg">Reading & Writing</h2>
+                    <TrackerCard tasks={rwTasks} />
+                  </div>
+                )}
+
+                {/* No data message */}
+                {!mathTasks && !rwTasks && (
+                  <div className="text-center py-12">
+                    <div className="text-muted-foreground mb-4">
+                      <svg
+                        className="h-12 w-12 mx-auto mb-4"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                        />
+                      </svg>
+                    </div>
+                    <p className="text-lg text-muted-foreground mb-2">
+                      No questions available
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Please select an assessment or check your connection
+                    </p>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>
