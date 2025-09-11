@@ -1,6 +1,7 @@
 import { HeroSection } from "@/components/home-hero";
 import React from "react";
 import type { Metadata } from "next";
+import FooterSection from "@/components/footer";
 
 export const metadata: Metadata = {
   title: "Free SAT Practice Questions & Test Prep - PracticeSAT",
@@ -54,6 +55,7 @@ export default function Home() {
   return (
     <React.Fragment>
       <HeroSection />
+      <FooterSection />
     </React.Fragment>
   );
 }

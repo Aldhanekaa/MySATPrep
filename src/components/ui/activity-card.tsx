@@ -467,7 +467,7 @@ export function ActivityCard({
     <Card
       variant="accent"
       className={cn(
-        "relative h-full rounded-3xl",
+        "rounded-3xl sticky top-16",
         "transition-all duration-300",
         className
       )}

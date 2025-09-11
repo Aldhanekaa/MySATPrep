@@ -38,6 +38,7 @@ import { Separator } from "./ui/separator";
 import { DraggableReferencePopup } from "./popups/reference-popup";
 import { DraggableDesmosPopup } from "./popups/desmos-popup";
 import { DraggableNotesPopup } from "./popups/notes-popup";
+import { getSubjectByPrimaryClassCd } from "@/static-data/domains";
 
 // Duolingo-styled Input Component
 interface DuolingoInputProps {
@@ -232,6 +233,12 @@ export default function QuestionProblemCard({
   const handleSaveNote = (noteText: string) => {
     try {
       const questionId = question.question.questionId;
+      const difficulty = question.question.difficulty;
+      const primaryClassCd = question.question.primary_class_cd;
+      const skillCd = question.question.skill_cd;
+      const subject = getSubjectByPrimaryClassCd(primaryClassCd || "");
+      const createdDate = question.question.createDate;
+      const updatedDate = question.question.updateDate;
       const updatedNotes = { ...questionNotes };
 
       // If note is empty, delete it
@@ -264,6 +271,12 @@ export default function QuestionProblemCard({
         // Create new note
         const newNote: QuestionNote = {
           questionId,
+          difficulty,
+          primaryClassCd,
+          skillCd,
+          subject,
+          createdDate,
+          updatedDate,
           note: noteText,
           timestamp: now,
           createdAt: now,
@@ -273,6 +286,12 @@ export default function QuestionProblemCard({
         // Update existing note
         updatedNotes[assessment][noteIndex] = {
           ...updatedNotes[assessment][noteIndex],
+          difficulty,
+          primaryClassCd,
+          skillCd,
+          subject,
+          createdDate,
+          updatedDate,
           note: noteText,
           timestamp: now,
         };

@@ -39,6 +39,7 @@ import {
 import { EmptyState } from "@/components/ui/empty-state";
 import { useRouter } from "next/navigation";
 import { Chart } from "@/components/ui/bar-chart";
+import { Progress } from "@/components/ui/progress";
 
 const chartData = [
   { month: "January", desktop: 80, mobile: 20 },
@@ -552,151 +553,152 @@ export default function SummaryCharts({
         </Card>
       </div>
 
-      <div>
-        <Card className=" col-span-2 xl:col-span-1">
+      <div className="grid grid-cols-2 gap-6">
+        {/* Reading & Writing Skills Insights */}
+        <Card className="col-span-2 xl:col-span-1">
           <CardHeader className="items-start pb-4">
-            <CardTitle>Skills Insights</CardTitle>
+            <CardTitle>Reading & Writing Skills Insights</CardTitle>
             <CardDescription>
-              View your performance across different skills in different topics.
+              View your performance across different Reading & Writing skills.
             </CardDescription>
           </CardHeader>
-          <CardContent className="pb-5 space-y-10">
+          <CardContent className="pb-5 space-y-6">
             {answeredQuestionsDataSummary &&
-              Object.entries(answeredQuestionsDataSummary).map(
-                ([subject, primaryClassCds]) => (
-                  <div>
-                    <h4 className="text-xl">{subject}</h4>
-                    <div className="space-y-3">
-                      {Object.entries(primaryClassCds).map(
-                        ([primaryClassKey, skillCds]) => (
-                          <div key={primaryClassKey}>
-                            <h5 className="text-lg">
-                              {primaryClassCdObjectData[primaryClassKey].text}
-                            </h5>
+            answeredQuestionsDataSummary["R&W"] ? (
+              Object.entries(answeredQuestionsDataSummary["R&W"]).map(
+                ([primaryClassKey, skillCds]) => (
+                  <div key={primaryClassKey}>
+                    <h5 className="text-lg mb-3">
+                      {primaryClassCdObjectData[primaryClassKey].text}
+                    </h5>
 
-                            <ChartContainer
-                              key={primaryClassKey}
-                              className={` ${
-                                skillCds.length == 6
-                                  ? "aspect-[50/35] md:aspect-[50/20] xl:aspect-[50/11]"
-                                  : skillCds.length > 3 && skillCds.length < 6
-                                  ? "aspect-[50/34] md:aspect-[50/16] xl:aspect-[50/10]"
-                                  : skillCds.length == 3
-                                  ? "aspect-[50/22] md:aspect-[50/10] xl:aspect-[50/4]"
-                                  : "aspect-[50/15] md:aspect-[50/7] xl:aspect-[50/3]"
-                              }`}
-                              config={chartConfig}
-                            >
-                              <BarChart
-                                accessibilityLayer
-                                data={skillCds}
-                                layout="vertical"
-                                margin={{
-                                  left: 0,
-                                }}
-                                // barSize={200}
-                                // maxBarSize={50}
-                                // barGap={32}
-                                // barCategoryGap={"4%"}
-                                // width={23}
-                              >
-                                <XAxis
-                                  type="number"
-                                  dataKey="correctAnswers"
-                                  hide
-                                />
-                                <YAxis
-                                  dataKey="text"
-                                  type="category"
-                                  tickLine={false}
-                                  tickMargin={10}
-                                  axisLine={false}
-                                  hide
-                                />
-                                <ChartTooltip
-                                  cursor={false}
-                                  content={
-                                    <ChartTooltipContent
-                                      indicator="dashed"
-                                      labelKey="eee"
-                                      hideLabel
-                                      className=" w-[14rem] bg-white"
-                                    />
-                                  }
-                                />
-                                <Bar
-                                  dataKey="summary"
-                                  background={{
-                                    radius: 10,
-                                    fill: "var(--color-blue-300)",
-                                    opacity: 0.2,
-                                  }}
-                                  fill="var(--color-blue-400)"
-                                  radius={10}
-                                  shape={(props: any) => {
-                                    // console.log("shape", props);
+                    <div className="space-y-4">
+                      {skillCds.map((skill, index) => {
+                        const percentage = Math.round(
+                          (skill.correctAnswers /
+                            (skill.correctAnswers + skill.incorrectAnswers)) *
+                            100
+                        );
 
-                                    return (
-                                      <>
-                                        <Rectangle
-                                          {...props}
-                                          width={
-                                            (props.payload.correctAnswers /
-                                              (props.payload.correctAnswers +
-                                                props.payload
-                                                  .incorrectAnswers)) *
-                                            props.background.width
-                                          }
-                                          // height={12s}
-                                        />
-                                        <text
-                                          x={props.x + 25}
-                                          y={
-                                            props.y +
-                                            props.background.height / 2 +
-                                            3
-                                          }
-                                          fill="var(--color-blue-900)"
-                                          fontSize={12.5}
-                                        >
-                                          {
-                                            skillCdsObjectData[
-                                              props.payload.text
-                                            ].text
-                                          }
-                                        </text>
-                                        <text
-                                          x={props.background.width - 10}
-                                          y={
-                                            props.y +
-                                            props.background.height / 2 +
-                                            3
-                                          }
-                                          textAnchor="end"
-                                          fill="var(--fg)"
-                                        >
-                                          {Math.round(
-                                            (props.payload.correctAnswers /
-                                              (props.payload.correctAnswers +
-                                                props.payload
-                                                  .incorrectAnswers)) *
-                                              100
-                                          )}{" "}
-                                          %
-                                        </text>
-                                      </>
-                                    );
-                                  }}
-                                />
-                              </BarChart>
-                            </ChartContainer>
+                        return (
+                          <div key={index} className="space-y-2">
+                            <div className="flex items-center justify-between text-sm">
+                              <span className="font-medium text-gray-700">
+                                {skillCdsObjectData[skill.text]?.text ||
+                                  skill.text}
+                              </span>
+                              <div className="flex items-center gap-2">
+                                <span className="text-gray-600">
+                                  {skill.correctAnswers}/
+                                  {skill.correctAnswers +
+                                    skill.incorrectAnswers}
+                                </span>
+                                <span className="font-semibold text-blue-600">
+                                  {percentage}%
+                                </span>
+                              </div>
+                            </div>
+                            <Progress value={percentage} className="h-2" />
                           </div>
-                        )
-                      )}
+                        );
+                      })}
                     </div>
                   </div>
                 )
-              )}
+              )
+            ) : (
+              <EmptyState
+                theme={"light"}
+                className=" border-0"
+                title="No Reading & Writing Data Available"
+                description="Start practice to view your Reading & Writing skills insights."
+                icons={[
+                  <FolderOpen key="p1" className="h-6 w-6" />,
+                  <BadgeQuestionMark key="p2" className="h-6 w-6" />,
+                  <Rocket key="p3" className="h-6 w-6" />,
+                ]}
+                action={{
+                  label: "Start Practice",
+                  onClick: () => {
+                    router.push("/practice");
+                  },
+                }}
+              />
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Math Skills Insights */}
+        <Card className="col-span-2 xl:col-span-1">
+          <CardHeader className="items-start pb-4">
+            <CardTitle>Math Skills Insights</CardTitle>
+            <CardDescription>
+              View your performance across different Math skills.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="pb-5 space-y-6">
+            {answeredQuestionsDataSummary &&
+            answeredQuestionsDataSummary["Math"] ? (
+              Object.entries(answeredQuestionsDataSummary["Math"]).map(
+                ([primaryClassKey, skillCds]) => (
+                  <div key={primaryClassKey}>
+                    <h5 className="text-lg mb-3">
+                      {primaryClassCdObjectData[primaryClassKey].text}
+                    </h5>
+
+                    <div className="space-y-4">
+                      {skillCds.map((skill, index) => {
+                        const percentage = Math.round(
+                          (skill.correctAnswers /
+                            (skill.correctAnswers + skill.incorrectAnswers)) *
+                            100
+                        );
+
+                        return (
+                          <div key={index} className="space-y-2">
+                            <div className="flex items-center justify-between text-sm">
+                              <span className="font-medium text-gray-700">
+                                {skillCdsObjectData[skill.text]?.text ||
+                                  skill.text}
+                              </span>
+                              <div className="flex items-center gap-2">
+                                <span className="text-gray-600">
+                                  {skill.correctAnswers}/
+                                  {skill.correctAnswers +
+                                    skill.incorrectAnswers}
+                                </span>
+                                <span className="font-semibold text-blue-600">
+                                  {percentage}%
+                                </span>
+                              </div>
+                            </div>
+                            <Progress value={percentage} className="h-2" />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )
+              )
+            ) : (
+              <EmptyState
+                theme={"light"}
+                className=" border-0"
+                title="No Math Data Available"
+                description="Start practice to view your Math skills insights."
+                icons={[
+                  <FolderOpen key="p1" className="h-6 w-6" />,
+                  <BadgeQuestionMark key="p2" className="h-6 w-6" />,
+                  <Rocket key="p3" className="h-6 w-6" />,
+                ]}
+                action={{
+                  label: "Start Practice",
+                  onClick: () => {
+                    router.push("/practice");
+                  },
+                }}
+              />
+            )}
           </CardContent>
         </Card>
       </div>

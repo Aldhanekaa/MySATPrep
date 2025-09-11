@@ -4,6 +4,7 @@ import { BgGradient } from "@/components/ui/bg-gradient";
 import { SiteHeader } from "../navbar";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
+import FooterSection from "@/components/footer";
 
 export default function QuestionSearchQueryPage() {
   const [questionId, setQuestionId] = React.useState("");
@@ -126,6 +127,7 @@ export default function QuestionSearchQueryPage() {
           </motion.div>
         </motion.main>
       </div>
+      <FooterSection />
     </>
   );
 }

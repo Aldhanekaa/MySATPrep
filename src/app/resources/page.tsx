@@ -2,6 +2,7 @@ import ResourceSection from "@/components/resources";
 import React from "react";
 import { SiteHeader } from "../navbar";
 import type { Metadata } from "next";
+import FooterSection from "@/components/footer";
 
 export const metadata: Metadata = {
   title: "SAT Study Resources & Reference Materials",
@@ -58,6 +59,7 @@ export default function Page() {
     <React.Fragment>
       <SiteHeader />;
       <ResourceSection />
+      <FooterSection />
     </React.Fragment>
   );
 }

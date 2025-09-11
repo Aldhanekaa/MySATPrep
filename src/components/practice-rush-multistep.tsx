@@ -36,6 +36,7 @@ import {
   reduceXPForIncorrectAnswer,
 } from "@/lib/userProfile";
 import { toast } from "sonner";
+import { getSubjectByPrimaryClassCd } from "@/static-data/domains";
 
 import { MathJax, MathJaxContext } from "better-react-mathjax";
 import { Pill, PillIndicator } from "@/components/ui/pill";
@@ -3002,6 +3003,12 @@ export default function PracticeRushMultistep({
 
       try {
         const questionId = currentQuestion.plainQuestion.questionId;
+        const difficulty = currentQuestion.plainQuestion.difficulty;
+        const primaryClassCd = currentQuestion.plainQuestion.primary_class_cd;
+        const skillCd = currentQuestion.plainQuestion.skill_cd;
+        const createdDate = currentQuestion.plainQuestion.createDate;
+        const updatedDate = currentQuestion.plainQuestion.updateDate;
+        const subject = getSubjectByPrimaryClassCd(primaryClassCd || "");
         const assessment = practiceSelections.assessment;
         const updatedNotes = { ...questionNotes };
 
@@ -3033,6 +3040,12 @@ export default function PracticeRushMultistep({
           // Create new note
           const newNote: QuestionNote = {
             questionId,
+            difficulty,
+            primaryClassCd,
+            skillCd,
+            subject,
+            createdDate,
+            updatedDate,
             note: noteText,
             timestamp: now,
             createdAt: now,
@@ -3042,6 +3055,12 @@ export default function PracticeRushMultistep({
           // Update existing note
           updatedNotes[assessment][noteIndex] = {
             ...updatedNotes[assessment][noteIndex],
+            difficulty,
+            primaryClassCd,
+            skillCd,
+            subject,
+            createdDate,
+            updatedDate,
             note: noteText,
             timestamp: now,
           };

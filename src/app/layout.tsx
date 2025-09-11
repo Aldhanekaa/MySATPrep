@@ -11,6 +11,7 @@ import { MathJaxContext } from "better-react-mathjax";
 
 import { Toaster } from "sonner";
 import { Banner } from "@/components/ui/banner";
+import { AssessmentProvider } from "@/contexts/assessment-context";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -120,21 +121,22 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <MathJaxContext version={3} config={config}>
-          {/* <Banner
-            message="We just released a new feature!"
-            height="2rem"
-            variant="rainbow"
-            className="mb-4 relative"
-          /> */}
+        <AssessmentProvider>
+          <MathJaxContext version={3} config={config}>
+            {/* <Banner
+              message="We just released a new feature!"
+              height="2rem"
+              variant="rainbow"
+              className="mb-4 relative"
+            /> */}
 
-          {children}
-        </MathJaxContext>
+            {children}
+          </MathJaxContext>
+        </AssessmentProvider>
         <GoogleAnalytics gaId="GTM-T9GFVBPJ" />
 
         <SpeedInsights />
         <Analytics />
-        <FooterSection />
         <Toaster position="bottom-right" expand={false} closeButton={true} />
       </body>
     </html>

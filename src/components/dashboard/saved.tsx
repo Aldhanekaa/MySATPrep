@@ -334,7 +334,7 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
 
   if (!state.isInitialized) {
     return (
-      <div className="space-y-4">
+      <div className="w-full lg:px-28">
         <h2 className="text-lg font-semibold">Saved Questions</h2>
         <p className="text-sm text-muted-foreground">
           Loading saved questions...
@@ -367,8 +367,8 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
   }
 
   return (
-    <div className="space-y-6 px-2 max-w-7xl mx-auto">
-      <div className="px-8 lg:px-28 grid grid-cols-12">
+    <div className=" w-full">
+      <div className="px-8  grid grid-cols-12">
         <div className="col-span-12 md:col-span-8 flex flex-col flex-wrap gap-2 items-start text-sm ">
           <h2 className="text-lg font-semibold">Saved Questions</h2>
           <p className="text-sm text-muted-foreground">
@@ -410,7 +410,7 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
         </div>
       </div>
 
-      <div className="space-y-4 max-w-full mx-auto lg:px-22">
+      <div className="space-y-4 max-w-full mx-auto  mt-10">
         {state.questionsWithData
           .filter((question) => {
             // console.log("state.filterSubject", state.filterSubject);

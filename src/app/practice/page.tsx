@@ -33,6 +33,7 @@ import {
   validPracticeTypes,
 } from "@/static-data/validation";
 import { PracticeSessionRestorer } from "@/components/practice-session-restorer";
+import FooterSection from "@/components/footer";
 
 // Validation functions for URL parameters
 function validateAssessment(assessment: string): boolean {
@@ -917,6 +918,7 @@ function Practice() {
           isReviewMode={isReviewMode}
         />
       ) : null}
+      <FooterSection />
     </React.Fragment>
   );
 }

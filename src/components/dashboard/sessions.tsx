@@ -228,7 +228,7 @@ export function SessionsTab() {
 
   if (loading) {
     return (
-      <div className="space-y-4">
+      <div className="w-full space-y-4">
         <h2 className="text-lg font-semibold">Practice Sessions</h2>
         <div className="text-center py-8">
           <p className="text-muted-foreground">Loading sessions...</p>
@@ -238,7 +238,7 @@ export function SessionsTab() {
   }
 
   return (
-    <div className="space-y-4 px-4">
+    <div className="w-full space-y-4 px-4">
       <div className="flex justify-between items-center">
         <h2 className="text-lg font-semibold">Practice Sessions</h2>
         <div className="text-sm text-muted-foreground">

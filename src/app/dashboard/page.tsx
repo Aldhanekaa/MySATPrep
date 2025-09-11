@@ -8,7 +8,6 @@ import {
   WorkspaceContent,
 } from "@/components/ui/workspaces";
 import { Home, BookMarked, Clock, CheckCircle } from "lucide-react";
-import { Assessments } from "@/static-data/assessment";
 import { useLocalStorage } from "@/lib/useLocalStorage";
 import { SavedQuestions } from "@/types/savedQuestions";
 import { PracticeStatistics } from "@/types/statistics";
@@ -19,7 +18,11 @@ import {
   AnsweredTab,
   SessionsTab,
 } from "@/components/dashboard";
-import { AssessmentWorkspace } from "./types";
+import {
+  useAssessment,
+  assessmentWorkspaces,
+  type AssessmentWorkspace,
+} from "@/contexts/assessment-context";
 
 import {
   Tabs as VerticalTabs,
@@ -36,17 +39,6 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import ButtonsGroup from "@/components/dashboard/buttons-group";
-
-// Convert assessments to workspace format
-const assessmentWorkspaces: AssessmentWorkspace[] = Object.entries(
-  Assessments
-).map(([key, assessment]) => ({
-  id: assessment.id.toString(),
-  name: assessment.text,
-  logo: `https://avatar.vercel.sh/${key.toLowerCase()}`,
-  plan: "Assessment",
-  assessmentId: assessment.id,
-}));
 
 // Tab configuration
 interface TabItem {
@@ -72,11 +64,8 @@ const TabContentComponents = {
 };
 
 export default function DashboardPage() {
-  // Use custom hook for localStorage management
-  const [activeAssessmentId, setActiveAssessmentId] = useLocalStorage(
-    "preferred-assessment-id",
-    assessmentWorkspaces[0]?.id || "99"
-  );
+  const { state, setActiveAssessmentByWorkspace, getAssessmentKey } =
+    useAssessment();
 
   // Active tab state for mobile expandable tabs
   const [activeTab, setActiveTab] = React.useState<string>("home");
@@ -93,43 +82,22 @@ export default function DashboardPage() {
     {}
   );
 
-  // Get the assessment key from selectedAssessment
-  const getAssessmentKey = React.useCallback(
-    (assessment?: AssessmentWorkspace): string => {
-      if (!assessment) return "SAT"; // Default to SAT
-
-      // Map assessment names to keys used in localStorage
-      const assessmentMap: Record<string, string> = {
-        SAT: "SAT",
-        "PSAT/NMSQT & PSAT 10": "PSAT/NMSQT",
-        "PSAT 8/9": "PSAT",
-      };
-
-      return assessmentMap[assessment.name] || "SAT";
-    },
-    []
-  );
-
-  const selectedAssessment = React.useMemo(() => {
-    return assessmentWorkspaces.find((ws) => ws.id === activeAssessmentId);
-  }, [activeAssessmentId]);
-
   // Calculate saved questions count for current assessment
   const savedQuestionsCount = React.useMemo(() => {
-    const assessmentKey = getAssessmentKey(selectedAssessment);
-    console.log("assessmentKey", assessmentKey, selectedAssessment);
+    const assessmentKey = getAssessmentKey(state.selectedAssessment);
+    console.log("assessmentKey", assessmentKey, state.selectedAssessment);
     const assessmentSavedQuestions = savedQuestions[assessmentKey] || [];
     return assessmentSavedQuestions.length;
-  }, [savedQuestions, selectedAssessment, getAssessmentKey]);
+  }, [savedQuestions, state.selectedAssessment, getAssessmentKey]);
 
   // Calculate answered questions count for current assessment
   const answeredQuestionsCount = React.useMemo(() => {
-    const assessmentKey = getAssessmentKey(selectedAssessment);
+    const assessmentKey = getAssessmentKey(state.selectedAssessment);
     const assessmentStats = practiceStatistics[assessmentKey];
     const answeredQuestionsDetailed =
       assessmentStats?.answeredQuestionsDetailed || [];
     return answeredQuestionsDetailed.length;
-  }, [practiceStatistics, selectedAssessment, getAssessmentKey]);
+  }, [practiceStatistics, state.selectedAssessment, getAssessmentKey]);
 
   // Dynamic tab items with calculated badge count
   const TAB_ITEMS: TabItem[] = React.useMemo(
@@ -191,22 +159,15 @@ export default function DashboardPage() {
   };
 
   const handleAssessmentChange = (workspace: AssessmentWorkspace) => {
-    setActiveAssessmentId(workspace.id);
-    console.log(
-      "Selected assessment:",
-      workspace.name,
-      "ID:",
-      workspace.assessmentId
-    );
+    setActiveAssessmentByWorkspace(workspace);
   };
 
   return (
     <React.Fragment>
-      <SiteHeader />
       <div className="w-full flex flex-col min-h-screen pb-60 items-center">
-        <section className="bg-accent w-full pt-32 mb-10 pb-3">
+        <section className="bg-accent w-full pt-20 mb-10 pb-3">
           <section className="space-y-4 max-w-7xl w-full mx-auto px-3 ">
-            <div className="  flex flex-col gap-4 md:flex-row justify-between items-start md:pl-13 space-y-6">
+            <div className="  flex flex-col gap-4 md:flex-row justify-between items-start md:px-13 space-y-6">
               <div className="space-y-2">
                 <h1 className="text-2xl font-bold">{getTimeBasedGreeting()}</h1>
                 <p className="text-muted-foreground">
@@ -215,7 +176,7 @@ export default function DashboardPage() {
                 </p>
 
                 <ButtonsGroup
-                  assessment={getAssessmentKey(selectedAssessment)}
+                  assessment={getAssessmentKey(state.selectedAssessment)}
                 />
               </div>
 
@@ -223,7 +184,7 @@ export default function DashboardPage() {
                 <label className="text-sm font-medium">Assessment Type</label>
                 <Workspaces
                   workspaces={assessmentWorkspaces}
-                  selectedWorkspaceId={activeAssessmentId}
+                  selectedWorkspaceId={state.activeAssessmentId}
                   onWorkspaceChange={handleAssessmentChange}
                 >
                   <WorkspaceTrigger className="min-w-72" />
@@ -233,99 +194,8 @@ export default function DashboardPage() {
             </div>
           </section>
         </section>
-        <main className="space-y-4 max-w-11/12 w-full mx-auto px-0 md:px-3">
-          {/* Mobile Expandable Tabs - shown only on mobile */}
-          <div className="lg:hidden">
-            <ExpandableTabs
-              tabs={EXPANDABLE_TAB_ITEMS}
-              defaultValue="home"
-              onTabChange={setActiveTab}
-              className="text-sm text-muted-foreground"
-            >
-              {(() => {
-                const ContentComponent =
-                  TabContentComponents[
-                    activeTab as keyof typeof TabContentComponents
-                  ];
-                return ContentComponent ? (
-                  <ContentComponent selectedAssessment={selectedAssessment} />
-                ) : null;
-              })()}
-            </ExpandableTabs>
-          </div>
-
-          {/* Desktop Vertical Tabs - shown only on lg screens and above */}
-          <div className="hidden lg:block px-4 md:px-0">
-            <VerticalTabs
-              defaultValue="home"
-              orientation="vertical"
-              className="flex w-full gap-2"
-            >
-              <VerticalTabsList className="flex-col justify-start">
-                {TAB_ITEMS.map((tab) => {
-                  const IconComponent = tab.icon;
-                  return (
-                    <TooltipProvider key={tab.value} delayDuration={0}>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span>
-                            <VerticalTabsTrigger
-                              value={tab.value}
-                              className={`py-3 ${
-                                tab.badge ? "group relative" : ""
-                              }`}
-                            >
-                              {tab.badge ? (
-                                <span className="relative">
-                                  <IconComponent
-                                    size={16}
-                                    strokeWidth={2}
-                                    aria-hidden={true}
-                                  />
-                                  <Badge className="absolute -top-2.5 left-full min-w-4 -translate-x-1.5 border-background px-0.5 text-[10px]/[.875rem] transition-opacity group-data-[state=inactive]:opacity-50">
-                                    {tab.badge}
-                                  </Badge>
-                                </span>
-                              ) : (
-                                <IconComponent
-                                  size={16}
-                                  strokeWidth={2}
-                                  aria-hidden={true}
-                                />
-                              )}
-                            </VerticalTabsTrigger>
-                          </span>
-                        </TooltipTrigger>
-                        <TooltipContent
-                          side="right"
-                          className="px-2 py-1 text-xs"
-                        >
-                          {tab.tooltip}
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  );
-                })}
-              </VerticalTabsList>
-              <div className="grow rounded-lg text-start min-h-[400px]">
-                {TAB_ITEMS.map((tab) => {
-                  const ContentComponent =
-                    TabContentComponents[
-                      tab.value as keyof typeof TabContentComponents
-                    ];
-                  return (
-                    <VerticalTabsContent key={tab.value} value={tab.value}>
-                      <div className=" space-y-4 h-full">
-                        <ContentComponent
-                          selectedAssessment={selectedAssessment}
-                        />
-                      </div>
-                    </VerticalTabsContent>
-                  );
-                })}
-              </div>
-            </VerticalTabs>
-          </div>
+        <main className="space-y-4 max-w-4xl lg:max-w-5xl xl:max-w-7xl w-full mx-auto px-3 py-10">
+          <HomeTab selectedAssessment={state.selectedAssessment} />
         </main>
       </div>
     </React.Fragment>
