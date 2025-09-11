@@ -1,0 +1,321 @@
+{
+  "metadata": {
+    "total_words": 851,
+    "complexity_metrics": {
+      "average_word_length": 8.09,
+      "average_syllables": 2.74,
+      "longest_words": [
+        {
+          "word": "contemporaneous",
+          "part_of_speech": "adj.",
+          "definition": "Existing during the same time",
+          "example": "Though her novels do not feature the themes of Romanticism, Jane Austen's work was contemporaneous with that of Wordsworth and Byron.",
+          "page": 19,
+          "categories": [
+            "general"
+          ],
+          "difficulty": "medium",
+          "syllable_count": 5,
+          "word_length": 15
+        },
+        {
+          "word": "circumlocution",
+          "part_of_speech": "n.",
+          "definition": "Indirect and wordy language",
+          "example": "The professor's habit of speaking in circumlocutions made it difficult to follow his lectures.",
+          "page": 15,
+          "categories": [
+            "emotions_feelings",
+            "communication_speech"
+          ],
+          "difficulty": "hard",
+          "syllable_count": 5,
+          "word_length": 14
+        },
+        {
+          "word": "grandiloquence",
+          "part_of_speech": "n.",
+          "definition": "Lofty, pompous language",
+          "example": "The student thought her grandiloquence would make her sound smart, but neither the class nor the teacher bought it.",
+          "page": 35,
+          "categories": [
+            "general"
+          ],
+          "difficulty": "hard",
+          "syllable_count": 4,
+          "word_length": 14
+        },
+        {
+          "word": "accommodating",
+          "part_of_speech": "adj.",
+          "definition": "Helpful, obliging, polite",
+          "example": "Though the apartment was not big enough for three people, Arnold, Mark, and Zebulon were all friends and were accommodating to each other.",
+          "page": 3,
+          "categories": [
+            "general"
+          ],
+          "difficulty": "hard",
+          "syllable_count": 5,
+          "word_length": 13
+        },
+        {
+          "word": "anachronistic",
+          "part_of_speech": "adj.",
+          "definition": "Being out of correct chronological order",
+          "example": "In this book you're writing, you say that the Pyramids were built after the Titanic sank, which is anachronistic .",
+          "page": 6,
+          "categories": [
+            "intellectual_mental",
+            "time_change"
+          ],
+          "difficulty": "hard",
+          "syllable_count": 5,
+          "word_length": 13
+        },
+        {
+          "word": "circumscribed",
+          "part_of_speech": "adj.",
+          "definition": "Marked off, bounded",
+          "example": "The children were permitted to play tag only within a carefully circumscribed area of the lawn.",
+          "page": 15,
+          "categories": [
+            "general"
+          ],
+          "difficulty": "medium",
+          "syllable_count": 4,
+          "word_length": 13
+        },
+        {
+          "word": "comprehensive",
+          "part_of_speech": "adj.",
+          "definition": "Including everything",
+          "example": "She sent me a comprehensive list of the ingredients needed to cook rabbit souffl.",
+          "page": 17,
+          "categories": [
+            "general"
+          ],
+          "difficulty": "hard",
+          "syllable_count": 4,
+          "word_length": 13
+        },
+        {
+          "word": "heterogeneous",
+          "part_of_speech": "adj.",
+          "definition": "Varied, diverse in character",
+          "example": "I hate having only one flavor so I always buy the swirled, or should I say heterogeneous , type of ice cream.",
+          "page": 36,
+          "categories": [
+            "general"
+          ],
+          "difficulty": "hard",
+          "syllable_count": 5,
+          "word_length": 13
+        },
+        {
+          "word": "idiosyncratic",
+          "part_of_speech": "adj.",
+          "definition": "Peculiar to one person; highly individualized",
+          "example": "I know you had trouble with the last test, but because your mistakes were highly idiosyncratic , I'm going to deny your request that the class be given a new test.",
+          "page": 37,
+          "categories": [
+            "general"
+          ],
+          "difficulty": "hard",
+          "syllable_count": 5,
+          "word_length": 13
+        },
+        {
+          "word": "indefatigable",
+          "part_of_speech": "adj.",
+          "definition": "Incapable of defeat, failure, decay",
+          "example": "Even after traveling 62 miles, the indefatigable runner kept on moving.",
+          "page": 39,
+          "categories": [
+            "movement_action"
+          ],
+          "difficulty": "hard",
+          "syllable_count": 5,
+          "word_length": 13
+        }
+      ],
+      "most_syllables": [
+        {
+          "word": "accommodating",
+          "part_of_speech": "adj.",
+          "definition": "Helpful, obliging, polite",
+          "example": "Though the apartment was not big enough for three people, Arnold, Mark, and Zebulon were all friends and were accommodating to each other.",
+          "page": 3,
+          "categories": [
+            "general"
+          ],
+          "difficulty": "hard",
+          "syllable_count": 5,
+          "word_length": 13
+        },
+        {
+          "word": "anachronistic",
+          "part_of_speech": "adj.",
+          "definition": "Being out of correct chronological order",
+          "example": "In this book you're writing, you say that the Pyramids were built after the Titanic sank, which is anachronistic .",
+          "page": 6,
+          "categories": [
+            "intellectual_mental",
+            "time_change"
+          ],
+          "difficulty": "hard",
+          "syllable_count": 5,
+          "word_length": 13
+        },
+        {
+          "word": "antediluvian",
+          "part_of_speech": "adj.",
+          "definition": "Ancient",
+          "example": "The antediluvian man still believed that Eisenhower was president of the United States and that hot dogs cost a nickel.",
+          "page": 7,
+          "categories": [
+            "time_change"
+          ],
+          "difficulty": "hard",
+          "syllable_count": 5,
+          "word_length": 12
+        },
+        {
+          "word": "circumlocution",
+          "part_of_speech": "n.",
+          "definition": "Indirect and wordy language",
+          "example": "The professor's habit of speaking in circumlocutions made it difficult to follow his lectures.",
+          "page": 15,
+          "categories": [
+            "emotions_feelings",
+            "communication_speech"
+          ],
+          "difficulty": "hard",
+          "syllable_count": 5,
+          "word_length": 14
+        },
+        {
+          "word": "contemporaneous",
+          "part_of_speech": "adj.",
+          "definition": "Existing during the same time",
+          "example": "Though her novels do not feature the themes of Romanticism, Jane Austen's work was contemporaneous with that of Wordsworth and Byron.",
+          "page": 19,
+          "categories": [
+            "general"
+          ],
+          "difficulty": "medium",
+          "syllable_count": 5,
+          "word_length": 15
+        },
+        {
+          "word": "cosmopolitan",
+          "part_of_speech": "adj.",
+          "definition": "Sophisticated, worldly",
+          "example": "Lloyd's education and upbringing were cosmopolitan , so he felt right at home among the powerful and learned.",
+          "page": 20,
+          "categories": [
+            "power_authority"
+          ],
+          "difficulty": "hard",
+          "syllable_count": 5,
+          "word_length": 12
+        },
+        {
+          "word": "equanimity",
+          "part_of_speech": "n.",
+          "definition": "Composure",
+          "example": "Even though he had just been fired, Mr. Simms showed great equanimity by neatly packing up his desk and wishing everyone in the office well.",
+          "page": 30,
+          "categories": [
+            "emotions_feelings"
+          ],
+          "difficulty": "hard",
+          "syllable_count": 5,
+          "word_length": 10
+        },
+        {
+          "word": "etymology",
+          "part_of_speech": "n.",
+          "definition": "The history of words, their origin and development",
+          "example": "From the study of etymology , I know that the word \"quixotic\" derives from Don Quixote and the word \"gaudy\" refers to the Spanish architect Gaud(tm).",
+          "page": 30,
+          "categories": [
+            "general"
+          ],
+          "difficulty": "medium",
+          "syllable_count": 5,
+          "word_length": 9
+        },
+        {
+          "word": "heterogeneous",
+          "part_of_speech": "adj.",
+          "definition": "Varied, diverse in character",
+          "example": "I hate having only one flavor so I always buy the swirled, or should I say heterogeneous , type of ice cream.",
+          "page": 36,
+          "categories": [
+            "general"
+          ],
+          "difficulty": "hard",
+          "syllable_count": 5,
+          "word_length": 13
+        },
+        {
+          "word": "hronological",
+          "part_of_speech": "adj.",
+          "definition": "Arranged in order of time",
+          "example": "Lionel carefully arranged the snapshots of his former girlfriends in chronological order, and then set fire to them.",
+          "page": 14,
+          "categories": [
+            "emotions_feelings",
+            "intellectual_mental",
+            "time_change"
+          ],
+          "difficulty": "medium",
+          "syllable_count": 5,
+          "word_length": 12
+        }
+      ]
+    }
+  },
+  "difficulty_counts": {
+    "medium": 444,
+    "easy": 202,
+    "hard": 205
+  },
+  "category_counts": {
+    "general": 605,
+    "power_authority": 26,
+    "communication_speech": 29,
+    "social_relationships": 12,
+    "behavior_personality": 33,
+    "emotions_feelings": 85,
+    "physical_appearance": 29,
+    "art_culture": 1,
+    "movement_action": 20,
+    "business_economics": 7,
+    "conflict_struggle": 8,
+    "intellectual_mental": 23,
+    "time_change": 17,
+    "morality_ethics": 11,
+    "science_nature": 4
+  },
+  "recommendations": {
+    "easy": [
+      "Start with these foundational vocabulary words",
+      "Use these for warm-up exercises",
+      "Perfect for building confidence",
+      "Good for daily review sessions"
+    ],
+    "medium": [
+      "Core SAT vocabulary - focus your main study time here",
+      "Practice using these in context",
+      "Create flashcards for regular review",
+      "Most common on actual SAT tests"
+    ],
+    "hard": [
+      "Advanced vocabulary for high scores",
+      "Study these after mastering easy/medium words",
+      "Focus on etymology and word roots",
+      "Practice with challenging reading passages"
+    ]
+  }
+}

@@ -21,6 +21,8 @@ const nextConfig: NextConfig = {
       new URL("https://originui.com/**"),
       new URL("https://upload.wikimedia.org/**"),
       new URL("https://vectorseek.com/**"),
+      new URL("https://assets.dub.co/**"),
+      new URL("https://raw.githubusercontent.com/**"),
     ],
   },
 };

@@ -14,6 +14,7 @@ import {
   API_Response_Question_List,
   PlainQuestionType,
   QuestionState,
+  QuestionById_Data,
 } from "@/types/question";
 import {
   PracticeSelections,
@@ -73,6 +74,7 @@ import ReferenceSheet from "@/src/sat-math-refrence-sheet.webp";
 import { Confetti, ConfettiRef } from "./ui/confetti";
 import { DraggableReferencePopup } from "./popups/reference-popup";
 import { DraggableNotesPopup } from "./popups/notes-popup";
+import { SaveButton } from "./ui/save-button";
 import { playSound } from "@/lib/playSound";
 import { useLocalStorage } from "@/lib/useLocalStorage";
 import { useRouter } from "next/navigation";
@@ -1203,6 +1205,12 @@ export default function PracticeRushMultistep({
     {}
   );
 
+  // Load saved questions from localStorage
+  const [savedQuestions, setSavedQuestions] = useLocalStorage<SavedQuestions>(
+    "savedQuestions",
+    {}
+  );
+
   // Check URL parameters to determine if this is a continue session
   const isContinueSession = useMemo(() => {
     if (typeof window !== "undefined") {
@@ -1371,6 +1379,36 @@ export default function PracticeRushMultistep({
     () => (state.questions ? state.questions[state.currentQuestionStep] : null),
     [state.questions, state.currentQuestionStep]
   );
+
+  // Convert QuestionState to QuestionById_Data format for SaveButton compatibility
+  const currentQuestionForSave = useMemo(() => {
+    if (!currentQuestion) return null;
+
+    const questionById: QuestionById_Data = {
+      question: currentQuestion.plainQuestion,
+      problem: {
+        answerOptions: currentQuestion.answerOptions || undefined,
+        correct_answer: currentQuestion.correct_answer,
+        rationale: currentQuestion.rationale,
+        stem: currentQuestion.stem,
+        stimulus: currentQuestion.stimulus,
+        type: currentQuestion.type || "mcq", // Default to multiple choice if not specified
+      },
+    };
+
+    return questionById;
+  }, [currentQuestion]);
+
+  // Check if current question is saved
+  const isCurrentQuestionSaved = useMemo(() => {
+    if (!currentQuestion || !savedQuestions[practiceSelections.assessment]) {
+      return false;
+    }
+
+    return savedQuestions[practiceSelections.assessment].some(
+      (q) => q.questionId === currentQuestion.plainQuestion.questionId
+    );
+  }, [currentQuestion, savedQuestions, practiceSelections.assessment]);
 
   // Determine if we're effectively in review mode (either explicitly or session is completed)
   const effectiveReviewMode = useMemo(
@@ -3445,8 +3483,8 @@ export default function PracticeRushMultistep({
               </div>
 
               <div className="grid grid-cols-12 justify-between mb-10">
-                <div className="col-span-12 xl:col-span-7">
-                  <div className="flex flex-col lg:flex-row gap-4 items-start">
+                <div className="col-span-12 xl:col-span-5">
+                  <div className="flex flex-col lg:flex-col gap-4 items-start">
                     <Pill className="text-md font-semibold">
                       {currentQuestion.plainQuestion.difficulty == "E" ? (
                         <React.Fragment>
@@ -3502,7 +3540,7 @@ export default function PracticeRushMultistep({
                     </div>
                   </div>
                 </div>
-                <div className="col-span-12 xl:col-span-5 flex flex-wrap gap-2 items-center justify-center md:justify-start mt-6 xl:mt-0 lg:justify-end  xl:justify-end">
+                <div className="col-span-12 xl:col-span-7 flex flex-wrap gap-2 items-end justify-center md:justify-start mt-6 xl:mt-0 lg:justify-end  xl:justify-end">
                   <TooltipProvider delayDuration={100}>
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -3697,156 +3735,15 @@ export default function PracticeRushMultistep({
                       </TooltipContent>
                     </Tooltip>
 
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="default"
-                          className="justify-center items-center cursor-pointer bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 px-6 rounded-2xl border-b-4 border-yellow-700 hover:border-yellow-800 shadow-md hover:shadow-lg transform transition-all duration-200 active:translate-y-0.5 active:border-b-2"
-                          onClick={() => {
-                            if (!currentQuestion) return;
-
-                            try {
-                              const existingSavedQuestions =
-                                localStorage.getItem("savedQuestions");
-                              const savedQuestions: SavedQuestions =
-                                existingSavedQuestions
-                                  ? JSON.parse(existingSavedQuestions)
-                                  : {};
-
-                              const assessmentKey =
-                                practiceSelections.assessment;
-
-                              // Initialize array if it doesn't exist
-                              if (!savedQuestions[assessmentKey]) {
-                                savedQuestions[assessmentKey] = [];
-                              }
-
-                              // Check if question is already saved
-                              const questionIndex = savedQuestions[
-                                assessmentKey
-                              ].findIndex(
-                                (q) =>
-                                  q.questionId ===
-                                  currentQuestion.plainQuestion.questionId
-                              );
-
-                              if (questionIndex === -1) {
-                                // Question not saved, so save it
-                                const newSavedQuestion: SavedQuestion = {
-                                  questionId:
-                                    currentQuestion.plainQuestion.questionId,
-                                  externalId:
-                                    currentQuestion.plainQuestion.external_id,
-                                  ibn: currentQuestion.plainQuestion.ibn,
-                                  plainQuestion: currentQuestion.plainQuestion, // Include full plainQuestion data
-                                  timestamp: new Date().toISOString(),
-                                };
-                                savedQuestions[assessmentKey].push(
-                                  newSavedQuestion
-                                );
-                                console.log("Question saved successfully!");
-                              } else {
-                                // Question already saved, so remove it
-                                savedQuestions[assessmentKey].splice(
-                                  questionIndex,
-                                  1
-                                );
-                                console.log("Question removed from saved!");
-                              }
-
-                              localStorage.setItem(
-                                "savedQuestions",
-                                JSON.stringify(savedQuestions)
-                              );
-                              playSound("button-pressed.wav");
-
-                              // Force re-render by triggering a state change
-                              dispatch({ type: "TOGGLE_TIMER_VISIBILITY" });
-                              dispatch({ type: "TOGGLE_TIMER_VISIBILITY" });
-                            } catch (error) {
-                              console.error(
-                                "Failed to save/remove question:",
-                                error
-                              );
-                              toast.error("Failed to Save Question", {
-                                description:
-                                  "Couldn't save or remove this question from your saved list. Please try again.",
-                                duration: 4000,
-                              });
-                            }
-                          }}
-                        >
-                          {(() => {
-                            try {
-                              const existingSavedQuestions =
-                                localStorage.getItem("savedQuestions");
-                              const savedQuestions: SavedQuestions =
-                                existingSavedQuestions
-                                  ? JSON.parse(existingSavedQuestions)
-                                  : {};
-
-                              const assessmentKey =
-                                practiceSelections.assessment;
-                              const isQuestionSaved = savedQuestions[
-                                assessmentKey
-                              ]?.some(
-                                (q) =>
-                                  q.questionId ===
-                                  currentQuestion?.plainQuestion.questionId
-                              );
-
-                              return (
-                                <BookmarkIcon
-                                  className={`group-hover:rotate-12 duration-300 mr-2 ${
-                                    isQuestionSaved ? "fill-current" : ""
-                                  }`}
-                                />
-                              );
-                            } catch {
-                              return (
-                                <BookmarkIcon className="group-hover:rotate-12 duration-300" />
-                              );
-                            }
-                          })()}
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>
-                          {(() => {
-                            try {
-                              const existingSavedQuestions =
-                                localStorage.getItem("savedQuestions");
-                              const savedQuestions: Record<
-                                string,
-                                Array<{
-                                  questionId: string;
-                                  externalId?: string | null;
-                                  ibn?: string | null;
-                                }>
-                              > = existingSavedQuestions
-                                ? JSON.parse(existingSavedQuestions)
-                                : {};
-
-                              const assessmentKey =
-                                practiceSelections.assessment;
-                              const isQuestionSaved = savedQuestions[
-                                assessmentKey
-                              ]?.some(
-                                (q) =>
-                                  q.questionId ===
-                                  currentQuestion?.plainQuestion.questionId
-                              );
-
-                              return isQuestionSaved
-                                ? "Remove from saved questions"
-                                : "Save question for later review";
-                            } catch {
-                              return "Save question for later review";
-                            }
-                          })()}
-                        </p>
-                      </TooltipContent>
-                    </Tooltip>
+                    {currentQuestionForSave && (
+                      <SaveButton
+                        question={currentQuestionForSave}
+                        assessment={practiceSelections.assessment}
+                        isQuestionSaved={isCurrentQuestionSaved}
+                        savedQuestions={savedQuestions}
+                        setSavedQuestions={setSavedQuestions}
+                      />
+                    )}
 
                     <Tooltip>
                       <TooltipTrigger asChild>

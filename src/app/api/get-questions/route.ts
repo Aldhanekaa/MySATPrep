@@ -67,10 +67,10 @@ export async function GET(request: NextRequest) {
       .map((id) => id.trim());
   }
 
-  console.log("domains", domainsParam);
-  console.log("assessment", assessment);
-  console.log("random", random);
-  console.log("excludeQuestionIds", excludeQuestionIds);
+  // console.log("domains", domainsParam);
+  // console.log("assessment", assessment);
+  // console.log("random", random);
+  // console.log("excludeQuestionIds", excludeQuestionIds);
 
   if (random == "true") {
   }
@@ -197,3 +197,6 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+
+//
+//xwmeb2o3

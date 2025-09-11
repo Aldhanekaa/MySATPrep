@@ -3,15 +3,19 @@
 import * as React from "react";
 import {
   AudioWaveformIcon,
+  BookAIcon,
+  BookCopyIcon,
   BookMarkedIcon,
   BookOpen,
   Bot,
+  BrainCircuitIcon,
   CheckCircleIcon,
   ClockIcon,
   Command,
   Frame,
   GalleryVerticalEnd,
   GraduationCapIcon,
+  HistoryIcon,
   Home,
   HomeIcon,
   LandmarkIcon,
@@ -19,6 +23,7 @@ import {
   LifeBuoy,
   Map,
   PieChart,
+  RabbitIcon,
   Send,
   Settings2,
   SquareTerminal,
@@ -47,6 +52,8 @@ import { useAssessment } from "@/contexts/assessment-context";
 import { useLocalStorage } from "@/lib/useLocalStorage";
 import { SavedQuestions } from "@/types/savedQuestions";
 import { PracticeStatistics } from "@/types/statistics";
+import { SidebarFooterNews } from "./app-footer-news";
+import { it } from "node:test";
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { state, getAssessmentKey } = useAssessment();
@@ -93,6 +100,16 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         isActive: true,
       },
       {
+        title: "SAT Vocabs",
+        url: "/dashboard/vocabs",
+        icon: BookAIcon,
+      },
+      {
+        title: "Question Bank Tracker",
+        url: "/dashboard/tracker",
+        icon: TrendingUpIcon,
+      },
+      {
         title: "Bookmarked Questions",
         url: "/dashboard/bookmarks",
         icon: BookMarkedIcon,
@@ -109,28 +126,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         url: "/dashboard/sessions",
         icon: ClockIcon,
       },
-      {
-        title: "Question Bank Tracker",
-        url: "/dashboard/tracker",
-        icon: TrendingUpIcon,
-      },
-    ],
-    teams: [
-      {
-        name: "Acme Inc",
-        logo: GalleryVerticalEnd,
-        plan: "Enterprise",
-      },
-      {
-        name: "Acme Corp.",
-        logo: AudioWaveformIcon,
-        plan: "Startup",
-      },
-      {
-        name: "Evil Corp.",
-        logo: Command,
-        plan: "Free",
-      },
     ],
 
     navSecondary: [
@@ -145,6 +140,27 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         name: "Question Bank",
         url: "/questionbank",
         icon: Layers2Icon,
+      },
+      {
+        name: "SAT Vocabs Flashcards",
+        url: "/dashboard/vocabs/learn",
+        icon: BookCopyIcon,
+      },
+      {
+        name: "SAT Vocabs Practice",
+        url: "/dashboard/vocabs/practice",
+        icon: BrainCircuitIcon,
+      },
+
+      {
+        name: "Practice Rush",
+        url: "/practice",
+        icon: RabbitIcon,
+      },
+      {
+        name: "Review Practice",
+        url: "/review",
+        icon: HistoryIcon,
       },
       // {
       //   name: "Search Question",
@@ -180,7 +196,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
       {/* <SidebarFooter>
-        <NavUser user={data.user} />
+        <SidebarFooterNews />
       </SidebarFooter> */}
     </Sidebar>
   );
