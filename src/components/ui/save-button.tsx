@@ -60,22 +60,28 @@ export function SaveButton({
   const [hoverCardOpen, setHoverCardOpen] = useState(false);
 
   const questionId = question.question.questionId;
-  const assessmentCollections = savedCollections[assessment] || [];
+
+  // Get all collections (now organized by ID, not assessment)
+  const allCollections = Object.values(savedCollections);
 
   // Migrate collections that don't have questionDetails (backward compatibility)
-  const migratedCollections = assessmentCollections.map((collection) => {
+  const migratedCollections = allCollections.map((collection, index) => {
     if (!collection.questionDetails) {
       return {
         ...collection,
+        id: collection.id || `collection_${index}_${Date.now()}`, // Ensure id exists
         questionDetails: [], // Initialize empty array for legacy collections
       };
     }
-    return collection;
+    return {
+      ...collection,
+      id: collection.id || `collection_${index}_${Date.now()}`, // Ensure id exists
+    };
   });
 
   // Filter collections based on search term
   const filteredCollections = migratedCollections.filter((collection) =>
-    collection.name.toLowerCase().includes(searchTerm.toLowerCase())
+    collection.name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   // Check which collections contain this question
@@ -126,22 +132,26 @@ export function SaveButton({
 
         // Also remove from all collections
         const updatedCollections = { ...savedCollections };
-        if (updatedCollections[assessment]) {
-          updatedCollections[assessment] = updatedCollections[assessment].map(
-            (collection) => ({
+
+        // Find and update collections that contain this question
+        Object.keys(updatedCollections).forEach((collectionId) => {
+          const collection = updatedCollections[collectionId];
+          if (collection.questionIds.includes(questionId)) {
+            updatedCollections[collectionId] = {
               ...collection,
               questionIds: collection.questionIds.filter(
-                (id) => id !== questionId
+                (id: string) => id !== questionId
               ),
               questionDetails:
                 collection.questionDetails?.filter(
                   (detail) => detail.questionId !== questionId
                 ) || [],
               updatedAt: new Date().toISOString(),
-            })
-          );
-          setSavedCollections(updatedCollections);
-        }
+            };
+          }
+        });
+
+        setSavedCollections(updatedCollections);
         toast.success("Question removed from saved and all collections!");
       }
 
@@ -157,9 +167,6 @@ export function SaveButton({
 
     try {
       const updatedCollections = { ...savedCollections };
-      if (!updatedCollections[assessment]) {
-        updatedCollections[assessment] = [];
-      }
 
       const newCollection: SavedCollection = {
         id: `collection_${Date.now()}_${Math.random()
@@ -172,7 +179,7 @@ export function SaveButton({
         questionDetails: [], // Initialize empty questionDetails array
       };
 
-      updatedCollections[assessment].push(newCollection);
+      updatedCollections[newCollection.id] = newCollection;
       setSavedCollections(updatedCollections);
       setNewCollectionName("");
       setIsCreateDialogOpen(false);
@@ -187,16 +194,13 @@ export function SaveButton({
   const handleDeleteCollection = (collectionId: string) => {
     try {
       const updatedCollections = { ...savedCollections };
-      if (updatedCollections[assessment]) {
-        const collectionToDelete = updatedCollections[assessment].find(
-          (c) => c.id === collectionId
-        );
-        updatedCollections[assessment] = updatedCollections[assessment].filter(
-          (collection) => collection.id !== collectionId
-        );
+      const collectionToDelete = updatedCollections[collectionId];
+
+      if (collectionToDelete) {
+        delete updatedCollections[collectionId];
         setSavedCollections(updatedCollections);
         playSound("tap-checkbox-unchecked.wav");
-        toast.success(`Collection "${collectionToDelete?.name}" deleted!`);
+        toast.success(`Collection "${collectionToDelete.name}" deleted!`);
       }
     } catch (error) {
       console.error("Failed to delete collection:", error);
@@ -209,17 +213,13 @@ export function SaveButton({
 
     try {
       const updatedCollections = { ...savedCollections };
-      if (updatedCollections[assessment]) {
-        updatedCollections[assessment] = updatedCollections[assessment].map(
-          (collection) =>
-            collection.id === collectionId
-              ? {
-                  ...collection,
-                  name: newName.trim(),
-                  updatedAt: new Date().toISOString(),
-                }
-              : collection
-        );
+
+      if (updatedCollections[collectionId]) {
+        updatedCollections[collectionId] = {
+          ...updatedCollections[collectionId],
+          name: newName.trim(),
+          updatedAt: new Date().toISOString(),
+        };
         setSavedCollections(updatedCollections);
         setEditingCollection(null);
         playSound("button-pressed.wav");
@@ -236,77 +236,66 @@ export function SaveButton({
       const updatedCollections = { ...savedCollections };
       const updatedSavedQuestions = { ...savedQuestions };
 
-      if (updatedCollections[assessment]) {
-        const collection = updatedCollections[assessment].find(
-          (c) => c.id === collectionId
-        );
-        const questionExists = collection?.questionIds.includes(questionId);
+      const collection = updatedCollections[collectionId];
+      if (!collection) return;
 
-        updatedCollections[assessment] = updatedCollections[assessment].map(
-          (collection) => {
-            if (collection.id === collectionId) {
-              if (questionExists) {
-                // Remove question from collection
-                return {
-                  ...collection,
-                  questionIds: collection.questionIds.filter(
-                    (id) => id !== questionId
-                  ),
-                  questionDetails:
-                    collection.questionDetails?.filter(
-                      (detail) => detail.questionId !== questionId
-                    ) || [],
-                  updatedAt: new Date().toISOString(),
-                };
-              } else {
-                // Add question to collection
-                return {
-                  ...collection,
-                  questionIds: [...collection.questionIds, questionId],
-                  questionDetails: [
-                    ...(collection.questionDetails || []),
-                    {
-                      questionId: questionId,
-                      externalId: question.question.external_id || null,
-                      ibn: question.question.ibn || null,
-                    },
-                  ],
-                  updatedAt: new Date().toISOString(),
-                };
-              }
-            }
-            return collection;
-          }
-        );
+      const questionExists = collection.questionIds.includes(questionId);
 
-        // If we're adding the question to a collection and it's not in savedQuestions, add it there too
-        if (!questionExists) {
-          // Initialize array if it doesn't exist
-          if (!updatedSavedQuestions[assessment]) {
-            updatedSavedQuestions[assessment] = [];
-          }
-
-          // Check if question is already in savedQuestions
-          const questionIndex = updatedSavedQuestions[assessment].findIndex(
-            (q: SavedQuestion) => q.questionId === questionId
-          );
-
-          if (questionIndex === -1) {
-            const newSavedQuestion: SavedQuestion = {
+      if (questionExists) {
+        // Remove question from collection
+        updatedCollections[collectionId] = {
+          ...collection,
+          questionIds: collection.questionIds.filter(
+            (id: string) => id !== questionId
+          ),
+          questionDetails:
+            collection.questionDetails?.filter(
+              (detail) => detail.questionId !== questionId
+            ) || [],
+          updatedAt: new Date().toISOString(),
+        };
+      } else {
+        // Add question to collection
+        updatedCollections[collectionId] = {
+          ...collection,
+          questionIds: [...collection.questionIds, questionId],
+          questionDetails: [
+            ...(collection.questionDetails || []),
+            {
               questionId: questionId,
               externalId: question.question.external_id || null,
               ibn: question.question.ibn || null,
-              plainQuestion: question.question,
-              timestamp: new Date().toISOString(),
-            };
-            updatedSavedQuestions[assessment].push(newSavedQuestion);
-            setSavedQuestions(updatedSavedQuestions);
-          }
+            },
+          ],
+          updatedAt: new Date().toISOString(),
+        };
+
+        // If we're adding the question to a collection and it's not in savedQuestions, add it there too
+        // Initialize array if it doesn't exist
+        if (!updatedSavedQuestions[assessment]) {
+          updatedSavedQuestions[assessment] = [];
         }
 
-        setSavedCollections(updatedCollections);
-        playSound("tap-checkbox-checked.wav");
+        // Check if question is already in savedQuestions
+        const questionIndex = updatedSavedQuestions[assessment].findIndex(
+          (q: SavedQuestion) => q.questionId === questionId
+        );
+
+        if (questionIndex === -1) {
+          const newSavedQuestion: SavedQuestion = {
+            questionId: questionId,
+            externalId: question.question.external_id || null,
+            ibn: question.question.ibn || null,
+            plainQuestion: question.question,
+            timestamp: new Date().toISOString(),
+          };
+          updatedSavedQuestions[assessment].push(newSavedQuestion);
+          setSavedQuestions(updatedSavedQuestions);
+        }
       }
+
+      setSavedCollections(updatedCollections);
+      playSound("tap-checkbox-checked.wav");
     } catch (error) {
       console.error("Failed to toggle question in collection:", error);
       toast.error("Failed to update collection");
@@ -481,15 +470,16 @@ export function SaveButton({
 
                       {editingCollection?.id === collection.id ? (
                         <Input
-                          value={editingCollection.name}
+                          value={editingCollection?.name || ""}
                           onChange={(e) =>
+                            editingCollection &&
                             setEditingCollection({
                               ...editingCollection,
                               name: e.target.value,
                             })
                           }
                           onKeyDown={(e) => {
-                            if (e.key === "Enter") {
+                            if (e.key === "Enter" && editingCollection) {
                               handleRenameCollection(
                                 collection.id,
                                 editingCollection.name
@@ -499,6 +489,7 @@ export function SaveButton({
                             }
                           }}
                           onBlur={() =>
+                            editingCollection &&
                             handleRenameCollection(
                               collection.id,
                               editingCollection.name
@@ -511,9 +502,9 @@ export function SaveButton({
                         <Label
                           htmlFor={`${id}-${collection.id}`}
                           className="font-medium flex-1 cursor-pointer truncate text-gray-700 text-sm"
-                          title={collection.name}
+                          title={collection.name || "Untitled Collection"}
                         >
-                          {collection.name}
+                          {collection.name || "Untitled Collection"}
                         </Label>
                       )}
 
@@ -560,7 +551,7 @@ export function SaveButton({
                         key={collection.id}
                         className="inline-flex items-center px-3 py-1 rounded-lg bg-blue-100 text-blue-700 text-xs font-medium border border-blue-200"
                       >
-                        {collection.name}
+                        {collection.name || "Untitled Collection"}
                       </span>
                     ))}
                   </div>

@@ -127,7 +127,6 @@ export default function RootLayout({
               message="We just released a new feature!"
               height="2rem"
               variant="rainbow"
-              className="mb-4 relative"
             /> */}
 
             {children}

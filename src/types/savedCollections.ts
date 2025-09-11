@@ -21,9 +21,9 @@ export interface SavedCollection {
   color?: string; // Optional color for the folder
 }
 
-// Collections organized by assessment
+// Collections organized by ID
 export interface SavedCollections {
-  [assessment: string]: SavedCollection[];
+  [collectionId: string]: SavedCollection;
 }
 
 // Interface for collection with actual question data
