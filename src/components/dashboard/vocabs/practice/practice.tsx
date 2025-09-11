@@ -16,6 +16,7 @@ import VocabsDefinePractice from "./define";
 import VocabsFillinTheBlankPractice from "./fill-in-the-blank";
 import VocabsFormaSentencePractice from "./form-a-sentence";
 import VocabsMatchPractice from "./vocabs-match";
+import Link from "next/link";
 
 const staggerContainer = {
   initial: {},
@@ -169,39 +170,33 @@ export default function VocabsPracticePage_Main() {
                 No Vocabularies to Practice
               </h1>
               <p className="text-xl text-gray-600 leading-relaxed">
-                You haven't learned any vocabularies yet! Start by exploring our
-                vocabulary collection and adding words to your learning list.
+                You haven't learned any vocabularies yet! Start by learning new
+                vocabularies through flashcards. You have to learn at least 5
+                words to unlock practice features.
               </p>
             </div>
 
             {/* Action buttons */}
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mt-8">
-              <Button
-                variant="default"
-                className="group hover:cursor-pointer text-lg px-8 py-6 rounded-2xl bg-gradient-to-b from-blue-400 to-blue-500 hover:from-blue-500 hover:to-blue-600 text-white font-bold shadow-[0_4px_0_0_theme(colors.blue.600),0_8px_20px_theme(colors.blue.500/0.25)] hover:shadow-[0_6px_0_0_theme(colors.blue.700),0_10px_25px_theme(colors.blue.500/0.3)] active:shadow-[0_2px_0_0_theme(colors.blue.600),0_4px_10px_theme(colors.blue.500/0.2)] active:translate-y-0.5 transform transition-all duration-150"
-                onClick={() => {
-                  playSound("button-pressed.wav");
-                  // Navigate to vocabulary browser
-                  window.location.href = "/dashboard/vocabs";
-                }}
-              >
-                Browse Vocabularies
-                <div className="text-white size-5 ml-2">
-                  <ArrowRight className="size-5" />
-                </div>
-              </Button>
-
-              <Button
-                variant="outline"
-                className="text-lg px-8 py-6 rounded-2xl font-bold shadow-[0_4px_0_0_theme(colors.gray.300),0_8px_20px_theme(colors.gray.300/0.25)] hover:shadow-[0_6px_0_0_theme(colors.gray.400),0_10px_25px_theme(colors.gray.300/0.3)] hover:bg-gray-50 active:shadow-[0_2px_0_0_theme(colors.gray.300),0_4px_10px_theme(colors.gray.300/0.2)] active:translate-y-0.5 transform transition-all duration-150 dark:shadow-[0_4px_0_0_theme(colors.gray.600),0_8px_20px_theme(colors.gray.700/0.25)] dark:hover:shadow-[0_6px_0_0_theme(colors.gray.500),0_10px_25px_theme(colors.gray.700/0.3)] dark:hover:bg-gray-800"
-                onClick={() => {
-                  playSound("button-pressed.wav");
-                  // Navigate back to dashboard
-                  window.location.href = "/dashboard";
-                }}
-              >
-                Back to Dashboard
-              </Button>
+              <Link href={"/dashboard/vocabs/learn"}>
+                <Button
+                  variant="default"
+                  className="group hover:cursor-pointer text-lg px-8 py-6 rounded-2xl bg-gradient-to-b from-blue-400 to-blue-500 hover:from-blue-500 hover:to-blue-600 text-white font-bold shadow-[0_4px_0_0_theme(colors.blue.600),0_8px_20px_theme(colors.blue.500/0.25)] hover:shadow-[0_6px_0_0_theme(colors.blue.700),0_10px_25px_theme(colors.blue.500/0.3)] active:shadow-[0_2px_0_0_theme(colors.blue.600),0_4px_10px_theme(colors.blue.500/0.2)] active:translate-y-0.5 transform transition-all duration-150"
+                >
+                  Learn
+                  <div className="text-white size-5 ml-2">
+                    <ArrowRight className="size-5" />
+                  </div>
+                </Button>
+              </Link>
+              <Link href={"/dashboard/vocabs/"}>
+                <Button
+                  variant="outline"
+                  className="text-lg px-8 py-6 rounded-2xl font-bold shadow-[0_4px_0_0_theme(colors.gray.300),0_8px_20px_theme(colors.gray.300/0.25)] hover:shadow-[0_6px_0_0_theme(colors.gray.400),0_10px_25px_theme(colors.gray.300/0.3)] hover:bg-gray-50 active:shadow-[0_2px_0_0_theme(colors.gray.300),0_4px_10px_theme(colors.gray.300/0.2)] active:translate-y-0.5 transform transition-all duration-150 dark:shadow-[0_4px_0_0_theme(colors.gray.600),0_8px_20px_theme(colors.gray.700/0.25)] dark:hover:shadow-[0_6px_0_0_theme(colors.gray.500),0_10px_25px_theme(colors.gray.700/0.3)] dark:hover:bg-gray-800"
+                >
+                  Back to Dashboard
+                </Button>
+              </Link>
             </div>
 
             {/* Helpful tip */}
@@ -246,39 +241,32 @@ export default function VocabsPracticePage_Main() {
                 You should learn atleast 5 words to start practicing
               </h1>
               <p className="text-xl text-gray-600 leading-relaxed">
-                Learn more vocabularies to unlock practice features and enhance
-                your learning experience.
+                Learn more vocabularies through flashcards to unlock practice
+                features and enhance your learning experience.
               </p>
             </div>
 
             {/* Action buttons */}
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mt-8">
-              <Button
-                variant="default"
-                className="group hover:cursor-pointer text-lg px-8 py-6 rounded-2xl bg-gradient-to-b from-blue-400 to-blue-500 hover:from-blue-500 hover:to-blue-600 text-white font-bold shadow-[0_4px_0_0_theme(colors.blue.600),0_8px_20px_theme(colors.blue.500/0.25)] hover:shadow-[0_6px_0_0_theme(colors.blue.700),0_10px_25px_theme(colors.blue.500/0.3)] active:shadow-[0_2px_0_0_theme(colors.blue.600),0_4px_10px_theme(colors.blue.500/0.2)] active:translate-y-0.5 transform transition-all duration-150"
-                onClick={() => {
-                  playSound("button-pressed.wav");
-                  // Navigate to vocabulary browser
-                  window.location.href = "/dashboard/vocabs";
-                }}
-              >
-                Browse Vocabularies
-                <div className="text-white size-5 ml-2">
-                  <ArrowRight className="size-5" />
-                </div>
-              </Button>
-
-              <Button
-                variant="outline"
-                className="text-lg px-8 py-6 rounded-2xl font-bold shadow-[0_4px_0_0_theme(colors.gray.300),0_8px_20px_theme(colors.gray.300/0.25)] hover:shadow-[0_6px_0_0_theme(colors.gray.400),0_10px_25px_theme(colors.gray.300/0.3)] hover:bg-gray-50 active:shadow-[0_2px_0_0_theme(colors.gray.300),0_4px_10px_theme(colors.gray.300/0.2)] active:translate-y-0.5 transform transition-all duration-150 dark:shadow-[0_4px_0_0_theme(colors.gray.600),0_8px_20px_theme(colors.gray.700/0.25)] dark:hover:shadow-[0_6px_0_0_theme(colors.gray.500),0_10px_25px_theme(colors.gray.700/0.3)] dark:hover:bg-gray-800"
-                onClick={() => {
-                  playSound("button-pressed.wav");
-                  // Navigate back to dashboard
-                  window.location.href = "/dashboard";
-                }}
-              >
-                Back to Dashboard
-              </Button>
+              <Link href={"/dashboard/vocabs/learn"}>
+                <Button
+                  variant="default"
+                  className="group hover:cursor-pointer text-lg px-8 py-6 rounded-2xl bg-gradient-to-b from-blue-400 to-blue-500 hover:from-blue-500 hover:to-blue-600 text-white font-bold shadow-[0_4px_0_0_theme(colors.blue.600),0_8px_20px_theme(colors.blue.500/0.25)] hover:shadow-[0_6px_0_0_theme(colors.blue.700),0_10px_25px_theme(colors.blue.500/0.3)] active:shadow-[0_2px_0_0_theme(colors.blue.600),0_4px_10px_theme(colors.blue.500/0.2)] active:translate-y-0.5 transform transition-all duration-150"
+                >
+                  Learn
+                  <div className="text-white size-5 ml-2">
+                    <ArrowRight className="size-5" />
+                  </div>
+                </Button>
+              </Link>
+              <Link href={"/dashboard/vocabs/"}>
+                <Button
+                  variant="outline"
+                  className="text-lg px-8 py-6 rounded-2xl font-bold shadow-[0_4px_0_0_theme(colors.gray.300),0_8px_20px_theme(colors.gray.300/0.25)] hover:shadow-[0_6px_0_0_theme(colors.gray.400),0_10px_25px_theme(colors.gray.300/0.3)] hover:bg-gray-50 active:shadow-[0_2px_0_0_theme(colors.gray.300),0_4px_10px_theme(colors.gray.300/0.2)] active:translate-y-0.5 transform transition-all duration-150 dark:shadow-[0_4px_0_0_theme(colors.gray.600),0_8px_20px_theme(colors.gray.700/0.25)] dark:hover:shadow-[0_6px_0_0_theme(colors.gray.500),0_10px_25px_theme(colors.gray.700/0.3)] dark:hover:bg-gray-800"
+                >
+                  Back to Dashboard
+                </Button>
+              </Link>
             </div>
 
             {/* Helpful tip */}
