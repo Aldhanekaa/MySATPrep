@@ -207,7 +207,7 @@ export default function QB_Compact_Render({
           index={currentQuestionIndex}
           onRetry={handleRetry}
           type="standard"
-          answerVisibility={answerVisibility}
+          // answerVisibility={answerVisibility}
         />
       </div>
       {/* Navigation Grid */}

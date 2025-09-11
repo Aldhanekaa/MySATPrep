@@ -90,13 +90,11 @@ export default function QuestionProblemCard({
   hideToolsPopup = false,
   hideViewQuestionButton = false,
   hideSubjectHeaders = false,
-  answerVisibility,
 }: {
   question: QuestionById_Data;
   hideToolsPopup?: boolean;
   hideViewQuestionButton?: boolean;
   hideSubjectHeaders?: boolean;
-  answerVisibility?: string;
 }) {
   const sonner = useSonner();
   const router = useRouter();
@@ -116,15 +114,6 @@ export default function QuestionProblemCard({
     "questionNotes",
     {}
   );
-
-  // Load answer choice history from localStorage (for hidden answer mode)
-  const [answerChoiceHistory, setAnswerChoiceHistory] = useLocalStorage<{
-    [questionId: string]: Array<{
-      userChoice: string;
-      time: number;
-      status: "incorrect" | "correct";
-    }>;
-  }>("answerChoiceHistory", {});
 
   // State for tracking if this question is saved and answered before
   const [isQuestionSaved, setIsQuestionSaved] = useState<boolean>(false);
@@ -187,9 +176,8 @@ export default function QuestionProblemCard({
       }
 
       // Check if question has been answered before in practice statistics
-      // Only check and show previous answers if answerVisibility is not "hide"
       const assessmentStats = practiceStatistics[assessment];
-      if (assessmentStats && answerVisibility !== "hide") {
+      if (assessmentStats) {
         // Check in legacy answered questions list
         const isAnsweredLegacy =
           assessmentStats.answeredQuestions?.includes(questionId) || false;
@@ -209,20 +197,9 @@ export default function QuestionProblemCard({
             selectedAnswer: detailedAnswer.selectedAnswer, // Get the stored selected answer
           });
         }
-      } else {
-        // When answerVisibility is "hide", reset the question state
-        setIsQuestionAnswered(false);
-        setQuestionStats(null);
       }
     }
-  }, [
-    question,
-    savedQuestions,
-    questionNotes,
-    practiceStatistics,
-    assessment,
-    answerVisibility,
-  ]);
+  }, [question, savedQuestions, questionNotes, practiceStatistics, assessment]);
 
   // Set share URL when component mounts
   useEffect(() => {
@@ -343,10 +320,7 @@ export default function QuestionProblemCard({
 
   // Handle answer selection (for both multiple choice and text input)
   const handleAnswerSelect = (optionKey: string) => {
-    // Allow interaction if it's not checked in current session
-    // OR if answerVisibility is "hide" (allowing re-answering)
-    if (isAnswerChecked || (isQuestionAnswered && answerVisibility !== "hide"))
-      return;
+    if (isAnswerChecked || isQuestionAnswered) return;
 
     setSelectedAnswer(optionKey);
     setIsQuestionAnswered(true);
@@ -360,10 +334,7 @@ export default function QuestionProblemCard({
 
   // Handle text input change with immediate validation
   const handleTextInputChange = (value: string) => {
-    // Allow interaction if it's not checked in current session
-    // OR if answerVisibility is "hide" (allowing re-answering)
-    if (isAnswerChecked || (isQuestionAnswered && answerVisibility !== "hide"))
-      return;
+    if (isAnswerChecked || isQuestionAnswered) return;
     setSelectedAnswer(value);
   };
 
@@ -389,91 +360,62 @@ export default function QuestionProblemCard({
       playSound("incorrect-answer.wav");
     }
 
-    // Save to different storage based on answerVisibility
-    if (answerVisibility === "hide") {
-      // Save to answerChoiceHistory when answer visibility is hidden
-      const updatedHistory = { ...answerChoiceHistory };
+    // Update practice statistics
+    const updatedStats = { ...practiceStatistics };
 
-      if (!updatedHistory[questionId]) {
-        updatedHistory[questionId] = [];
-      }
-
-      updatedHistory[questionId].push({
-        userChoice: answer,
-        time: Math.floor(Date.now() / 1000), // Unix timestamp
-        status: isCorrect ? "correct" : "incorrect",
-      });
-
-      setAnswerChoiceHistory(updatedHistory);
-
-      console.log("Question answered and saved to answerChoiceHistory:", {
-        questionId,
-        selectedAnswer: answer,
-        isCorrect,
-        assessment,
-        questionType: question.problem.answerOptions
-          ? "multiple-choice"
-          : "text-input",
-        updatedHistory: updatedHistory[questionId],
-      });
-    } else {
-      // Save to practiceStatistics when answer visibility is shown
-      const updatedStats = { ...practiceStatistics };
-
-      // Initialize assessment stats if they don't exist
-      if (!updatedStats[assessment]) {
-        updatedStats[assessment] = {
-          answeredQuestions: [],
-          answeredQuestionsDetailed: [],
-          statistics: {},
-        };
-      }
-
-      const assessmentStats = updatedStats[assessment];
-
-      // Add to answered questions if not already there
-      if (!assessmentStats.answeredQuestions?.includes(questionId)) {
-        assessmentStats.answeredQuestions =
-          assessmentStats.answeredQuestions || [];
-        assessmentStats.answeredQuestions.push(questionId);
-      }
-
-      // Add detailed answer information
-      assessmentStats.answeredQuestionsDetailed =
-        assessmentStats.answeredQuestionsDetailed || [];
-
-      // Remove existing entry if it exists (for re-answering)
-      assessmentStats.answeredQuestionsDetailed =
-        assessmentStats.answeredQuestionsDetailed.filter(
-          (q) => q.questionId !== questionId
-        );
-
-      // Add new entry
-      assessmentStats.answeredQuestionsDetailed.push({
-        questionId,
-        difficulty: question.question.difficulty || "M", // Default to Medium if not specified
-        isCorrect,
-        timeSpent: timeElapsed,
-        timestamp: new Date().toISOString(),
-        selectedAnswer: answer, // Store user's selected answer
-        plainQuestion: question.question,
-      });
-
-      // Save to localStorage
-      setPracticeStatistics(updatedStats);
-
-      // Debug logging
-      console.log("Question answered and saved to practiceStatistics:", {
-        questionId,
-        selectedAnswer: answer,
-        isCorrect,
-        assessment,
-        questionType: question.problem.answerOptions
-          ? "multiple-choice"
-          : "text-input",
-        updatedStats: updatedStats[assessment]?.answeredQuestionsDetailed,
-      });
+    // Initialize assessment stats if they don't exist
+    if (!updatedStats[assessment]) {
+      updatedStats[assessment] = {
+        answeredQuestions: [],
+        answeredQuestionsDetailed: [],
+        statistics: {},
+      };
     }
+
+    const assessmentStats = updatedStats[assessment];
+
+    // Add to answered questions if not already there
+    if (!assessmentStats.answeredQuestions?.includes(questionId)) {
+      assessmentStats.answeredQuestions =
+        assessmentStats.answeredQuestions || [];
+      assessmentStats.answeredQuestions.push(questionId);
+    }
+
+    // Add detailed answer information
+    assessmentStats.answeredQuestionsDetailed =
+      assessmentStats.answeredQuestionsDetailed || [];
+
+    // Remove existing entry if it exists (for re-answering)
+    assessmentStats.answeredQuestionsDetailed =
+      assessmentStats.answeredQuestionsDetailed.filter(
+        (q) => q.questionId !== questionId
+      );
+
+    // Add new entry
+    assessmentStats.answeredQuestionsDetailed.push({
+      questionId,
+      difficulty: question.question.difficulty || "M", // Default to Medium if not specified
+      isCorrect,
+      timeSpent: timeElapsed,
+      timestamp: new Date().toISOString(),
+      selectedAnswer: answer, // Store user's selected answer
+      plainQuestion: question.question,
+    });
+
+    // Save to localStorage
+    setPracticeStatistics(updatedStats);
+
+    // Debug logging
+    console.log("Question answered and saved to practiceStatistics:", {
+      questionId,
+      selectedAnswer: answer,
+      isCorrect,
+      assessment,
+      questionType: question.problem.answerOptions
+        ? "multiple-choice"
+        : "text-input",
+      updatedStats: updatedStats[assessment]?.answeredQuestionsDetailed,
+    });
 
     // Update local state
     setIsQuestionAnswered(true);
@@ -754,24 +696,17 @@ export default function QuestionProblemCard({
                       isAnswerChecked && isSelected && !isCorrect;
 
                     // For previously answered questions - check if this was the user's choice
-                    // Only show previous answers when answerVisibility is not "hide"
                     const isPreviousUserAnswer =
-                      answerVisibility !== "hide" &&
                       isQuestionAnswered &&
                       !isAnswerChecked &&
                       questionStats?.selectedAnswer === optionKey;
 
                     // Show correct answers when question is answered (either current session or previous)
-                    // Only show when answerVisibility is not "hide" for previous answers
                     const showCorrectAnswer =
-                      (isAnswerChecked ||
-                        (isQuestionAnswered && answerVisibility !== "hide")) &&
-                      isCorrect;
+                      (isAnswerChecked || isQuestionAnswered) && isCorrect;
 
                     // Show user's wrong answer from previous session
-                    // Only show when answerVisibility is not "hide"
                     const isPreviousWrongAnswer =
-                      answerVisibility !== "hide" &&
                       isQuestionAnswered &&
                       !isAnswerChecked &&
                       isPreviousUserAnswer &&
@@ -781,10 +716,7 @@ export default function QuestionProblemCard({
                       <div
                         key={optionKey}
                         onMouseEnter={() => {
-                          if (
-                            !isAnswerChecked &&
-                            (!isQuestionAnswered || answerVisibility === "hide")
-                          ) {
+                          if (!isAnswerChecked && !isQuestionAnswered) {
                             playSound("on-hover.wav");
                           }
                         }}
@@ -792,17 +724,12 @@ export default function QuestionProblemCard({
                       >
                         <label
                           onClick={() => {
-                            if (
-                              !isAnswerChecked &&
-                              (!isQuestionAnswered ||
-                                answerVisibility === "hide")
-                            ) {
+                            if (!isAnswerChecked && !isQuestionAnswered) {
                               handleAnswerSelect(optionKey);
                             }
                           }}
                           className={`relative ${
-                            !isAnswerChecked &&
-                            (!isQuestionAnswered || answerVisibility === "hide")
+                            !isAnswerChecked && !isQuestionAnswered
                               ? "cursor-pointer"
                               : "cursor-default"
                           } w-full transition duration-500 ${
@@ -905,8 +832,7 @@ export default function QuestionProblemCard({
             <div className="space-y-4 mt-6">
               <DuolingoInput
                 value={
-                  // If question was previously answered and answerVisibility is not "hide", show the previous answer
-                  answerVisibility !== "hide" &&
+                  // If question was previously answered, show the previous answer
                   isQuestionAnswered &&
                   !isAnswerChecked &&
                   questionStats?.selectedAnswer
@@ -915,10 +841,7 @@ export default function QuestionProblemCard({
                 }
                 onChange={handleTextInputChange}
                 onSubmit={handleTextInputSubmit}
-                disabled={
-                  isAnswerChecked ||
-                  (isQuestionAnswered && answerVisibility !== "hide")
-                }
+                disabled={isAnswerChecked || isQuestionAnswered}
                 placeholder="Type your answer here..."
               />
 
@@ -942,8 +865,7 @@ export default function QuestionProblemCard({
                 )}
 
               {/* Show status indicator for previously answered text input questions */}
-              {answerVisibility !== "hide" &&
-                isQuestionAnswered &&
+              {isQuestionAnswered &&
                 !isAnswerChecked &&
                 questionStats?.selectedAnswer && (
                   <div
@@ -1018,8 +940,7 @@ export default function QuestionProblemCard({
                 )}
 
               {/* Show correct answers for text input after answering */}
-              {(isAnswerChecked ||
-                (isQuestionAnswered && answerVisibility !== "hide")) &&
+              {(isAnswerChecked || isQuestionAnswered) &&
                 question.problem.correct_answer && (
                   <div className="mt-2 p-3 rounded-lg border-2 border-green-500 bg-green-500/10">
                     <div className="flex items-center gap-2">
@@ -1040,8 +961,7 @@ export default function QuestionProblemCard({
           )}
         </CardContent>
       </Card>
-      {(isAnswerChecked ||
-        (isQuestionAnswered && answerVisibility !== "hide")) && (
+      {isQuestionAnswered && (
         <div className="mt-4 w-full mx-auto xl:w-5xl px-4">
           <Label className="text-lg font-semibold mb-2 block">
             Explanation:
