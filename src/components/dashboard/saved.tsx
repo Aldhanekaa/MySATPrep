@@ -1,4 +1,11 @@
-import React, { useEffect, useCallback, useMemo, useReducer } from "react";
+import React, {
+  useEffect,
+  useCallback,
+  useMemo,
+  useReducer,
+  useRef,
+} from "react";
+import { Button } from "@/components/ui/button";
 import { AssessmentWorkspace } from "@/app/dashboard/types";
 import { useLocalStorage } from "@/lib/useLocalStorage";
 import { SavedQuestions, SavedQuestion } from "@/types/savedQuestions";
@@ -22,6 +29,7 @@ import {
   SigmaIcon,
 } from "lucide-react";
 import { mathDomains, rwDomains } from "@/static-data/validation";
+import { FetchQuestionByUniqueID } from "@/lib/functions/fetchQuestionDatabyUniqueID";
 
 // Simple skeleton component
 const Skeleton = ({
@@ -48,20 +56,26 @@ interface QuestionWithData extends SavedQuestion, BaseQuestionWithData {
 // State management for better performance
 interface SavedTabState {
   questionsWithData: QuestionWithData[];
+  allSavedQuestions: QuestionWithData[];
+  displayedQuestionsCount: number;
+  isLoadingMore: boolean;
   fetchedQuestionIds: Set<string>;
   isInitialized: boolean;
   filterSubject: string; // Add this new state property for subject filter
 }
 
 type SavedTabAction =
-  | { type: "INITIALIZE_QUESTIONS"; payload: QuestionWithData[] }
+  | {
+      type: "INITIALIZE_QUESTIONS";
+      payload: { questions: QuestionWithData[]; all: QuestionWithData[] };
+    }
   | {
       type: "SET_QUESTION_LOADING";
       payload: { index: number; questionId: string };
     }
   | {
       type: "SET_QUESTION_SUCCESS";
-      payload: { index: number; questionData: QuestionById_Data };
+      payload: { index: number; questionData: QuestionById_Data | null };
     }
   | {
       type: "SET_QUESTION_ERROR";
@@ -70,7 +84,9 @@ type SavedTabAction =
   | { type: "ADD_FETCHED_ID"; payload: string }
   | { type: "REMOVE_FETCHED_ID"; payload: string }
   | { type: "RESET_FETCHED_IDS" }
-  | { type: "SET_FILTER_SUBJECT"; payload: string }; // Add this new action type
+  | { type: "SET_FILTER_SUBJECT"; payload: string }
+  | { type: "LOAD_MORE" }
+  | { type: "SET_LOADING_MORE"; payload: boolean };
 
 const savedTabReducer = (
   state: SavedTabState,
@@ -80,7 +96,9 @@ const savedTabReducer = (
     case "INITIALIZE_QUESTIONS":
       return {
         ...state,
-        questionsWithData: action.payload,
+        questionsWithData: action.payload.questions,
+        allSavedQuestions: action.payload.all,
+        displayedQuestionsCount: action.payload.questions.length,
         isInitialized: true,
       };
     case "SET_QUESTION_LOADING":
@@ -104,7 +122,7 @@ const savedTabReducer = (
           i === action.payload.index
             ? {
                 ...q,
-                questionData: action.payload.questionData,
+                questionData: action.payload.questionData || undefined,
                 isLoading: false,
                 hasError: false,
               }
@@ -150,6 +168,30 @@ const savedTabReducer = (
         ...state,
         fetchedQuestionIds: new Set(),
       };
+    case "LOAD_MORE":
+      const nextCount = Math.min(
+        state.displayedQuestionsCount + 15,
+        state.allSavedQuestions.length
+      );
+      const newQuestions = state.allSavedQuestions
+        .slice(state.displayedQuestionsCount, nextCount)
+        .map((q) => ({
+          ...q,
+          isLoading: true,
+          hasError: false,
+        }));
+
+      return {
+        ...state,
+        questionsWithData: [...state.questionsWithData, ...newQuestions],
+        displayedQuestionsCount: nextCount,
+        isLoadingMore: false,
+      };
+    case "SET_LOADING_MORE":
+      return {
+        ...state,
+        isLoadingMore: action.payload,
+      };
     default:
       return state;
   }
@@ -165,10 +207,15 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
   // Use reducer for better state management and performance
   const [state, dispatch] = useReducer(savedTabReducer, {
     questionsWithData: [],
+    allSavedQuestions: [],
+    displayedQuestionsCount: 0,
+    isLoadingMore: false,
     fetchedQuestionIds: new Set<string>(),
     isInitialized: false,
     filterSubject: "all", // Default filter value for subject
   });
+
+  const loadMoreRef = useRef<HTMLDivElement>(null);
 
   // Get the assessment key from selectedAssessment (memoized)
   const getAssessmentKey = useCallback(
@@ -200,29 +247,7 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
   );
 
   // Fetch question data from API (memoized)
-  const fetchQuestionData = useCallback(
-    async (questionId: string): Promise<QuestionById_Data | null> => {
-      try {
-        const response = await fetch(`/api/question-by-id/${questionId}`);
-
-        if (!response.ok) {
-          throw new Error(`Failed to fetch question: ${response.status}`);
-        }
-
-        const result = await response.json();
-
-        if (result.success && result.data) {
-          return result.data;
-        } else {
-          throw new Error(result.message || "Failed to fetch question data");
-        }
-      } catch (error) {
-        console.error(`Error fetching question ${questionId}:`, error);
-        throw error;
-      }
-    },
-    []
-  );
+  const fetchQuestionData = useCallback(FetchQuestionByUniqueID, []);
 
   // Memoized retry handler to prevent recreation on every render
   const handleRetry = useCallback((index: number, questionId: string) => {
@@ -235,84 +260,76 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
     const assessmentSavedQuestions = savedQuestions[assessmentKey] || [];
 
     // Initialize questions with loading state
-    const initialQuestions: QuestionWithData[] = assessmentSavedQuestions.map(
+    const allQuestions: QuestionWithData[] = assessmentSavedQuestions.map(
       (question) => ({
         ...question,
-        isLoading: true,
+        isLoading: false,
         hasError: false,
       })
     );
 
+    const initialQuestions = allQuestions.slice(0, 15).map((q) => ({
+      ...q,
+      isLoading: true,
+      hasError: false,
+    }));
+
     // console.log("HEYY!", assessmentKey, selectedAssessment);
-    dispatch({ type: "INITIALIZE_QUESTIONS", payload: initialQuestions });
+    dispatch({
+      type: "INITIALIZE_QUESTIONS",
+      payload: { questions: initialQuestions, all: allQuestions },
+    });
     dispatch({ type: "RESET_FETCHED_IDS" });
   }, [assessmentKey, savedQuestions]);
 
-  // Fetch question data progressively (optimized with debouncing)
+  // Fetch question data progressively
   useEffect(() => {
     if (!state.isInitialized || state.questionsWithData.length === 0) return;
 
-    // Debounce the fetching to prevent too many rapid calls
-    const fetchTimeout = setTimeout(() => {
-      const fetchQuestionsProgressively = async () => {
-        // Find questions that need to be fetched
-        const questionsToFetch = state.questionsWithData
-          .map((question, index) => ({ question, index }))
-          .filter(
-            ({ question }) =>
-              question.isLoading &&
-              !question.questionData &&
-              !question.hasError &&
-              !state.fetchedQuestionIds.has(question.questionId)
-          );
+    const fetchQuestionsProgressively = async () => {
+      // Find questions that need to be fetched
+      const questionsToFetch = state.questionsWithData
+        .map((question, index) => ({ question, index }))
+        .filter(
+          ({ question }) =>
+            question.isLoading &&
+            !question.questionData &&
+            !question.hasError &&
+            !state.fetchedQuestionIds.has(question.questionId)
+        );
 
-        if (questionsToFetch.length === 0) return;
+      if (questionsToFetch.length === 0) return;
 
-        // Mark these questions as being fetched
-        questionsToFetch.forEach(({ question }) => {
-          dispatch({ type: "ADD_FETCHED_ID", payload: question.questionId });
-        });
+      // Mark these questions as being fetched
+      questionsToFetch.forEach(({ question }) => {
+        dispatch({ type: "ADD_FETCHED_ID", payload: question.questionId });
+      });
 
-        // Process questions with optimized batching (limit concurrent requests)
-        const batchSize = 3; // Process max 3 questions at a time
-        for (let i = 0; i < questionsToFetch.length; i += batchSize) {
-          const batch = questionsToFetch.slice(i, i + batchSize);
+      // Process questions with small delays
+      for (const { question, index } of questionsToFetch) {
+        try {
+          const questionData = await fetchQuestionData(question.questionId);
 
-          // Process batch concurrently
-          const batchPromises = batch.map(async ({ question, index }) => {
-            try {
-              const questionData = await fetchQuestionData(question.questionId);
-
-              if (questionData) {
-                dispatch({
-                  type: "SET_QUESTION_SUCCESS",
-                  payload: { index, questionData },
-                });
-              }
-            } catch (error) {
-              const errorMessage =
-                error instanceof Error ? error.message : "Unknown error";
-
-              dispatch({
-                type: "SET_QUESTION_ERROR",
-                payload: { index, errorMessage },
-              });
-            }
+          dispatch({
+            type: "SET_QUESTION_SUCCESS",
+            payload: { index, questionData },
           });
 
-          await Promise.all(batchPromises);
+          // Small delay between requests
+          await new Promise((resolve) => setTimeout(resolve, 100));
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error ? error.message : "Unknown error";
 
-          // Add delay between batches to be respectful to the API
-          if (i + batchSize < questionsToFetch.length) {
-            await new Promise((resolve) => setTimeout(resolve, 200));
-          }
+          dispatch({
+            type: "SET_QUESTION_ERROR",
+            payload: { index, errorMessage },
+          });
         }
-      };
+      }
+    };
 
-      fetchQuestionsProgressively();
-    }, 100); // 100ms debounce
-
-    return () => clearTimeout(fetchTimeout);
+    fetchQuestionsProgressively();
   }, [
     state.isInitialized,
     state.questionsWithData,
@@ -320,17 +337,56 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
     fetchQuestionData,
   ]);
 
-  // Memoize loading indicator to prevent unnecessary re-renders
-  const loadingIndicator = useMemo(() => {
-    const hasLoadingQuestions = state.questionsWithData.some(
-      (q) => q.isLoading
+  // Function to load more questions
+  const loadMoreQuestions = useCallback(() => {
+    if (
+      state.isLoadingMore ||
+      state.allSavedQuestions.length <= state.displayedQuestionsCount
+    ) {
+      return;
+    }
+
+    dispatch({ type: "SET_LOADING_MORE", payload: true });
+    setTimeout(() => {
+      dispatch({ type: "LOAD_MORE" });
+    }, 100);
+  }, [
+    state.isLoadingMore,
+    state.allSavedQuestions.length,
+    state.displayedQuestionsCount,
+  ]);
+
+  // Intersection Observer for infinite scrolling
+  useEffect(() => {
+    const currentLoadMoreRef = loadMoreRef.current;
+    if (
+      !currentLoadMoreRef ||
+      state.allSavedQuestions.length <= state.displayedQuestionsCount
+    )
+      return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && !state.isLoadingMore) {
+          loadMoreQuestions();
+        }
+      },
+      { threshold: 0.1 }
     );
-    return hasLoadingQuestions ? (
-      <div className="text-center text-sm text-muted-foreground">
-        Loading more questions...
-      </div>
-    ) : null;
-  }, [state.questionsWithData]);
+
+    observer.observe(currentLoadMoreRef);
+
+    return () => {
+      if (currentLoadMoreRef) {
+        observer.unobserve(currentLoadMoreRef);
+      }
+    };
+  }, [
+    state.allSavedQuestions.length,
+    state.displayedQuestionsCount,
+    state.isLoadingMore,
+    loadMoreQuestions,
+  ]);
 
   if (!state.isInitialized) {
     return (
@@ -372,8 +428,8 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
         <div className="col-span-12 md:col-span-8 flex flex-col flex-wrap gap-2 items-start text-sm ">
           <h2 className="text-lg font-semibold">Saved Questions</h2>
           <p className="text-sm text-muted-foreground">
-            {state.questionsWithData.length} saved question
-            {state.questionsWithData.length !== 1 ? "s" : ""} for{" "}
+            {state.allSavedQuestions.length} saved question
+            {state.allSavedQuestions.length !== 1 ? "s" : ""} for{" "}
             {assessmentName}
           </p>
         </div>
@@ -456,7 +512,44 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
           ))}
       </div>
 
-      {loadingIndicator}
+      {/* Load more trigger - invisible element for intersection observer */}
+      {state.allSavedQuestions.length > state.displayedQuestionsCount && (
+        <div className="space-y-4">
+          <div
+            ref={loadMoreRef}
+            className="h-10 flex items-center justify-center"
+          >
+            {state.isLoadingMore && (
+              <div className="text-center text-sm text-muted-foreground">
+                Loading more questions...
+              </div>
+            )}
+          </div>
+
+          {/* Manual load more button as fallback */}
+          {!state.isLoadingMore && (
+            <div className="flex justify-center">
+              <Button
+                variant="outline"
+                onClick={loadMoreQuestions}
+                disabled={state.isLoadingMore}
+                className="px-6 py-2"
+              >
+                Load More Questions (
+                {state.allSavedQuestions.length - state.displayedQuestionsCount}{" "}
+                remaining)
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {state.questionsWithData.some((q) => q.isLoading) &&
+        !state.isLoadingMore && (
+          <div className="text-center text-sm text-muted-foreground">
+            Loading questions...
+          </div>
+        )}
     </div>
   );
 }
