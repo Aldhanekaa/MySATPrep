@@ -11,16 +11,8 @@ import React, {
 } from "react";
 import { PlainQuestionType, QuestionDifficulty } from "@/types/question";
 import { Card, CardContent } from "@/components/ui/card";
-import { OptimizedQuestionCard } from "../dashboard/shared/OptimizedQuestionCard";
 import { MultiSelectCombobox } from "../ui/multiselect-combobox";
-import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
-import {
-  PersistentPopover,
-  PersistentPopoverContent,
-  PersistentPopoverTrigger,
-} from "../ui/persistent-popover";
-import { Button } from "../ui/button";
-import { Switch } from "../ui/switch";
+
 import {
   ClockArrowDownIcon,
   ClockArrowUpIcon,
@@ -29,8 +21,6 @@ import {
   GalleryHorizontalIcon,
   GalleryThumbnailsIcon,
   ListIcon,
-  SlidersHorizontalIcon,
-  SquircleIcon,
 } from "lucide-react";
 import {
   Select,
@@ -42,11 +32,9 @@ import {
 import { Calendar } from "../ui/calendar";
 import {
   QuestionWithData,
-  QuestionResultsState,
   DIFFICULTY_OPTIONS,
   questionResultsReducer,
   filterQuestions,
-  fetchQuestionData,
 } from "@/lib/questionbank";
 import { TourAlertDialog } from "../ui/tour";
 import {

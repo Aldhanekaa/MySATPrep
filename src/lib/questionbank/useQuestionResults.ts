@@ -37,17 +37,18 @@ export const useQuestionResults = (
     onlyBluebookQuestions: false,
     sortOrder: "default",
     dateRange: null,
+    answerStatus: "all",
   });
 
   // Verify Bluebook external IDs are properly typed and accessible
   useEffect(() => {
     if (bluebookExternalIds) {
-      console.log("Bluebook External IDs received in QuestionResults:", {
-        mathLiveItems: bluebookExternalIds.mathLiveItems,
-        readingLiveItems: bluebookExternalIds.readingLiveItems,
-        mathCount: bluebookExternalIds.mathLiveItems.length,
-        readingCount: bluebookExternalIds.readingLiveItems.length,
-      });
+      // console.log("Bluebook External IDs received in QuestionResults:", {
+      //   mathLiveItems: bluebookExternalIds.mathLiveItems,
+      //   readingLiveItems: bluebookExternalIds.readingLiveItems,
+      //   mathCount: bluebookExternalIds.mathLiveItems.length,
+      //   readingCount: bluebookExternalIds.readingLiveItems.length,
+      // });
 
       // TypeScript IntelliSense verification - these properties should be available
       const mathIds: string[] = bluebookExternalIds.mathLiveItems;
