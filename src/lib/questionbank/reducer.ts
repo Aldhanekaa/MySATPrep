@@ -158,6 +158,13 @@ export const questionResultsReducer = (
         visibleCount: INITIAL_VISIBLE_COUNT, // Reset visible count when date filter changes
       };
     }
+    case "SET_ANSWER_STATUS": {
+      return {
+        ...state,
+        answerStatus: action.payload,
+        visibleCount: INITIAL_VISIBLE_COUNT, // Reset visible count when answer status filter changes
+      };
+    }
     default:
       return state;
   }

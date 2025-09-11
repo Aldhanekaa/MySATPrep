@@ -954,12 +954,12 @@ export const Calendar = ({
   ]);
 
   return (
-    <div className="relative">
+    <div className="relative h-full">
       <div
         className={clsx(
           presets && "flex",
           presets && stacked && "flex-col",
-          compact && "w-[220px]"
+          compact && "w-[220px] h-full"
         )}
       >
         {presets && (
@@ -974,15 +974,15 @@ export const Calendar = ({
             />
           </div>
         )}
-        <div className="flex justify-between items-center">
-          <div className="relative">
+        <div className="flex justify-between items-center h-full">
+          <div className="relative h-full">
             <Button
               className={clsx(
                 "!justify-start focus:!border-transparent focus:!shadow-focus-input",
                 presets && !stacked && !compact && "rounded-l-none -ml-[1px]",
                 presets && stacked && !compact && "rounded-t-none -mt-[1px]",
                 presets && compact && "rounded-r-none -mr-[1px]",
-                compact ? "w-[180px] gap-1.5" : "w-[250px]"
+                compact ? "w-[180px] gap-1.5 h-full" : "w-[250px]"
               )}
               variant="secondary"
               data-onboard={dataOnboard}
@@ -1016,7 +1016,7 @@ export const Calendar = ({
           type="menu"
           className={twMerge(
             clsx(
-              "p-3 font-sans absolute top-12 z-10",
+              "p-3 font-sans absolute top-12 z-50",
               horizontalLayout ? "w-[462px]" : "w-[320px]",
               presets && !stacked && !compact && "left-[250px]",
               presets && stacked && "top-[88px]",

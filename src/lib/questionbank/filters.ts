@@ -1,6 +1,7 @@
 import { QuestionDifficulty } from "@/types/question";
 import { RangeValue } from "@/components/ui/calendar";
 import { QuestionWithData, BluebookExternalIds } from "./types";
+import { AnsweredQuestion } from "@/types/statistics";
 
 // Helper function to check if a question has valid difficulty data
 export const hasValidDifficulty = (question: QuestionWithData): boolean => {
@@ -154,6 +155,36 @@ export const filterQuestionsByDateRange = (
   });
 };
 
+// Helper function to filter questions by answer status
+export const filterQuestionsByAnswerStatus = (
+  questions: QuestionWithData[],
+  answerStatus: "all" | "answered" | "not-answered",
+  answeredQuestions: AnsweredQuestion[] = []
+): QuestionWithData[] => {
+  // Default behavior: show all questions when status is "all"
+  if (answerStatus === "all") {
+    return questions;
+  }
+
+  // Create a Set of answered question IDs for efficient lookup
+  const answeredQuestionIds = new Set(
+    answeredQuestions.map((aq) => aq.questionId)
+  );
+
+  // Filter questions based on answer status
+  return questions.filter((question) => {
+    const isAnswered = answeredQuestionIds.has(question.questionId);
+
+    if (answerStatus === "answered") {
+      return isAnswered;
+    } else if (answerStatus === "not-answered") {
+      return !isAnswered;
+    }
+
+    return true; // fallback to showing all
+  });
+};
+
 // Helper function to sort questions by createDate
 export const sortQuestionsByDate = (
   questions: QuestionWithData[],
@@ -233,7 +264,9 @@ export const filterQuestions = (
   sortOrder: "default" | "newest" | "oldest" = "default",
   dateRange: RangeValue | null = null,
   bluebookExternalIds?: BluebookExternalIds,
-  selectedSubject?: string
+  selectedSubject?: string,
+  answerStatus: "all" | "answered" | "not-answered" = "all",
+  answeredQuestions: AnsweredQuestion[] = []
 ): QuestionWithData[] => {
   let filtered = questions;
 
@@ -265,6 +298,13 @@ export const filterQuestions = (
 
   // Apply skill filter
   filtered = filterQuestionsBySkills(filtered, selectedSkills);
+
+  // Apply answer status filter
+  filtered = filterQuestionsByAnswerStatus(
+    filtered,
+    answerStatus,
+    answeredQuestions
+  );
 
   return filtered;
 };

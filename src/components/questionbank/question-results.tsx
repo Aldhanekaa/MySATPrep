@@ -7,6 +7,7 @@ import React, {
   useReducer,
   useRef,
   useState,
+  useId,
 } from "react";
 import { PlainQuestionType, QuestionDifficulty } from "@/types/question";
 import { Card, CardContent } from "@/components/ui/card";
@@ -25,7 +26,11 @@ import {
   ClockArrowUpIcon,
   ClockFadingIcon,
   ClockIcon,
+  GalleryHorizontalIcon,
+  GalleryThumbnailsIcon,
+  ListIcon,
   SlidersHorizontalIcon,
+  SquircleIcon,
 } from "lucide-react";
 import {
   Select,
@@ -50,6 +55,14 @@ import {
 } from "../ui/onboarding-checklist";
 import { Separator } from "../ui/separator";
 import { FetchQuestionByID } from "@/lib/functions/fetchQuestionByID";
+import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
+import { GlassFilter } from "../ui/liquid-radio";
+import QB_List_Render from "./list-render";
+import QB_Single_Render from "./single-render";
+import { useLocalStorage } from "@/lib/useLocalStorage";
+import { SavedQuestions } from "@/types/savedQuestions";
+import { PracticeStatistics } from "@/types";
+import QB_Compact_Render from "./compact-render";
 
 // Tour state interface
 interface TourState {
@@ -111,6 +124,45 @@ export function QuestionResults({
   selectedDomains,
   bluebookExternalIds,
 }: QuestionResultsProps) {
+  const id = useId();
+
+  // Load practice statistics from localStorage with setter
+  const [practiceStatistics, setPracticeStatistics] =
+    useLocalStorage<PracticeStatistics>("practiceStatistics", {});
+
+  // Check if question has been answered before in practice statistics
+  const answeredQuestions =
+    practiceStatistics[assessmentName]?.answeredQuestionsDetailed || [];
+
+  // Combined state for view and answer visibility
+  interface CombinedState {
+    selectedValue: string;
+    answerVisibility: string;
+  }
+
+  type CombinedAction =
+    | { type: "SET_SELECTED_VALUE"; payload: string }
+    | { type: "SET_ANSWER_VISIBILITY"; payload: string };
+
+  const combinedReducer = (
+    state: CombinedState,
+    action: CombinedAction
+  ): CombinedState => {
+    switch (action.type) {
+      case "SET_SELECTED_VALUE":
+        return { ...state, selectedValue: action.payload };
+      case "SET_ANSWER_VISIBILITY":
+        return { ...state, answerVisibility: action.payload };
+      default:
+        return state;
+    }
+  };
+
+  const [combinedState, combinedDispatch] = useReducer(combinedReducer, {
+    selectedValue: "list",
+    answerVisibility: "show",
+  });
+
   // Use reducer for tour state management
   const [tourState, tourDispatch] = useReducer(tourReducer, {
     showTourDialog: false, // Start with false, will be set by useEffect
@@ -142,14 +194,7 @@ export function QuestionResults({
       targetSelector: "[data-onboard='select-skills']",
       completed: tourState.completedSteps.has("skills"),
     },
-    {
-      id: "advanced-filter",
-      title: "Advanced Filter Options",
-      description:
-        "Here you can find more specific filtering options, including created date sorting, excluding bluebook options, and more. Open the advanced filter menu to explore these options.",
-      targetSelector: "[data-onboard='advanced-filter']",
-      completed: tourState.completedSteps.has("advanced-filter"),
-    },
+
     {
       id: "exclude-bluebook-toggler",
       title: "Exclude Bluebook Questions",
@@ -226,6 +271,7 @@ export function QuestionResults({
     onlyBluebookQuestions: false,
     sortOrder: "default",
     dateRange: null,
+    answerStatus: "all",
   });
 
   // Memoized filtered questions that includes Bluebook filtering
@@ -239,7 +285,9 @@ export function QuestionResults({
       state.sortOrder,
       state.dateRange,
       bluebookExternalIds,
-      selectedSubject
+      selectedSubject,
+      state.answerStatus,
+      answeredQuestions
     );
 
     // Debug logging
@@ -273,9 +321,87 @@ export function QuestionResults({
     state.onlyBluebookQuestions,
     state.sortOrder,
     state.dateRange,
+    state.answerStatus,
     bluebookExternalIds,
     selectedSubject,
+    answeredQuestions,
   ]);
+
+  // Memoized callback for requesting more questions in single view
+  const handleRequestMoreQuestions = useCallback(() => {
+    // Only increase visible count if we haven't reached the total questions
+    if (state.visibleCount < actualFilteredQuestions.length) {
+      dispatch({ type: "INCREASE_VISIBLE_COUNT", payload: 10 });
+    }
+  }, [state.visibleCount, actualFilteredQuestions.length]);
+
+  // Memoized callback for fetching a specific question
+  const fetchSpecificQuestion = useCallback(
+    async (questionId: string) => {
+      // Find the question in the questionsWithData array
+      const questionIndex = state.questionsWithData.findIndex(
+        (q) => q.questionId === questionId
+      );
+
+      if (questionIndex === -1) {
+        console.warn(`Question with ID ${questionId} not found`);
+        return;
+      }
+
+      const question = state.questionsWithData[questionIndex];
+
+      // Don't fetch if already fetched, has data, or has error
+      if (
+        !question.isLoading ||
+        question.questionData ||
+        question.hasError ||
+        state.fetchedQuestionIds.has(questionId)
+      ) {
+        return;
+      }
+
+      try {
+        // Mark this question as being fetched
+        dispatch({ type: "ADD_FETCHED_ID", payload: questionId });
+
+        const id = question.external_id || question.ibn;
+        if (!id) {
+          dispatch({
+            type: "SET_QUESTION_ERROR",
+            payload: {
+              index: questionIndex,
+              errorMessage: "No valid ID to fetch question",
+            },
+          });
+          return;
+        }
+
+        const questionData = await FetchQuestionByID(id);
+
+        if (questionData) {
+          dispatch({
+            type: "SET_QUESTION_SUCCESS",
+            payload: {
+              index: questionIndex,
+              questionData: {
+                problem: questionData,
+                question: question,
+              },
+            },
+          });
+        }
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : "Unknown error";
+
+        dispatch({
+          type: "SET_QUESTION_ERROR",
+          payload: { index: questionIndex, errorMessage },
+        });
+      }
+    },
+    [state.questionsWithData, state.fetchedQuestionIds]
+  );
 
   // Memoized retry handler to prevent recreation on every render
   const handleRetry = useCallback(
@@ -352,7 +478,12 @@ export function QuestionResults({
     return () => {
       observer.disconnect();
     };
-  }, [hasMoreQuestions, state.isLoadingMore, state.isInitialized]);
+  }, [
+    hasMoreQuestions,
+    state.isLoadingMore,
+    state.isInitialized,
+    combinedState.selectedValue,
+  ]);
 
   // Fetch question data progressively (optimized with debouncing)
   useEffect(() => {
@@ -659,9 +790,11 @@ export function QuestionResults({
       />
 
       <div className="px-8 lg:px-28 grid grid-cols-12 pt-3">
-        <div className="col-span-12 md:col-span-5 flex flex-col flex-wrap gap-2 items-start text-sm">
-          <h2 className="text-lg font-semibold">Question Results</h2>
-          <p className="text-sm text-muted-foreground">
+        <div className="col-span-12  flex flex-col flex-wrap gap-2 items-start text-sm">
+          <h2 className="text-lg lg:text-2xl font-semibold">
+            Question Results
+          </h2>
+          <p className="text-sm lg:text-lg text-muted-foreground">
             {state.selectedDifficulties.length > 0 ||
             state.selectedSkills.length > 0 ||
             state.dateRange ? (
@@ -727,286 +860,497 @@ export function QuestionResults({
             )}
           </p>
         </div>
-        <div className="mt-10 md:mt-0 col-span-12 md:col-span-7 flex flex-col lg:flex-row items-end justify-end gap-3"></div>
       </div>
       <div className="px-8 lg:px-28 flex flex-col lg:flex-row items-start justify-start gap-3">
-        <MultiSelectCombobox
-          data-onboard="select-difficulties"
-          label={"by Difficulty"}
-          options={DIFFICULTY_OPTIONS}
-          value={state.selectedDifficulties}
-          onChange={(value) => {
-            dispatch({
-              type: "SET_DIFFICULTY_FILTER",
-              payload: value as QuestionDifficulty[],
-            });
-          }}
-          renderItem={renderDifficultyOption}
-          renderSelectedItem={renderSelectedDifficulties}
-        />
-        <MultiSelectCombobox
-          data-onboard="select-skills"
-          label={"by Skills"}
-          options={skillOptions}
-          value={state.selectedSkills}
-          onChange={(value) => {
-            dispatch({
-              type: "SET_SKILL_FILTER",
-              payload: value,
-            });
-          }}
-          renderItem={renderSkillOption}
-          renderSelectedItem={renderSelectedSkills}
-          grouped={true}
-        />
-
-        <PersistentPopover>
-          <PersistentPopoverTrigger asChild className="h-full cursor-pointer">
-            <Button
-              data-onboard="advanced-filter"
-              onClick={() => {
-                if (
-                  tourState.onboardingOpen &&
-                  !tourState.completedSteps.has("advanced-filter")
-                ) {
-                  handleCompleteStep("advanced-filter");
-                }
-              }}
-              variant="outline"
-              className="h-full"
-            >
-              Filter <SlidersHorizontalIcon />
-            </Button>
-          </PersistentPopoverTrigger>
-
-          <PersistentPopoverContent
-            side="bottom"
-            align="end"
-            preventClose={tourState.onboardingOpen}
+        <div className="h-12">
+          <MultiSelectCombobox
+            data-onboard="select-difficulties"
+            label={"by Difficulty"}
+            options={DIFFICULTY_OPTIONS}
+            value={state.selectedDifficulties}
+            onChange={(value) => {
+              dispatch({
+                type: "SET_DIFFICULTY_FILTER",
+                payload: value as QuestionDifficulty[],
+              });
+            }}
+            renderItem={renderDifficultyOption}
+            renderSelectedItem={renderSelectedDifficulties}
+          />
+        </div>
+        <div className="h-12">
+          <MultiSelectCombobox
+            data-onboard="select-skills"
+            label={"by Skills"}
+            options={skillOptions}
+            value={state.selectedSkills}
+            onChange={(value) => {
+              dispatch({
+                type: "SET_SKILL_FILTER",
+                payload: value,
+              });
+            }}
+            renderItem={renderSkillOption}
+            renderSelectedItem={renderSelectedSkills}
+            grouped={true}
+          />
+        </div>
+        <div className="h-12">
+          <Select
+            value={state.sortOrder}
+            onValueChange={(value: "default" | "newest" | "oldest") => {
+              dispatch({
+                type: "SET_SORT_ORDER",
+                payload: value,
+              });
+            }}
           >
-            <div className="flex flex-col gap-y-2">
-              <div
-                className="flex items-center gap-2"
-                data-onboard="exclude-bluebook-toggler"
-              >
-                <Switch
-                  checked={state.excludeBluebookQuestions}
-                  onCheckedChange={(checked) => {
-                    dispatch({
-                      type: "TOGGLE_EXCLUDE_BLUEBOOK",
-                      payload: checked,
-                    });
-                  }}
-                />
-                <span className="text-sm">Exclude Bluebook Questions</span>
-              </div>
-              <div
-                className="flex items-center gap-2"
-                data-onboard="bluebook-only-toggler"
-              >
-                <Switch
-                  checked={state.onlyBluebookQuestions}
-                  onCheckedChange={(checked) => {
-                    dispatch({
-                      type: "TOGGLE_ONLY_BLUEBOOK",
-                      payload: checked,
-                    });
-                  }}
-                />
-                <span className="text-sm"> Bluebook Questions Only</span>
-              </div>
-              <Select
-                value={state.sortOrder}
-                onValueChange={(value: "default" | "newest" | "oldest") => {
-                  dispatch({
-                    type: "SET_SORT_ORDER",
-                    payload: value,
-                  });
-                }}
-              >
-                <SelectTrigger
-                  className="bg-white h-full"
-                  icon={ClockFadingIcon}
-                  data-onboard="time-sort"
-                >
-                  <SelectValue placeholder={"Filter by Date"} />
-                </SelectTrigger>
-                <SelectContent className="font-medium">
-                  <SelectItem value="default" icon={ClockIcon}>
-                    Default
-                  </SelectItem>
-                  <SelectItem value="newest" icon={ClockArrowUpIcon}>
-                    Newest First
-                  </SelectItem>
-                  <SelectItem value="oldest" icon={ClockArrowDownIcon}>
-                    Oldest First
-                  </SelectItem>
-                </SelectContent>
-              </Select>
+            <SelectTrigger
+              className="bg-white h-full"
+              icon={ClockFadingIcon}
+              data-onboard="time-sort"
+            >
+              <SelectValue placeholder={"Filter by Date"} />
+            </SelectTrigger>
+            <SelectContent className="font-medium">
+              <SelectItem value="default" icon={ClockIcon}>
+                Default
+              </SelectItem>
+              <SelectItem value="newest" icon={ClockArrowUpIcon}>
+                Newest First
+              </SelectItem>
+              <SelectItem value="oldest" icon={ClockArrowDownIcon}>
+                Oldest First
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
 
-              <Calendar
-                allowClear
-                dataOnboard="date-range-filter"
-                disableFuture
-                isDocsPage
-                showTimeInput={false}
-                onChange={(dateRange) =>
-                  dispatch({ type: "SET_DATE_RANGE", payload: dateRange })
-                }
-                onClick={() => {
-                  if (!tourState.completedSteps.has("date-range-filter")) {
-                    handleCompleteStep("date-range-filter");
-                  }
-                }}
-                value={state.dateRange}
-              />
-            </div>
-          </PersistentPopoverContent>
-        </PersistentPopover>
+        <div className="h-12">
+          <Calendar
+            compact
+            allowClear
+            dataOnboard="date-range-filter"
+            disableFuture
+            isDocsPage
+            showTimeInput={false}
+            onChange={(dateRange) =>
+              dispatch({ type: "SET_DATE_RANGE", payload: dateRange })
+            }
+            onClick={() => {
+              if (!tourState.completedSteps.has("date-range-filter")) {
+                handleCompleteStep("date-range-filter");
+              }
+            }}
+            value={state.dateRange}
+          />
+        </div>
       </div>
 
       <Separator className="my-6 lg:my-10" />
+      <div className="max-w-full  mx-auto lg:px-22">
+        <div className="mt-10 mb-10 max-w-full lg:max-w-6xl xl:max-w-5xl px-8 md:mt-0 col-span-12 flex flex-row flex-wrap items-end justify-start gap-3">
+          <div className="border-2 border-gray-200 rounded-full p-1">
+            <RadioGroup
+              value={combinedState.selectedValue}
+              onValueChange={(value) =>
+                combinedDispatch({ type: "SET_SELECTED_VALUE", payload: value })
+              }
+              className="group rounded-full  p-2 relative inline-grid grid-cols-[1fr_1fr_1fr] items-center gap-3 text-sm font-medium after:absolute after:inset-y-0 after:w-[calc(33.333%)] after:rounded-full after:bg-blue-500 after:text-white after:shadow-sm after:shadow-black/5 after:outline-offset-2 after:transition-transform after:duration-300 after:[transition-timing-function:cubic-bezier(0.16,1,0.3,1)] has-[:focus-visible]:after:outline has-[:focus-visible]:after:outline-2 has-[:focus-visible]:after:outline-ring/70 data-[state=list]:after:translate-x-0 data-[state=single]:after:translate-x-full data-[state=compact]:after:translate-x-[200%]"
+              data-state={combinedState.selectedValue}
+            >
+              <label
+                className={`relative z-10 inline-flex h-full  cursor-pointer select-none items-center justify-center whitespace-nowrap  space-x-1 transition-colors ${
+                  combinedState.selectedValue === "list"
+                    ? "text-neutral-50"
+                    : "text-neutral-400"
+                }`}
+              >
+                <ListIcon />
+                List
+                <RadioGroupItem
+                  id={`${id}-1`}
+                  value="list"
+                  className="sr-only p-2 "
+                />
+              </label>
+              <label
+                className={`relative z-10 inline-flex h-full  cursor-pointer select-none items-center justify-center whitespace-nowrap  space-x-1 transition-colors ${
+                  combinedState.selectedValue === "single"
+                    ? "text-neutral-50"
+                    : "text-neutral-400"
+                }`}
+              >
+                <GalleryHorizontalIcon />
+                Single
+                <RadioGroupItem
+                  id={`${id}-2`}
+                  value="single"
+                  className="sr-only"
+                />
+              </label>
+              <label
+                className={`relative z-10 inline-flex h-full  cursor-pointer select-none items-center px-2 justify-center whitespace-nowrap  space-x-1 transition-colors ${
+                  combinedState.selectedValue === "compact"
+                    ? "text-neutral-50"
+                    : "text-neutral-400"
+                }`}
+              >
+                <GalleryThumbnailsIcon />
+                Compact
+                <RadioGroupItem
+                  id={`${id}-2`}
+                  value="compact"
+                  className="sr-only"
+                />
+              </label>
+            </RadioGroup>
+          </div>
 
-      <div className=" max-w-full mx-auto lg:px-22">
-        {actualFilteredQuestions.length > 0
-          ? actualFilteredQuestions
-              .slice(0, state.visibleCount)
-              .map((question, index) => (
-                <div key={`${question.questionId}-${index}`} className="mb-32">
-                  <OptimizedQuestionCard
-                    withDate
-                    question={question}
-                    index={index}
-                    onRetry={handleRetry}
-                    type="standard"
-                  />
-                </div>
-              ))
-          : (() => {
-              const hasQuestionsWithMissingDifficulty =
-                state.questionsWithData.some((q) => !q.difficulty);
+          <div
+            className="border-2 border-gray-200 rounded-full p-1 mt-2"
+            data-onboard="exclude-bluebook-toggler"
+          >
+            <RadioGroup
+              value={state.excludeBluebookQuestions ? "exclude" : "include"}
+              onValueChange={(value) =>
+                dispatch({
+                  type: "TOGGLE_EXCLUDE_BLUEBOOK",
+                  payload: value === "exclude",
+                })
+              }
+              className="group rounded-full p-2 relative inline-grid grid-cols-[1fr_1fr] items-center gap-3 text-sm font-medium after:absolute after:inset-y-0 after:w-[calc(50%)] after:rounded-full after:bg-blue-500 after:text-white after:shadow-sm after:shadow-black/5 after:outline-offset-2 after:transition-transform after:duration-300 after:[transition-timing-function:cubic-bezier(0.16,1,0.3,1)] has-[:focus-visible]:after:outline has-[:focus-visible]:after:outline-2 has-[:focus-visible]:after:outline-ring/70 data-[state=include]:after:translate-x-0 data-[state=exclude]:after:translate-x-full"
+              data-state={
+                state.excludeBluebookQuestions ? "exclude" : "include"
+              }
+            >
+              <label
+                className={`relative z-10 inline-flex h-full cursor-pointer select-none items-center justify-center whitespace-nowrap space-x-1 transition-colors ${
+                  !state.excludeBluebookQuestions
+                    ? "text-neutral-50"
+                    : "text-neutral-400"
+                }`}
+              >
+                Include Bluebook
+                <RadioGroupItem
+                  id={`${id}-include`}
+                  value="include"
+                  className="sr-only"
+                />
+              </label>
+              <label
+                className={`relative z-10 inline-flex h-full cursor-pointer select-none items-center justify-center whitespace-nowrap space-x-1 transition-colors ${
+                  state.excludeBluebookQuestions
+                    ? "text-neutral-50"
+                    : "text-neutral-400"
+                }`}
+              >
+                Exclude Bluebook
+                <RadioGroupItem
+                  id={`${id}-exclude`}
+                  value="exclude"
+                  className="sr-only"
+                />
+              </label>
+            </RadioGroup>
+          </div>
+          <div
+            className="border-2 border-gray-200 rounded-full p-1 mt-2"
+            data-onboard="bluebook-only-toggler"
+          >
+            <RadioGroup
+              value={state.onlyBluebookQuestions ? "bluebook-only" : "all"}
+              onValueChange={(value) =>
+                dispatch({
+                  type: "TOGGLE_ONLY_BLUEBOOK",
+                  payload: value === "bluebook-only",
+                })
+              }
+              className="group rounded-full p-2 relative inline-grid grid-cols-[1fr_1fr] items-center gap-3 text-sm font-medium after:absolute after:inset-y-0 after:w-[calc(50%)] after:rounded-full after:bg-blue-500 after:text-white after:shadow-sm after:shadow-black/5 after:outline-offset-2 after:transition-transform after:duration-300 after:[transition-timing-function:cubic-bezier(0.16,1,0.3,1)] has-[:focus-visible]:after:outline has-[:focus-visible]:after:outline-2 has-[:focus-visible]:after:outline-ring/70 data-[state=all]:after:translate-x-0 data-[state=bluebook-only]:after:translate-x-full"
+              data-state={state.onlyBluebookQuestions ? "bluebook-only" : "all"}
+            >
+              <label
+                className={`relative z-10 inline-flex h-full cursor-pointer select-none items-center justify-center whitespace-nowrap space-x-1 transition-colors ${
+                  !state.onlyBluebookQuestions
+                    ? "text-neutral-50"
+                    : "text-neutral-400"
+                }`}
+              >
+                All Questions
+                <RadioGroupItem
+                  id={`${id}-all`}
+                  value="all"
+                  className="sr-only"
+                />
+              </label>
+              <label
+                className={`relative z-10 inline-flex h-full cursor-pointer select-none items-center justify-center whitespace-nowrap space-x-1 transition-colors ${
+                  state.onlyBluebookQuestions
+                    ? "text-neutral-50"
+                    : "text-neutral-400"
+                }`}
+              >
+                Bluebook Only
+                <RadioGroupItem
+                  id={`${id}-bluebook-only`}
+                  value="bluebook-only"
+                  className="sr-only"
+                />
+              </label>
+            </RadioGroup>
+          </div>
+          <div className="border-2 border-gray-200 rounded-full p-1 mt-2">
+            <RadioGroup
+              value={state.answerStatus}
+              onValueChange={(value: "all" | "answered" | "not-answered") =>
+                dispatch({
+                  type: "SET_ANSWER_STATUS",
+                  payload: value,
+                })
+              }
+              className="group rounded-full p-2 relative inline-grid grid-cols-[1fr_1fr_1fr] items-center gap-3 text-sm font-medium after:absolute after:inset-y-0 after:w-[calc(33.333%)] after:rounded-full after:bg-blue-500 after:text-white after:shadow-sm after:shadow-black/5 after:outline-offset-2 after:transition-transform after:duration-300 after:[transition-timing-function:cubic-bezier(0.16,1,0.3,1)] has-[:focus-visible]:after:outline has-[:focus-visible]:after:outline-2 has-[:focus-visible]:after:outline-ring/70 data-[state=all]:after:translate-x-0 data-[state=answered]:after:translate-x-full data-[state=not-answered]:after:translate-x-[200%]"
+              data-state={state.answerStatus}
+            >
+              <label
+                className={`relative z-10 inline-flex h-full cursor-pointer select-none items-center justify-center whitespace-nowrap space-x-1 transition-colors ${
+                  state.answerStatus === "all"
+                    ? "text-neutral-50"
+                    : "text-neutral-400"
+                }`}
+              >
+                All
+                <RadioGroupItem
+                  id={`${id}-all`}
+                  value="all"
+                  className="sr-only"
+                />
+              </label>
+              <label
+                className={`relative z-10 inline-flex h-full cursor-pointer select-none items-center justify-center whitespace-nowrap space-x-1 transition-colors ${
+                  state.answerStatus === "answered"
+                    ? "text-neutral-50"
+                    : "text-neutral-400"
+                }`}
+              >
+                Answered
+                <RadioGroupItem
+                  id={`${id}-answered`}
+                  value="answered"
+                  className="sr-only"
+                />
+              </label>
+              <label
+                className={`relative z-10 inline-flex h-full cursor-pointer select-none items-center justify-center whitespace-nowrap space-x-1 transition-colors ${
+                  state.answerStatus === "not-answered"
+                    ? "text-neutral-50"
+                    : "text-neutral-400"
+                }`}
+              >
+                Not Answered
+                <RadioGroupItem
+                  id={`${id}-not-answered`}
+                  value="not-answered"
+                  className="sr-only"
+                />
+              </label>
+            </RadioGroup>
+          </div>
+          <div className="border-2 border-gray-200 rounded-full p-1 mt-2">
+            <RadioGroup
+              value={combinedState.answerVisibility}
+              onValueChange={(value) =>
+                combinedDispatch({
+                  type: "SET_ANSWER_VISIBILITY",
+                  payload: value,
+                })
+              }
+              className="group rounded-full p-2 relative inline-grid grid-cols-[1fr_1fr] items-center gap-3 text-sm font-medium after:absolute after:inset-y-0 after:w-[calc(50%)] after:rounded-full after:bg-blue-500 after:text-white after:shadow-sm after:shadow-black/5 after:outline-offset-2 after:transition-transform after:duration-300 after:[transition-timing-function:cubic-bezier(0.16,1,0.3,1)] has-[:focus-visible]:after:outline has-[:focus-visible]:after:outline-2 has-[:focus-visible]:after:outline-ring/70 data-[state=show]:after:translate-x-0 data-[state=hide]:after:translate-x-full"
+              data-state={combinedState.answerVisibility}
+            >
+              <label
+                className={`relative z-10 inline-flex h-full cursor-pointer select-none items-center justify-center whitespace-nowrap space-x-1 transition-colors ${
+                  combinedState.answerVisibility === "show"
+                    ? "text-neutral-50"
+                    : "text-neutral-400"
+                }`}
+              >
+                Show Answer Choice
+                <RadioGroupItem
+                  id={`${id}-show`}
+                  value="show"
+                  className="sr-only"
+                />
+              </label>
+              <label
+                className={`relative z-10 inline-flex h-full cursor-pointer select-none items-center justify-center whitespace-nowrap space-x-1 transition-colors ${
+                  combinedState.answerVisibility === "hide"
+                    ? "text-neutral-50"
+                    : "text-neutral-400"
+                }`}
+              >
+                Hide Answer Choice
+                <RadioGroupItem
+                  id={`${id}-hide`}
+                  value="hide"
+                  className="sr-only"
+                />
+              </label>
+            </RadioGroup>
+          </div>
+        </div>
+        {actualFilteredQuestions.length > 0 ? (
+          combinedState.selectedValue == "list" ? (
+            <QB_List_Render
+              answerVisibility={combinedState.answerVisibility}
+              questions={actualFilteredQuestions}
+              visibleCount={state.visibleCount}
+              handleRetry={handleRetry}
+            />
+          ) : combinedState.selectedValue == "single" ? (
+            <QB_Single_Render
+              questions={actualFilteredQuestions}
+              visibleCount={state.visibleCount}
+              handleRetry={handleRetry}
+              onRequestMoreQuestions={handleRequestMoreQuestions}
+              answerVisibility={combinedState.answerVisibility}
+            />
+          ) : (
+            <QB_Compact_Render
+              questions={actualFilteredQuestions}
+              visibleCount={state.visibleCount}
+              handleRetry={handleRetry}
+              onRequestMoreQuestions={handleRequestMoreQuestions}
+              fetchSpecificQuestion={fetchSpecificQuestion}
+              answerVisibility={combinedState.answerVisibility}
+              assessmentName={assessmentName}
+            />
+          )
+        ) : (
+          (() => {
+            const hasQuestionsWithMissingDifficulty =
+              state.questionsWithData.some((q) => !q.difficulty);
 
-              return (
-                <Card>
-                  <CardContent className="pt-6">
-                    <div className="text-center text-gray-500">
-                      <p className="text-4xl mb-4">🔍</p>
-                      <h3 className="text-lg font-medium mb-2">
-                        {state.selectedDifficulties.length > 0 ||
-                        state.selectedSkills.length > 0 ||
-                        state.dateRange
-                          ? "No questions match your filter criteria"
-                          : "No questions available"}
-                      </h3>
-                      <p className="text-sm text-muted-foreground mb-4">
-                        {state.selectedDifficulties.length > 0 ||
-                        state.selectedSkills.length > 0 ||
-                        state.dateRange ? (
-                          <>
-                            We couldn't find any questions matching the selected
-                            {state.selectedDifficulties.length > 0 &&
-                            state.selectedSkills.length > 0 &&
-                            state.dateRange
-                              ? " difficulty, skill, and date filters"
-                              : state.selectedDifficulties.length > 0 &&
-                                state.selectedSkills.length > 0
-                              ? " difficulty and skill filters"
-                              : state.selectedDifficulties.length > 0 &&
-                                state.dateRange
-                              ? " difficulty and date filters"
-                              : state.selectedSkills.length > 0 &&
-                                state.dateRange
-                              ? " skill and date filters"
-                              : state.selectedDifficulties.length > 0
-                              ? " difficulty levels"
-                              : state.selectedSkills.length > 0
-                              ? " skills"
-                              : " date range"}
-                            .
-                            {hasQuestionsWithMissingDifficulty && (
-                              <span className="block mt-2 text-xs text-amber-600">
-                                Note: Some questions may not have difficulty
-                                data assigned. Try selecting "Easy" to include
-                                questions with missing difficulty information.
-                              </span>
-                            )}
-                          </>
-                        ) : (
-                          "There are no questions available for this assessment."
-                        )}
-                      </p>
-
-                      {(state.selectedDifficulties.length > 0 ||
-                        state.selectedSkills.length > 0 ||
-                        state.dateRange) && (
-                        <div className="space-y-3">
-                          <p className="text-sm font-medium">
-                            Try these options:
-                          </p>
-                          <div className="flex flex-col sm:flex-row gap-2 justify-center">
-                            <button
-                              onClick={() => {
-                                dispatch({ type: "RESET_DIFFICULTY_FILTER" });
-                                dispatch({ type: "RESET_SKILL_FILTER" });
-                                dispatch({
-                                  type: "SET_DATE_RANGE",
-                                  payload: null,
-                                });
-                              }}
-                              className="px-4 py-2 text-sm bg-blue-50 text-blue-700 rounded-md hover:bg-blue-100 transition-colors"
-                            >
-                              Clear all filters
-                            </button>
-                            {!state.selectedDifficulties.includes("E") &&
-                              hasQuestionsWithMissingDifficulty && (
-                                <button
-                                  onClick={() =>
-                                    dispatch({
-                                      type: "SET_DIFFICULTY_FILTER",
-                                      payload: [
-                                        ...state.selectedDifficulties,
-                                        "E",
-                                      ],
-                                    })
-                                  }
-                                  className="px-4 py-2 text-sm bg-amber-50 text-amber-700 rounded-md hover:bg-amber-100 transition-colors"
-                                >
-                                  Include Easy (+ missing data)
-                                </button>
-                              )}
-                          </div>
-                        </div>
+            return (
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="text-center text-gray-500">
+                    <p className="text-4xl mb-4">🔍</p>
+                    <h3 className="text-lg font-medium mb-2">
+                      {state.selectedDifficulties.length > 0 ||
+                      state.selectedSkills.length > 0 ||
+                      state.dateRange
+                        ? "No questions match your filter criteria"
+                        : "No questions available"}
+                    </h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      {state.selectedDifficulties.length > 0 ||
+                      state.selectedSkills.length > 0 ||
+                      state.dateRange ? (
+                        <>
+                          We couldn't find any questions matching the selected
+                          {state.selectedDifficulties.length > 0 &&
+                          state.selectedSkills.length > 0 &&
+                          state.dateRange
+                            ? " difficulty, skill, and date filters"
+                            : state.selectedDifficulties.length > 0 &&
+                              state.selectedSkills.length > 0
+                            ? " difficulty and skill filters"
+                            : state.selectedDifficulties.length > 0 &&
+                              state.dateRange
+                            ? " difficulty and date filters"
+                            : state.selectedSkills.length > 0 && state.dateRange
+                            ? " skill and date filters"
+                            : state.selectedDifficulties.length > 0
+                            ? " difficulty levels"
+                            : state.selectedSkills.length > 0
+                            ? " skills"
+                            : " date range"}
+                          .
+                          {hasQuestionsWithMissingDifficulty && (
+                            <span className="block mt-2 text-xs text-amber-600">
+                              Note: Some questions may not have difficulty data
+                              assigned. Try selecting "Easy" to include
+                              questions with missing difficulty information.
+                            </span>
+                          )}
+                        </>
+                      ) : (
+                        "There are no questions available for this assessment."
                       )}
+                    </p>
 
-                      {state.questionsWithData.length > 0 && (
-                        <div className="mt-4 pt-4 border-t border-gray-200">
-                          <p className="text-xs text-muted-foreground">
-                            Total questions in database:{" "}
-                            {state.questionsWithData.length}
-                            {hasQuestionsWithMissingDifficulty && (
-                              <span className="block mt-1">
-                                Questions with missing difficulty data:{" "}
-                                {
-                                  state.questionsWithData.filter(
-                                    (q) => !q.difficulty
-                                  ).length
+                    {(state.selectedDifficulties.length > 0 ||
+                      state.selectedSkills.length > 0 ||
+                      state.dateRange) && (
+                      <div className="space-y-3">
+                        <p className="text-sm font-medium">
+                          Try these options:
+                        </p>
+                        <div className="flex flex-col sm:flex-row gap-2 justify-center">
+                          <button
+                            onClick={() => {
+                              dispatch({ type: "RESET_DIFFICULTY_FILTER" });
+                              dispatch({ type: "RESET_SKILL_FILTER" });
+                              dispatch({
+                                type: "SET_DATE_RANGE",
+                                payload: null,
+                              });
+                            }}
+                            className="px-4 py-2 text-sm bg-blue-50 text-blue-700 rounded-md hover:bg-blue-100 transition-colors"
+                          >
+                            Clear all filters
+                          </button>
+                          {!state.selectedDifficulties.includes("E") &&
+                            hasQuestionsWithMissingDifficulty && (
+                              <button
+                                onClick={() =>
+                                  dispatch({
+                                    type: "SET_DIFFICULTY_FILTER",
+                                    payload: [
+                                      ...state.selectedDifficulties,
+                                      "E",
+                                    ],
+                                  })
                                 }
-                              </span>
+                                className="px-4 py-2 text-sm bg-amber-50 text-amber-700 rounded-md hover:bg-amber-100 transition-colors"
+                              >
+                                Include Easy (+ missing data)
+                              </button>
                             )}
-                          </p>
                         </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })()}
+                      </div>
+                    )}
+
+                    {state.questionsWithData.length > 0 && (
+                      <div className="mt-4 pt-4 border-t border-gray-200">
+                        <p className="text-xs text-muted-foreground">
+                          Total questions in database:{" "}
+                          {state.questionsWithData.length}
+                          {hasQuestionsWithMissingDifficulty && (
+                            <span className="block mt-1">
+                              Questions with missing difficulty data:{" "}
+                              {
+                                state.questionsWithData.filter(
+                                  (q) => !q.difficulty
+                                ).length
+                              }
+                            </span>
+                          )}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })()
+        )}
       </div>
 
       {loadingIndicator}
 
       {/* Infinite scroll trigger */}
-      {hasMoreQuestions && (
+      {combinedState.selectedValue == "list" && hasMoreQuestions && (
         <div
           ref={loadMoreRef}
           className="h-20 flex items-center justify-center"
@@ -1062,36 +1406,40 @@ export function QuestionResults({
       )}
 
       {/* Show completion message when all questions are loaded */}
-      {!hasMoreQuestions && actualFilteredQuestions.length > 10 && (
-        <div className="text-center py-8">
-          <div className="text-sm text-muted-foreground">
-            You've reached the end! All {actualFilteredQuestions.length}{" "}
-            {state.selectedDifficulties.length > 0 ||
-            state.selectedSkills.length > 0
-              ? "filtered "
-              : ""}
-            questions loaded.
-            {(state.selectedDifficulties.length > 0 ||
-              state.selectedSkills.length > 0) && (
-              <div className="text-xs text-blue-600 mt-1">
-                Showing {actualFilteredQuestions.length} of{" "}
-                {state.questionsWithData.length} total questions
-                {(() => {
-                  const questionsWithMissingDifficulty =
-                    actualFilteredQuestions.filter((q) => !q.difficulty).length;
-                  return questionsWithMissingDifficulty > 0 &&
-                    state.selectedDifficulties.includes("E") ? (
-                    <span className="block text-amber-600">
-                      (including {questionsWithMissingDifficulty} with missing
-                      difficulty data)
-                    </span>
-                  ) : null;
-                })()}
-              </div>
-            )}
+      {combinedState.selectedValue == "list" &&
+        !hasMoreQuestions &&
+        actualFilteredQuestions.length > 10 && (
+          <div className="text-center py-8">
+            <div className="text-sm text-muted-foreground">
+              You've reached the end! All {actualFilteredQuestions.length}{" "}
+              {state.selectedDifficulties.length > 0 ||
+              state.selectedSkills.length > 0
+                ? "filtered "
+                : ""}
+              questions loaded.
+              {(state.selectedDifficulties.length > 0 ||
+                state.selectedSkills.length > 0) && (
+                <div className="text-xs text-blue-600 mt-1">
+                  Showing {actualFilteredQuestions.length} of{" "}
+                  {state.questionsWithData.length} total questions
+                  {(() => {
+                    const questionsWithMissingDifficulty =
+                      actualFilteredQuestions.filter(
+                        (q) => !q.difficulty
+                      ).length;
+                    return questionsWithMissingDifficulty > 0 &&
+                      state.selectedDifficulties.includes("E") ? (
+                      <span className="block text-amber-600">
+                        (including {questionsWithMissingDifficulty} with missing
+                        difficulty data)
+                      </span>
+                    ) : null;
+                  })()}
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        )}
     </div>
   );
 }

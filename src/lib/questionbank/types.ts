@@ -37,6 +37,7 @@ export interface QuestionResultsState {
   onlyBluebookQuestions: boolean;
   sortOrder: "default" | "newest" | "oldest";
   dateRange: RangeValue | null;
+  answerStatus: "all" | "answered" | "not-answered";
 }
 
 export type QuestionResultsAction =
@@ -65,7 +66,8 @@ export type QuestionResultsAction =
   | { type: "TOGGLE_EXCLUDE_BLUEBOOK"; payload: boolean }
   | { type: "TOGGLE_ONLY_BLUEBOOK"; payload: boolean }
   | { type: "SET_SORT_ORDER"; payload: "default" | "newest" | "oldest" }
-  | { type: "SET_DATE_RANGE"; payload: RangeValue | null };
+  | { type: "SET_DATE_RANGE"; payload: RangeValue | null }
+  | { type: "SET_ANSWER_STATUS"; payload: "all" | "answered" | "not-answered" };
 
 export interface QuestionResultsProps {
   questions: PlainQuestionType[];

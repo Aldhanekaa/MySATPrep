@@ -76,6 +76,7 @@ interface OptimizedQuestionCardProps {
   onRetry: (index: number, questionId: string) => void;
   type: "saved" | "answered" | "standard";
   withDate?: boolean;
+  answerVisibility?: string;
 }
 
 // Type guard to check if question is answered type
@@ -97,6 +98,7 @@ export const OptimizedQuestionCard = memo(
     onRetry,
     type,
     withDate,
+    answerVisibility,
   }: OptimizedQuestionCardProps) => {
     const [isVisible, setIsVisible] = React.useState(false);
     const cardRef = React.useRef<HTMLDivElement>(null);
@@ -264,6 +266,7 @@ export const OptimizedQuestionCard = memo(
                 hideToolsPopup={true}
                 hideViewQuestionButton={false}
                 hideSubjectHeaders
+                answerVisibility={answerVisibility}
               />
             </div>
             <Separator className="my-6" />

@@ -331,10 +331,10 @@ export function QB_MainHero() {
           const BluebookReadingWritingsQuestionsExternalIds =
             responseLookupData.data.readingLiveItems;
 
-          console.log(
-            "BluebookMathsQuestionsExternalIds",
-            BluebookMathsQuestionsExternalIds
-          );
+          // console.log(
+          //   "BluebookMathsQuestionsExternalIds",
+          //   BluebookMathsQuestionsExternalIds
+          // );
 
           // Dispatch the external IDs to state
           dispatch({
