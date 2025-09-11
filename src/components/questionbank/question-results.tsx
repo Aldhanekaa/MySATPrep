@@ -43,13 +43,13 @@ import {
   filterQuestions,
   fetchQuestionData,
 } from "@/lib/questionbank";
-import { AlertDialog } from "../ui/alert-dialog";
 import { TourAlertDialog } from "../ui/tour";
 import {
   InteractiveOnboardingChecklist,
   Step,
 } from "../ui/onboarding-checklist";
 import { Separator } from "../ui/separator";
+import { FetchQuestionByID } from "@/lib/functions/fetchQuestionByID";
 
 // Tour state interface
 interface TourState {
@@ -407,12 +407,29 @@ export function QuestionResults({
           // Process batch concurrently
           const batchPromises = batch.map(async ({ question, index }) => {
             try {
-              const questionData = await fetchQuestionData(question.questionId);
+              const id = question.external_id || question.ibn;
+              if (!id) {
+                dispatch({
+                  type: "SET_QUESTION_ERROR",
+                  payload: {
+                    index,
+                    errorMessage: "No valid ID to fetch question",
+                  },
+                });
+                return;
+              }
+              const questionData = await FetchQuestionByID(id);
 
               if (questionData) {
                 dispatch({
                   type: "SET_QUESTION_SUCCESS",
-                  payload: { index, questionData },
+                  payload: {
+                    index,
+                    questionData: {
+                      problem: questionData,
+                      question: question,
+                    },
+                  },
                 });
               }
             } catch (error) {
