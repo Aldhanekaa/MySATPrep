@@ -927,7 +927,7 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
       </div>
 
       {state.viewMode === "questions" && (
-        <div className="col-span-12 flex flex-col flex-wrap">
+        <div className="col-span-12 flex flex-col flex-wrap gap-4 mt-10">
           <Select
             onValueChange={(value) =>
               dispatch({
@@ -1004,10 +1004,10 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
             <div className="mb-6">
               <Button
                 onClick={() => setIsCreateDialogOpen(true)}
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white"
               >
                 <Plus className="w-4 h-4" />
-                Create New Folder
+                Create New Collection
               </Button>
             </div>
 
