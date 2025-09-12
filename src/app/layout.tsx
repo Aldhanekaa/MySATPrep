@@ -25,8 +25,8 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "PracticeSAT - Free SAT Practice Questions & Test Prep",
-    template: "%s | PracticeSAT",
+    default: "MySATPrep - Free SAT Practice Questions & Test Prep",
+    template: "%s | MySATPrep",
   },
   description:
     "Master the SAT with our comprehensive question bank featuring real College Board practice questions. Track your progress, identify weak areas, and boost your SAT scores with targeted practice sessions.",
@@ -42,16 +42,16 @@ export const metadata: Metadata = {
     "practice questions",
     "SAT score improvement",
   ],
-  authors: [{ name: "PracticeSAT Team" }],
-  creator: "PracticeSAT",
-  publisher: "PracticeSAT",
+  authors: [{ name: "MySATPrep Team" }],
+  creator: "MySATPrep",
+  publisher: "MySATPrep",
   formatDetection: {
     email: false,
     address: false,
     telephone: false,
   },
   metadataBase: new URL(
-    process.env.NEXT_PUBLIC_BASE_URL || "https://practicesat.vercel.app"
+    process.env.NEXT_PUBLIC_BASE_URL || "https://mysatprep.vercel.app"
   ),
   alternates: {
     canonical: "/",
@@ -60,26 +60,26 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_US",
     url: "/",
-    title: "PracticeSAT - Free SAT Practice Questions & Test Prep",
+    title: "MySATPrep - Free SAT Practice Questions & Test Prep",
     description:
       "Master the SAT with our comprehensive question bank featuring real College Board practice questions. Track your progress and boost your SAT scores.",
-    siteName: "PracticeSAT",
+    siteName: "MySATPrep",
     images: [
       {
         url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: "PracticeSAT - SAT Test Preparation Platform",
+        alt: "MySATPrep - SAT Test Preparation Platform",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "PracticeSAT - Free SAT Practice Questions & Test Prep",
+    title: "MySATPrep - Free SAT Practice Questions & Test Prep",
     description:
       "Master the SAT with our comprehensive question bank featuring real College Board practice questions. Track your progress and boost your SAT scores.",
     images: ["/og-image.png"],
-    creator: "@practicesat",
+    creator: "@mysatprep",
   },
   robots: {
     index: true,
