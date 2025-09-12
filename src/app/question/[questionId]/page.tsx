@@ -39,7 +39,7 @@ export async function generateMetadata({
 
     if (!result.data) {
       return {
-        title: "Question Not Found - PracticeSAT",
+        title: "Question Not Found - MySATPrep",
         description:
           "The requested SAT practice question could not be found. Browse our question bank for more SAT practice questions.",
         robots: {
@@ -69,7 +69,7 @@ export async function generateMetadata({
         ?.substring(0, 120) || "Practice SAT question";
 
     return {
-      title: `${questionType} Practice Question #${question.questionId} - PracticeSAT`,
+      title: `${questionType} Practice Question #${question.questionId} - MySATPrep`,
       description: `Practice this ${difficulty.toLowerCase()} ${questionType.toLowerCase()} SAT question. ${questionPreview}... Master SAT concepts with detailed explanations and step-by-step solutions.`,
       keywords: [
         "SAT practice question",
@@ -85,7 +85,7 @@ export async function generateMetadata({
       ],
       openGraph: {
         title: `${questionType} SAT Practice Question #${question.questionId}`,
-        description: `Practice this ${difficulty.toLowerCase()} ${questionType.toLowerCase()} SAT question with detailed explanations. Improve your SAT scores with PracticeSAT.`,
+        description: `Practice this ${difficulty.toLowerCase()} ${questionType.toLowerCase()} SAT question with detailed explanations. Improve your SAT scores with MySATPrep.`,
         type: "article",
         url: `/question/${questionId}`,
         images: [
@@ -93,7 +93,7 @@ export async function generateMetadata({
             url: "/og-question.png",
             width: 1200,
             height: 630,
-            alt: `SAT ${questionType} Practice Question - PracticeSAT`,
+            alt: `SAT ${questionType} Practice Question - MySATPrep`,
           },
         ],
       },
@@ -114,7 +114,7 @@ export async function generateMetadata({
   } catch {
     // Fallback metadata if question fetch fails
     return {
-      title: "SAT Practice Question - PracticeSAT",
+      title: "SAT Practice Question - MySATPrep",
       description:
         "Practice SAT questions with detailed explanations and solutions. Improve your test scores with comprehensive SAT preparation.",
       robots: {
