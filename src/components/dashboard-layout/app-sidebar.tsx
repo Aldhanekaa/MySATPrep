@@ -135,11 +135,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       },
     ],
     explore: [
-      {
-        name: "Question Bank",
-        url: "/questionbank",
-        icon: Layers2Icon,
-      },
+   
       {
         name: "SAT Vocabs Flashcards",
         url: "/dashboard/vocabs/learn",
