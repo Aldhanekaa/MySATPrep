@@ -24,7 +24,7 @@ export const metadata: Metadata = {
     "SAT exam preparation",
   ],
   openGraph: {
-    title: "SAT Study Resources & Reference Materials - PracticeSAT",
+    title: "SAT Study Resources & Reference Materials - MySATPrep",
     description:
       "Access comprehensive SAT study resources including reference sheets, formula guides, and test-taking strategies. Free downloadable materials for all SAT sections.",
     type: "website",
@@ -34,13 +34,13 @@ export const metadata: Metadata = {
         url: "/og-resources.png",
         width: 1200,
         height: 630,
-        alt: "SAT Study Resources and Reference Materials - PracticeSAT",
+        alt: "SAT Study Resources and Reference Materials - MySATPrep",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "SAT Study Resources & Reference Materials - PracticeSAT",
+    title: "SAT Study Resources & Reference Materials - MySATPrep",
     description:
       "Access comprehensive SAT study resources including reference sheets, formula guides, and test-taking strategies. Free downloadable materials.",
     images: ["/og-resources.png"],
