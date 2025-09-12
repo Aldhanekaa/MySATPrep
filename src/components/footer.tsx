@@ -49,7 +49,7 @@ export default function FooterSection() {
 
         <span className="text-muted-foreground block text-center text-sm">
           {" "}
-          © {new Date().getFullYear()} PracticeSAT. Made with Love by Aldhaneka,
+          © {new Date().getFullYear()} MySATPrep. Made with Love by Aldhaneka,
           Indonesia.
         </span>
         <span className="text-muted-foreground block text-center text-sm">
