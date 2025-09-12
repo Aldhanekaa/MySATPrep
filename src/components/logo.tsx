@@ -42,7 +42,7 @@ export const Logo = ({
           fill="#3B82F6"
         />
       </svg>
-      Practice<span className=" text-blue-500 font-black">SAT</span>
+      My<span className=" text-blue-500 font-black">SAT</span>Prep
     </div>
   );
 };
