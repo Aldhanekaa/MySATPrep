@@ -9,7 +9,6 @@ import { Logo } from "@/components/logo";
 
 const menuItems = [
   { name: "Dashboard", href: "/dashboard" },
-  { name: "Question Bank", href: "/questionbank" },
   { name: "Resources", href: "/resources" },
   // { name: "Feedback", href: "/feedback" },
 ];
