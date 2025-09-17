@@ -52,7 +52,7 @@ import { useAssessment } from "@/contexts/assessment-context";
 import { useLocalStorage } from "@/lib/useLocalStorage";
 import { SavedQuestions } from "@/types/savedQuestions";
 import { PracticeStatistics } from "@/types/statistics";
-import { SidebarFooterNews } from "./app-footer-news";
+// import { SidebarFooterNews } from "./app-footer-news";
 
 import { it } from "node:test";
 
@@ -191,9 +191,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <NavProjects projects={data.explore} />
         <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
-      <SidebarFooter>
+      {/* <SidebarFooter>
         <SidebarFooterNews />
-      </SidebarFooter>
+      </SidebarFooter> */}
     </Sidebar>
   );
 }

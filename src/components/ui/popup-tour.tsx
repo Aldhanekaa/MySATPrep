@@ -169,7 +169,7 @@ export default function Dialog02() {
               <div className="flex justify-start">
                 <Logo iconOnly />
               </div>
-              <h2 className="text-lg font-medium">Welcome to PracticeSAT!</h2>
+              <h2 className="text-lg font-medium">Welcome to MySATPrep!</h2>
               <p className="text-sm opacity-80">
                 We&apos;ve got bunch of new features to help you ace your SAT
                 prep.

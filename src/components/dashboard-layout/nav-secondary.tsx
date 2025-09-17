@@ -10,6 +10,8 @@ import {
 } from "@/components/ui/sidebar";
 import Link from "next/link";
 
+import { SidebarFooterNews } from "./app-footer-news";
+
 export function NavSecondary({
   items,
   ...props
@@ -24,6 +26,7 @@ export function NavSecondary({
     <SidebarGroup {...props}>
       <SidebarGroupContent>
         <SidebarMenu>
+          <SidebarFooterNews />
           {items.map((item) => (
             <SidebarMenuItem key={item.title}>
               <SidebarMenuButton asChild size="sm">
