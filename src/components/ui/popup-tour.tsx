@@ -159,7 +159,7 @@ export default function Dialog02() {
           "max-w-3xl p-0 overflow-hidden rounded-xl border shadow-2xl",
           "bg-white text-black",
           "dark:bg-black dark:text-white dark:border-neutral-800",
-          "data-[state=open]:animate-none data-[state=closed]:animate-none max-h-[80vh]"
+          "data-[state=open]:animate-none data-[state=closed]:animate-none max-h-[80vh] overflow-y-auto"
         )}
       >
         <div className="flex flex-col md:flex-row w-full h-full">
