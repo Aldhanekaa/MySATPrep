@@ -6,11 +6,14 @@ import FooterSection from "@/components/footer";
 export const metadata: Metadata = {
   title: "Free SAT Practice Questions & Test Prep - MySATPrep",
   description:
-    "Boost your SAT scores with our comprehensive question bank featuring real College Board practice questions. Track progress, identify weak areas, and master the SAT with personalized practice sessions.",
+    "Boost your SAT scores with our comprehensive question bank featuring real Collegeboard's Questionbank questions. Track progress, identify weak areas, and master the SAT with personalized practice sessions.",
   keywords: [
     "free SAT practice",
     "SAT test prep",
     "College Board questions",
+    "Collegeboard Questionbank practice",
+    "Collegeboard Questionbank questions",
+
     "SAT practice test",
     "SAT math practice",
     "SAT reading practice",
@@ -24,7 +27,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Free SAT Practice Questions & Test Prep - MySATPrep",
     description:
-      "Boost your SAT scores with our comprehensive question bank featuring real College Board practice questions. Track progress and master the SAT.",
+      "Boost your SAT scores with our comprehensive question bank featuring real Collegeboard's Questionbank questions. Track progress and master the SAT.",
     type: "website",
     images: [
       {
@@ -39,7 +42,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Free SAT Practice Questions & Test Prep - MySATPrep",
     description:
-      "Boost your SAT scores with our comprehensive question bank featuring real College Board practice questions. Track progress and master the SAT.",
+      "Boost your SAT scores with our comprehensive question bank featuring real Collegeboard's Questionbank questions practice questions. Track progress and master the SAT.",
     images: ["/og-home.png"],
   },
   alternates: {
