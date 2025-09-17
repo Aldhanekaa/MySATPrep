@@ -28,7 +28,7 @@ export const Logo = ({
 
   return (
     <div
-      className={`text-2xl font-bold text-primary flex justify-center items-center gap-1 ${className}`}
+      className={`text-2xl font-bold text-primary flex justify-center items-center ${className}`}
     >
       <svg
         width="35"

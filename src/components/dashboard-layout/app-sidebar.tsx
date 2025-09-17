@@ -135,7 +135,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       },
     ],
     explore: [
-   
       {
         name: "SAT Vocabs Flashcards",
         url: "/dashboard/vocabs/learn",
@@ -157,11 +156,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         url: "/review",
         icon: HistoryIcon,
       },
-      // {
-      //   name: "Search Question",
-      //   url: "/questionbank",
-      //   icon: Frame,
-      // },
+      {
+        name: "Search Question",
+        url: "/questionbank",
+        icon: Frame,
+      },
       // {
       //   name: "SAT Vocabs",
       //   url: "#",
