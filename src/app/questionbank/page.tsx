@@ -37,7 +37,7 @@ export const metadata: Metadata = {
     description:
       "Access the complete SAT Question Bank with 2000+ official College Board questions. Browse SAT Suite Question Bank with real exam questions for all sections.",
     type: "website",
-    url: "https://mysatprep.com/question-bank",
+    url: "https://mysatprep.fun/question-bank",
     siteName: "MySATPrep",
     images: [
       {
