@@ -16,6 +16,6 @@ export default function robots(): MetadataRoute.Robots {
         allow: allowList,
       }
     ],
-    sitemap: "https://mysatprep.fun/sitemap.xml",
+    sitemap: "https://www.mysatprep.fun/sitemap.xml",
   };
 }
