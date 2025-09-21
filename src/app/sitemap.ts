@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const mainDomain = "https://mysatprep.fun";
+  const mainDomain = "https://www.mysatprep.fun";
 
   return [
     {
