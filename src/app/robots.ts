@@ -12,13 +12,9 @@ export default function robots(): MetadataRoute.Robots {
   return {
     rules: [
       {
-        userAgent: "Googlebot",
+        userAgent: "*",
         allow: allowList,
-      },
-      {
-        userAgent: ["Applebot", "Bingbot"],
-        allow: allowList,
-      },
+      }
     ],
     sitemap: "https://mysatprep.fun/sitemap.xml",
   };
