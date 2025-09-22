@@ -2,7 +2,7 @@ import PracticePageComponent from "@/components/practice";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "SAT Practice Questions - MySATPrep",
+  title: "SAT Practice Questions",
   description:
     "Practice with authentic SAT questions from College Board's official question bank. Improve your SAT scores with real test questions covering Math, Reading, and Writing sections.",
   keywords: [
