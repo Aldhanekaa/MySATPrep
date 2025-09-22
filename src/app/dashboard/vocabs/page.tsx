@@ -2,7 +2,7 @@ import VocabsMainPage from "@/components/dashboard/vocabs/vocabs";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "SAT Vocabulary Wordbank | 800+ Essential SAT Words | MySATPrep",
+  title: "SAT Vocabulary Wordbank - 800+ Essential SAT Words",
   description:
     "Master 800+ essential SAT vocabulary words with our comprehensive wordbank. Study high-frequency SAT vocab from College Board questions with definitions, examples, and practice exercises. Boost your SAT Reading and Writing scores.",
   keywords: [
