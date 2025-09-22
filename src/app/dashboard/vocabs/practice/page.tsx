@@ -5,7 +5,7 @@ import React from "react";
 
 export const metadata: Metadata = {
   title:
-    "AI-Powered SAT Vocabulary Practice | Multiple Study Modes | MySATPrep",
+    "AI-Powered SAT Vocabulary Practice - Practice With 800+ Common Words in SAT",
   description:
     "Master SAT vocabulary with AI-powered practice modes featuring 800+ College Board words. Adaptive learning, personalized quizzes, context-based exercises, and intelligent spaced repetition from SAT Suite Question Bank vocabulary.",
   keywords: [
