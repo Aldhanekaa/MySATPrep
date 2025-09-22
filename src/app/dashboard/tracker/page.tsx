@@ -3,7 +3,7 @@ import { Metadata } from "next";
 
 export const metadata: Metadata = {
   title:
-    "SAT Progress Tracker | Track College Board Question Bank Performance | MySATPrep",
+    "SAT Progress Tracker - Track Your Collegeboard's Question Bank Progress",
   description:
     "Track your College Board SAT Suite Question Bank progress with detailed analytics. Monitor your performance on official Collegeboard questions across Math, Reading, and Writing sections. View accuracy rates, time spent, and improvement trends.",
   keywords: [
