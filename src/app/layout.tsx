@@ -12,7 +12,6 @@ import { MathJaxContext } from "better-react-mathjax";
 import { Toaster } from "sonner";
 import { Banner } from "@/components/ui/banner";
 import { AssessmentProvider } from "@/contexts/assessment-context";
-import PopupTour from "@/components/ui/popup-tour";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -134,7 +133,6 @@ export default function RootLayout({
           </MathJaxContext>
         </AssessmentProvider>
 
-        <PopupTour/>
         <GoogleAnalytics gaId={process.env.GA_KEY || ""} />
         <GoogleTagManager gtmId={process.env.GT_KEY || ""} />
         <SpeedInsights />
