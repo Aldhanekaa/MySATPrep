@@ -2,8 +2,7 @@ import QuestionBankPageComponent from "@/components/questionbank/qb";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title:
-    "SAT Question Bank - 2000+ Official College Board Questions",
+  title: "SAT Question Bank - 5000+ Official Collegeboard Questions",
   description:
     "Access the complete SAT Question Bank with 2000+ official College Board questions. Browse SAT Suite Question Bank with real exam questions for Math, Reading, and Writing sections. Updated with latest questions.",
   keywords: [

@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "MySATPrep - SAT Practice & Question Bank",
     short_name: "MySATPrep",
     description:
-      "Free SAT practice questions and official College Board question bank for comprehensive SAT test preparation",
+      "Free SAT practice platform sourced from Collegeboard's question bank.",
     start_url: "/",
     display: "standalone",
     background_color: "#ffffff",
