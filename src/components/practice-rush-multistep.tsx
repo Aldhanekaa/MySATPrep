@@ -70,7 +70,6 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 
-import ReferenceSheet from "@/src/sat-math-refrence-sheet.webp";
 import { Confetti, ConfettiRef } from "./ui/confetti";
 import { DraggableReferencePopup } from "./popups/reference-popup";
 import { DraggableNotesPopup } from "./popups/notes-popup";
@@ -2650,8 +2649,8 @@ export default function PracticeRushMultistep({
 
     if (
       currentTotalLength &&
-      state.questions &&
-      currentTotalLength >= state.questions.length
+      state.questionsData &&
+      currentTotalLength >= state.questionsData.length
     ) {
       console.log("No more questions available in the dataset");
       return;
