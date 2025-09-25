@@ -180,8 +180,8 @@ const OnboardCard = ({
         })}
       </motion.div>
 
-      <div className="absolute top-0 h-[40%] w-full [background-image:linear-gradient(to_bottom,theme(colors.background)_20%,transparent_100%)]" />
-      <div className="absolute bottom-0 h-[40%] w-full [background-image:linear-gradient(to_top,theme(colors.background)_20%,transparent_100%)]" />
+      <div className="absolute top-0 h-[40%] w-full bg-gradient-to-b from-white/20 to-transparent" />
+      <div className="absolute bottom-0 h-[40%] w-full bg-gradient-to-t from-background/20 to-transparent" />
     </div>
   );
 };
