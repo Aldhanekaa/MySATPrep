@@ -3921,9 +3921,12 @@ export default function PracticeRushMultistep({
                                     ? "bg-blue-400 border-blue-500 cursor-not-allowed"
                                     : "bg-blue-500 hover:bg-blue-600 border-blue-700 hover:border-blue-800 cursor-pointer hover:shadow-xl active:translate-y-0.5 active:border-b-2"
                                 }`}
-                                onClick={() =>
-                                  !state.isLoadingNextBatch && loadNextBatch()
-                                }
+                                onClick={() => {
+                                  console.log("LOAD NEXT BATCH");
+                                  if (!state.isLoadingNextBatch) {
+                                    loadNextBatch();
+                                  }
+                                }}
                                 disabled={state.isLoadingNextBatch}
                               >
                                 {state.isLoadingNextBatch ? (
@@ -4147,9 +4150,13 @@ export default function PracticeRushMultistep({
                                       ? "bg-blue-400 border-blue-500 cursor-not-allowed"
                                       : "bg-blue-500 hover:bg-blue-600 border-blue-700 hover:border-blue-800 cursor-pointer hover:shadow-xl active:translate-y-0.5 active:border-b-2"
                                   }`}
-                                  onClick={() =>
-                                    !state.isLoadingNextBatch && loadNextBatch()
-                                  }
+                                  onClick={() => {
+                                    console.log("LOAD NEXT BATCH");
+
+                                    if (!state.isLoadingNextBatch) {
+                                      loadNextBatch();
+                                    }
+                                  }}
                                   disabled={state.isLoadingNextBatch}
                                 >
                                   {state.isLoadingNextBatch ? (
