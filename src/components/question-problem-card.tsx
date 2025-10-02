@@ -29,7 +29,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MathJax } from "better-react-mathjax";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { Label } from "./ui/label";
 import { Button } from "./ui/button";
 import { useLocalStorage } from "@/lib/useLocalStorage";
@@ -89,7 +89,7 @@ const DuolingoInput = React.memo(function DuolingoInput({
   );
 });
 
-export default function QuestionProblemCard({
+const QuestionProblemCard = React.memo(function QuestionProblemCard({
   question,
   hideToolsPopup = false,
   hideViewQuestionButton = false,
@@ -120,6 +120,43 @@ export default function QuestionProblemCard({
     "questionNotes",
     {}
   );
+
+  // Effect to keep practiceStatistics updated with latest localStorage data
+  useEffect(() => {
+    const updatePracticeStatistics = () => {
+      try {
+        const currentStats = window.localStorage.getItem("practiceStatistics");
+        const parsedStats = currentStats ? JSON.parse(currentStats) : {};
+
+        // Only update if the data has actually changed
+        if (
+          JSON.stringify(practiceStatistics) !== JSON.stringify(parsedStats)
+        ) {
+          setPracticeStatistics(parsedStats);
+        }
+      } catch (error) {
+        console.error("Error syncing practiceStatistics:", error);
+      }
+    };
+
+    // Update on storage events (changes from other tabs/windows)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "practiceStatistics") {
+        updatePracticeStatistics();
+      }
+    };
+
+    // Reduce polling frequency to improve performance
+    const interval = setInterval(updatePracticeStatistics, 3000); // Changed from 1000ms to 3000ms
+
+    // Listen for storage events
+    window.addEventListener("storage", handleStorageChange);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("storage", handleStorageChange);
+    };
+  }, [practiceStatistics, setPracticeStatistics]);
 
   // Load answer choice history from localStorage (for hidden answer mode)
   const [answerChoiceHistory, setAnswerChoiceHistory] = useLocalStorage<{
@@ -162,23 +199,46 @@ export default function QuestionProblemCard({
   // Desmos popup state
   const [isDesmosPopupOpen, setIsDesmosPopupOpen] = useState<boolean>(false);
 
-  // Get assessment from question.question.program
-  const assessment = question.question.program;
+  // Get assessment from question.question.program - memoized to prevent recalculation
+  const assessment = useMemo(
+    () => question.question.program,
+    [question.question.program]
+  );
 
-  // Check if current question is saved and if it has been answered before
+  // Memoize question ID to prevent recalculation
+  const questionId = useMemo(
+    () => question.question.questionId,
+    [question.question.questionId]
+  );
+
+  // Memoize assessment saved questions to prevent recalculation
+  const assessmentSavedQuestions = useMemo(
+    () => savedQuestions[assessment] || [],
+    [savedQuestions, assessment]
+  );
+
+  // Memoize assessment notes to prevent recalculation
+  const assessmentNotes = useMemo(
+    () => questionNotes[assessment] || [],
+    [questionNotes, assessment]
+  );
+
+  // Memoize assessment stats to prevent recalculation
+  const assessmentStats = useMemo(
+    () => practiceStatistics[assessment],
+    [practiceStatistics, assessment]
+  );
+
+  // Check if current question is saved and if it has been answered before - optimized
   useEffect(() => {
     if (question && question.question && assessment) {
-      const questionId = question.question.questionId;
-
-      // Check if question is saved
-      const assessmentSavedQuestions = savedQuestions[assessment] || [];
+      // Check if question is saved - using memoized values
       const isSaved = assessmentSavedQuestions.some(
         (q: SavedQuestion) => q.questionId === questionId
       );
       setIsQuestionSaved(isSaved);
 
-      // Check if question has a note
-      const assessmentNotes = questionNotes[assessment] || [];
+      // Check if question has a note - using memoized values
       const existingNote = assessmentNotes.find(
         (note: QuestionNote) => note.questionId === questionId
       );
@@ -192,7 +252,6 @@ export default function QuestionProblemCard({
 
       // Check if question has been answered before in practice statistics
       // Only check and show previous answers if answerVisibility is not "hide"
-      const assessmentStats = practiceStatistics[assessment];
       if (assessmentStats && answerVisibility !== "hide") {
         // Check in legacy answered questions list
         const isAnsweredLegacy =
@@ -221,11 +280,12 @@ export default function QuestionProblemCard({
     }
   }, [
     question,
-    savedQuestions,
-    questionNotes,
-    practiceStatistics,
     assessment,
     answerVisibility,
+    questionId,
+    assessmentSavedQuestions,
+    assessmentNotes,
+    assessmentStats,
   ]);
 
   // Reset current session state when answerVisibility changes to "hide"
@@ -266,260 +326,271 @@ export default function QuestionProblemCard({
     }
   };
 
-  // Handle saving note
-  const handleSaveNote = (noteText: string) => {
-    try {
-      const questionId = question.question.questionId;
-      const difficulty = question.question.difficulty;
-      const primaryClassCd = question.question.primary_class_cd;
-      const skillCd = question.question.skill_cd;
-      const subject = getSubjectByPrimaryClassCd(primaryClassCd || "");
-      const createdDate = question.question.createDate;
-      const updatedDate = question.question.updateDate;
-      const updatedNotes = { ...questionNotes };
+  // Handle saving note - memoized
+  const handleSaveNote = useCallback(
+    (noteText: string) => {
+      try {
+        const questionId = question.question.questionId;
+        const difficulty = question.question.difficulty;
+        const primaryClassCd = question.question.primary_class_cd;
+        const skillCd = question.question.skill_cd;
+        const subject = getSubjectByPrimaryClassCd(primaryClassCd || "");
+        const createdDate = question.question.createDate;
+        const updatedDate = question.question.updateDate;
+        const updatedNotes = { ...questionNotes };
 
-      // If note is empty, delete it
-      if (!noteText.trim()) {
-        if (updatedNotes[assessment]) {
-          updatedNotes[assessment] = updatedNotes[assessment].filter(
-            (note: QuestionNote) => note.questionId !== questionId
-          );
+        // If note is empty, delete it
+        if (!noteText.trim()) {
+          if (updatedNotes[assessment]) {
+            updatedNotes[assessment] = updatedNotes[assessment].filter(
+              (note: QuestionNote) => note.questionId !== questionId
+            );
+          }
+          setQuestionNotes(updatedNotes);
+          setCurrentNote("");
+          setHasNote(false);
+          console.log("Note deleted successfully!");
+          return;
         }
+
+        // Initialize array if it doesn't exist
+        if (!updatedNotes[assessment]) {
+          updatedNotes[assessment] = [];
+        }
+
+        // Check if note already exists
+        const noteIndex = updatedNotes[assessment].findIndex(
+          (note: QuestionNote) => note.questionId === questionId
+        );
+
+        const now = new Date().toISOString();
+
+        if (noteIndex === -1) {
+          // Create new note
+          const newNote: QuestionNote = {
+            questionId,
+            difficulty,
+            primaryClassCd,
+            skillCd,
+            subject,
+            createdDate,
+            updatedDate,
+            note: noteText,
+            timestamp: now,
+            createdAt: now,
+          };
+          updatedNotes[assessment].push(newNote);
+        } else {
+          // Update existing note
+          updatedNotes[assessment][noteIndex] = {
+            ...updatedNotes[assessment][noteIndex],
+            difficulty,
+            primaryClassCd,
+            skillCd,
+            subject,
+            createdDate,
+            updatedDate,
+            note: noteText,
+            timestamp: now,
+          };
+        }
+
         setQuestionNotes(updatedNotes);
-        setCurrentNote("");
-        setHasNote(false);
-        console.log("Note deleted successfully!");
+        setCurrentNote(noteText);
+        setHasNote(true);
+        console.log("Note saved successfully!");
+      } catch (error) {
+        console.error("Failed to save note:", error);
+      }
+    },
+    [
+      questionId,
+      question.question.difficulty,
+      question.question.primary_class_cd,
+      question.question.skill_cd,
+      question.question.createDate,
+      question.question.updateDate,
+      questionNotes,
+      setQuestionNotes,
+      assessment,
+    ]
+  );
+
+  // Check if answer is correct without submitting - memoized
+  const checkAnswerCorrectness = useCallback(
+    (answer: string) => {
+      if (!answer) return null;
+
+      return question.problem.answerOptions
+        ? question.problem.correct_answer?.includes(answer) || false
+        : question.problem.correct_answer?.some(
+            (correctAnswer) =>
+              correctAnswer.trim().toLowerCase() === answer.trim().toLowerCase()
+          ) || false;
+    },
+    [question.problem.answerOptions, question.problem.correct_answer]
+  );
+
+  // Handle text input change with immediate validation - memoized
+  const handleTextInputChange = useCallback(
+    (value: string) => {
+      // When answerVisibility is "hide", always allow interaction
+      // Otherwise, prevent if already checked in current session or previously answered
+      if (answerVisibility === "hide") {
+        // Always allow interaction in hide mode
+      } else if (isAnswerChecked || isQuestionAnswered) {
         return;
       }
+      setSelectedAnswer(value);
+    },
+    [answerVisibility, isAnswerChecked, isQuestionAnswered]
+  );
 
-      // Initialize array if it doesn't exist
-      if (!updatedNotes[assessment]) {
-        updatedNotes[assessment] = [];
-      }
+  // Submit answer and save statistics - memoized to prevent recreation on every render
+  const submitAnswer = useCallback(
+    (answer: string) => {
+      // For multiple choice questions
+      const isCorrect = question.problem.answerOptions
+        ? question.problem.correct_answer?.includes(answer) || false
+        : // For text input questions, compare with correct answers (case insensitive, trimmed)
+          question.problem.correct_answer?.some(
+            (correctAnswer) =>
+              correctAnswer.trim().toLowerCase() === answer.trim().toLowerCase()
+          ) || false;
 
-      // Check if note already exists
-      const noteIndex = updatedNotes[assessment].findIndex(
-        (note: QuestionNote) => note.questionId === questionId
-      );
+      const timeElapsed = Date.now() - questionStartTime;
 
-      const now = new Date().toISOString();
-
-      if (noteIndex === -1) {
-        // Create new note
-        const newNote: QuestionNote = {
-          questionId,
-          difficulty,
-          primaryClassCd,
-          skillCd,
-          subject,
-          createdDate,
-          updatedDate,
-          note: noteText,
-          timestamp: now,
-          createdAt: now,
-        };
-        updatedNotes[assessment].push(newNote);
+      // Play sound effect
+      if (isCorrect) {
+        playSound("correct-answer.wav");
       } else {
-        // Update existing note
-        updatedNotes[assessment][noteIndex] = {
-          ...updatedNotes[assessment][noteIndex],
-          difficulty,
-          primaryClassCd,
-          skillCd,
-          subject,
-          createdDate,
-          updatedDate,
-          note: noteText,
-          timestamp: now,
-        };
+        playSound("incorrect-answer.wav");
       }
 
-      setQuestionNotes(updatedNotes);
-      setCurrentNote(noteText);
-      setHasNote(true);
-      console.log("Note saved successfully!");
-    } catch (error) {
-      console.error("Failed to save note:", error);
-    }
-  };
+      // Save to different storage based on answerVisibility
+      if (answerVisibility === "hide") {
+        // Save to answerChoiceHistory when answer visibility is hidden
+        const updatedHistory = { ...answerChoiceHistory };
 
-  // Check if answer is correct without submitting
-  const checkAnswerCorrectness = (answer: string) => {
-    if (!answer) return null;
+        if (!updatedHistory[questionId]) {
+          updatedHistory[questionId] = [];
+        }
 
-    return question.problem.answerOptions
-      ? question.problem.correct_answer?.includes(answer) || false
-      : question.problem.correct_answer?.some(
-          (correctAnswer) =>
-            correctAnswer.trim().toLowerCase() === answer.trim().toLowerCase()
-        ) || false;
-  };
+        updatedHistory[questionId].push({
+          userChoice: answer,
+          time: Math.floor(Date.now() / 1000), // Unix timestamp
+          status: isCorrect ? "correct" : "incorrect",
+        });
 
-  // Handle answer selection (for both multiple choice and text input)
-  const handleAnswerSelect = (optionKey: string) => {
-    // When answerVisibility is "hide", always allow answering (reset each time)
-    // Otherwise, prevent if already checked in current session or previously answered
-    if (answerVisibility === "hide") {
-      // Always allow interaction in hide mode
-    } else if (isAnswerChecked || isQuestionAnswered) {
-      return;
-    }
+        setAnswerChoiceHistory(updatedHistory);
 
-    setSelectedAnswer(optionKey);
+        console.log("Question answered and saved to answerChoiceHistory:", {
+          questionId,
+          selectedAnswer: answer,
+          isCorrect,
+          assessment,
+          questionType: question.problem.answerOptions
+            ? "multiple-choice"
+            : "text-input",
+          updatedHistory: updatedHistory[questionId],
+        });
+      } else {
+        // Save to practiceStatistics when answer visibility is shown
+        const updatedStats = { ...practiceStatistics };
 
-    // For multiple choice, immediately validate and submit
-    if (question.problem.answerOptions) {
-      setIsAnswerChecked(true);
+        // Initialize assessment stats if they don't exist
+        if (!updatedStats[assessment]) {
+          updatedStats[assessment] = {
+            answeredQuestions: [],
+            answeredQuestionsDetailed: [],
+            statistics: {},
+          };
+        }
+
+        const assessmentStats = updatedStats[assessment];
+
+        // Add to answered questions if not already there
+        if (!assessmentStats.answeredQuestions?.includes(questionId)) {
+          assessmentStats.answeredQuestions =
+            assessmentStats.answeredQuestions || [];
+          assessmentStats.answeredQuestions.push(questionId);
+        }
+
+        // Add detailed answer information
+        assessmentStats.answeredQuestionsDetailed =
+          assessmentStats.answeredQuestionsDetailed || [];
+
+        // Remove existing entry if it exists (for re-answering)
+        assessmentStats.answeredQuestionsDetailed =
+          assessmentStats.answeredQuestionsDetailed.filter(
+            (q) => q.questionId !== questionId
+          );
+
+        // Add new entry
+        assessmentStats.answeredQuestionsDetailed.push({
+          questionId,
+          difficulty: question.question.difficulty || "M", // Default to Medium if not specified
+          isCorrect,
+          timeSpent: timeElapsed,
+          timestamp: new Date().toISOString(),
+          selectedAnswer: answer, // Store user's selected answer
+          plainQuestion: question.question,
+        });
+
+        // Save to localStorage
+        setPracticeStatistics(updatedStats);
+
+        // Debug logging
+        console.log("Question answered and saved to practiceStatistics:", {
+          questionId,
+          selectedAnswer: answer,
+          isCorrect,
+          assessment,
+          questionType: question.problem.answerOptions
+            ? "multiple-choice"
+            : "text-input",
+          updatedStats: updatedStats[assessment]?.answeredQuestionsDetailed,
+        });
+      }
+
+      // Update local state
       if (answerVisibility !== "hide") {
         setIsQuestionAnswered(true);
       }
-      submitAnswer(optionKey);
-    }
-  };
-
-  // Handle text input change with immediate validation
-  const handleTextInputChange = (value: string) => {
-    // When answerVisibility is "hide", always allow interaction
-    // Otherwise, prevent if already checked in current session or previously answered
-    if (answerVisibility === "hide") {
-      // Always allow interaction in hide mode
-    } else if (isAnswerChecked || isQuestionAnswered) {
-      return;
-    }
-    setSelectedAnswer(value);
-  };
-
-  // Submit answer and save statistics
-  const submitAnswer = (answer: string) => {
-    const questionId = question.question.questionId;
-
-    // For multiple choice questions
-    const isCorrect = question.problem.answerOptions
-      ? question.problem.correct_answer?.includes(answer) || false
-      : // For text input questions, compare with correct answers (case insensitive, trimmed)
-        question.problem.correct_answer?.some(
-          (correctAnswer) =>
-            correctAnswer.trim().toLowerCase() === answer.trim().toLowerCase()
-        ) || false;
-
-    const timeElapsed = Date.now() - questionStartTime;
-
-    // Play sound effect
-    if (isCorrect) {
-      playSound("correct-answer.wav");
-    } else {
-      playSound("incorrect-answer.wav");
-    }
-
-    // Save to different storage based on answerVisibility
-    if (answerVisibility === "hide") {
-      // Save to answerChoiceHistory when answer visibility is hidden
-      const updatedHistory = { ...answerChoiceHistory };
-
-      if (!updatedHistory[questionId]) {
-        updatedHistory[questionId] = [];
-      }
-
-      updatedHistory[questionId].push({
-        userChoice: answer,
-        time: Math.floor(Date.now() / 1000), // Unix timestamp
-        status: isCorrect ? "correct" : "incorrect",
-      });
-
-      setAnswerChoiceHistory(updatedHistory);
-
-      console.log("Question answered and saved to answerChoiceHistory:", {
-        questionId,
-        selectedAnswer: answer,
-        isCorrect,
-        assessment,
-        questionType: question.problem.answerOptions
-          ? "multiple-choice"
-          : "text-input",
-        updatedHistory: updatedHistory[questionId],
-      });
-    } else {
-      // Save to practiceStatistics when answer visibility is shown
-      const updatedStats = { ...practiceStatistics };
-
-      // Initialize assessment stats if they don't exist
-      if (!updatedStats[assessment]) {
-        updatedStats[assessment] = {
-          answeredQuestions: [],
-          answeredQuestionsDetailed: [],
-          statistics: {},
-        };
-      }
-
-      const assessmentStats = updatedStats[assessment];
-
-      // Add to answered questions if not already there
-      if (!assessmentStats.answeredQuestions?.includes(questionId)) {
-        assessmentStats.answeredQuestions =
-          assessmentStats.answeredQuestions || [];
-        assessmentStats.answeredQuestions.push(questionId);
-      }
-
-      // Add detailed answer information
-      assessmentStats.answeredQuestionsDetailed =
-        assessmentStats.answeredQuestionsDetailed || [];
-
-      // Remove existing entry if it exists (for re-answering)
-      assessmentStats.answeredQuestionsDetailed =
-        assessmentStats.answeredQuestionsDetailed.filter(
-          (q) => q.questionId !== questionId
-        );
-
-      // Add new entry
-      assessmentStats.answeredQuestionsDetailed.push({
-        questionId,
-        difficulty: question.question.difficulty || "M", // Default to Medium if not specified
+      setQuestionStats({
         isCorrect,
         timeSpent: timeElapsed,
         timestamp: new Date().toISOString(),
-        selectedAnswer: answer, // Store user's selected answer
-        plainQuestion: question.question,
+        selectedAnswer: answer, // Store the user's selected answer
       });
 
-      // Save to localStorage
-      setPracticeStatistics(updatedStats);
+      // In hide mode, reset the visual state after a brief delay to allow re-answering
+      if (answerVisibility === "hide") {
+        setTimeout(() => {
+          setSelectedAnswer(null);
+          setIsAnswerChecked(false);
+          setQuestionStats(null);
+        }, 3000); // Show feedback for 3 seconds, then reset
+      }
+    },
+    [
+      questionId,
+      question.problem.answerOptions,
+      question.problem.correct_answer,
+      questionStartTime,
+      answerVisibility,
+      answerChoiceHistory,
+      setAnswerChoiceHistory,
+      practiceStatistics,
+      setPracticeStatistics,
+      assessment,
+      question.question.difficulty,
+      question.question,
+    ]
+  );
 
-      // Debug logging
-      console.log("Question answered and saved to practiceStatistics:", {
-        questionId,
-        selectedAnswer: answer,
-        isCorrect,
-        assessment,
-        questionType: question.problem.answerOptions
-          ? "multiple-choice"
-          : "text-input",
-        updatedStats: updatedStats[assessment]?.answeredQuestionsDetailed,
-      });
-    }
-
-    // Update local state
-    if (answerVisibility !== "hide") {
-      setIsQuestionAnswered(true);
-    }
-    setQuestionStats({
-      isCorrect,
-      timeSpent: timeElapsed,
-      timestamp: new Date().toISOString(),
-      selectedAnswer: answer, // Store the user's selected answer
-    });
-
-    // In hide mode, reset the visual state after a brief delay to allow re-answering
-    if (answerVisibility === "hide") {
-      setTimeout(() => {
-        setSelectedAnswer(null);
-        setIsAnswerChecked(false);
-        setQuestionStats(null);
-      }, 3000); // Show feedback for 3 seconds, then reset
-    }
-  };
-
-  // Handle text input submission
-  const handleTextInputSubmit = () => {
+  // Handle text input submission - memoized
+  const handleTextInputSubmit = useCallback(() => {
     if (selectedAnswer && selectedAnswer.trim()) {
       setIsAnswerChecked(true);
       if (answerVisibility !== "hide") {
@@ -527,7 +598,38 @@ export default function QuestionProblemCard({
       }
       submitAnswer(selectedAnswer.trim());
     }
-  };
+  }, [selectedAnswer, answerVisibility, submitAnswer]);
+
+  // Handle answer selection (for both multiple choice and text input) - memoized
+  const handleAnswerSelect = useCallback(
+    (optionKey: string) => {
+      // When answerVisibility is "hide", always allow answering (reset each time)
+      // Otherwise, prevent if already checked in current session or previously answered
+      if (answerVisibility === "hide") {
+        // Always allow interaction in hide mode
+      } else if (isAnswerChecked || isQuestionAnswered) {
+        return;
+      }
+
+      setSelectedAnswer(optionKey);
+
+      // For multiple choice, immediately validate and submit
+      if (question.problem.answerOptions) {
+        setIsAnswerChecked(true);
+        if (answerVisibility !== "hide") {
+          setIsQuestionAnswered(true);
+        }
+        submitAnswer(optionKey);
+      }
+    },
+    [
+      answerVisibility,
+      isAnswerChecked,
+      isQuestionAnswered,
+      question.problem.answerOptions,
+      submitAnswer,
+    ]
+  );
 
   // console.log(question);
   return (
@@ -1198,4 +1300,6 @@ export default function QuestionProblemCard({
       )}
     </React.Fragment>
   );
-}
+});
+
+export default QuestionProblemCard;

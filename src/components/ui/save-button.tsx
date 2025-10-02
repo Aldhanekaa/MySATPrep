@@ -14,7 +14,7 @@ import { SavedCollections, SavedCollection } from "@/types/savedCollections";
 import { QuestionById_Data } from "@/types";
 import { playSound } from "@/lib/playSound";
 import { useLocalStorage } from "@/lib/useLocalStorage";
-import { useState, useId } from "react";
+import { useState, useId, useEffect } from "react";
 
 interface SaveButtonProps {
   question: QuestionById_Data;
@@ -58,6 +58,46 @@ export function SaveButton({
   const [editingCollection, setEditingCollection] =
     useState<SavedCollection | null>(null);
   const [hoverCardOpen, setHoverCardOpen] = useState(false);
+
+  // Effect to keep savedCollections updated with latest localStorage data
+  useEffect(() => {
+    const updateCollections = () => {
+      try {
+        const currentCollections =
+          window.localStorage.getItem("savedCollections");
+        const parsedCollections = currentCollections
+          ? JSON.parse(currentCollections)
+          : {};
+
+        // Only update if the data has actually changed
+        if (
+          JSON.stringify(savedCollections) !== JSON.stringify(parsedCollections)
+        ) {
+          setSavedCollections(parsedCollections);
+        }
+      } catch (error) {
+        console.error("Error syncing savedCollections:", error);
+      }
+    };
+
+    // Update on storage events (changes from other tabs/windows)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "savedCollections") {
+        updateCollections();
+      }
+    };
+
+    // Update periodically to catch any missed changes
+    const interval = setInterval(updateCollections, 1000);
+
+    // Listen for storage events
+    window.addEventListener("storage", handleStorageChange);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("storage", handleStorageChange);
+    };
+  }, [savedCollections, setSavedCollections]);
 
   const questionId = question.question.questionId;
 
