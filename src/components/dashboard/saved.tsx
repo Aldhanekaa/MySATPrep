@@ -435,7 +435,7 @@ const savedTabReducer = (
 
 export function SavedTab({ selectedAssessment }: SavedTabProps) {
   // Load saved questions from localStorage
-  const [savedQuestions] = useLocalStorage<SavedQuestions>(
+  const [savedQuestions, setSavedQuestions] = useLocalStorage<SavedQuestions>(
     "savedQuestions",
     {}
   );
@@ -443,6 +443,85 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
   // Load saved collections from localStorage
   const [savedCollections, setSavedCollections] =
     useLocalStorage<SavedCollections>("savedCollections", {});
+
+  // Effect to keep savedCollections updated with latest localStorage data
+  useEffect(() => {
+    const updateSavedCollections = () => {
+      try {
+        const currentCollections =
+          window.localStorage.getItem("savedCollections");
+        const parsedCollections = currentCollections
+          ? JSON.parse(currentCollections)
+          : {};
+
+        // Only update if the data has actually changed
+        if (
+          JSON.stringify(savedCollections) !== JSON.stringify(parsedCollections)
+        ) {
+          setSavedCollections(parsedCollections);
+        }
+      } catch (error) {
+        console.error("Error syncing savedCollections:", error);
+      }
+    };
+
+    // Update on storage events (changes from other tabs/windows)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "savedCollections") {
+        updateSavedCollections();
+      }
+    };
+
+    // Reduced polling frequency for better performance
+    const interval = setInterval(updateSavedCollections, 2000);
+
+    // Listen for storage events
+    window.addEventListener("storage", handleStorageChange);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("storage", handleStorageChange);
+    };
+  }, [savedCollections, setSavedCollections]);
+
+  // Effect to keep savedQuestions updated with latest localStorage data
+  useEffect(() => {
+    const updateSavedQuestions = () => {
+      try {
+        const currentQuestions = window.localStorage.getItem("savedQuestions");
+        const parsedQuestions = currentQuestions
+          ? JSON.parse(currentQuestions)
+          : {};
+
+        // Only update if the data has actually changed
+        if (
+          JSON.stringify(savedQuestions) !== JSON.stringify(parsedQuestions)
+        ) {
+          setSavedQuestions(parsedQuestions);
+        }
+      } catch (error) {
+        console.error("Error syncing savedQuestions:", error);
+      }
+    };
+
+    // Update on storage events (changes from other tabs/windows)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "savedQuestions") {
+        updateSavedQuestions();
+      }
+    };
+
+    // Reduced polling frequency for better performance
+    const interval = setInterval(updateSavedQuestions, 2000);
+
+    // Listen for storage events
+    window.addEventListener("storage", handleStorageChange);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("storage", handleStorageChange);
+    };
+  }, [savedQuestions, setSavedQuestions]);
 
   // State for collection management
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -559,6 +638,49 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
   });
 
   const loadMoreRef = useRef<HTMLDivElement>(null);
+
+  // Effect to sync both savedCollections and savedQuestions when view mode or collection changes
+  useEffect(() => {
+    const syncDataOnNavigation = () => {
+      try {
+        // Sync savedCollections
+        const currentCollections =
+          window.localStorage.getItem("savedCollections");
+        const parsedCollections = currentCollections
+          ? JSON.parse(currentCollections)
+          : {};
+        if (
+          JSON.stringify(savedCollections) !== JSON.stringify(parsedCollections)
+        ) {
+          setSavedCollections(parsedCollections);
+        }
+
+        // Sync savedQuestions
+        const currentQuestions = window.localStorage.getItem("savedQuestions");
+        const parsedQuestions = currentQuestions
+          ? JSON.parse(currentQuestions)
+          : {};
+        if (
+          JSON.stringify(savedQuestions) !== JSON.stringify(parsedQuestions)
+        ) {
+          setSavedQuestions(parsedQuestions);
+        }
+      } catch (error) {
+        console.error("Error syncing localStorage data on navigation:", error);
+      }
+    };
+
+    // Sync whenever view mode or selected collection changes
+    // This ensures fresh data when opening bookmark folders or switching views
+    syncDataOnNavigation();
+  }, [
+    state.viewMode,
+    state.selectedCollection,
+    setSavedCollections,
+    savedCollections,
+    setSavedQuestions,
+    savedQuestions,
+  ]);
 
   // Get the assessment key from selectedAssessment (memoized)
   const getAssessmentKey = useCallback(
