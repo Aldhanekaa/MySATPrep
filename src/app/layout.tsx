@@ -118,6 +118,63 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        {/* User declared canonical URL */}
+        <link rel="canonical" href="https://www.mysatprep.fun" />
+
+        {/* Additional SEO meta tags */}
+        <meta
+          name="robots"
+          content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"
+        />
+        <meta
+          name="googlebot"
+          content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"
+        />
+
+        {/* Structured data for organization */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "EducationalOrganization",
+              "@id": "https://www.mysatprep.fun/#organization",
+              name: "MySATPrep",
+              alternateName: "My SAT Prep",
+              url: "https://www.mysatprep.fun",
+              logo: {
+                "@type": "ImageObject",
+                url: "https://www.mysatprep.fun/icon-512x512.png",
+                width: 512,
+                height: 512,
+              },
+              contactPoint: {
+                "@type": "ContactPoint",
+                contactType: "customer service",
+                email: "support@mysatprep.fun",
+                availableLanguage: ["English"],
+              },
+              sameAs: [
+                "https://www.facebook.com/mysatprep",
+                "https://www.twitter.com/mysatprep",
+                "https://www.instagram.com/mysatprep",
+                "https://www.youtube.com/mysatprep",
+              ],
+              foundingDate: "2024",
+              description:
+                "Leading educational technology platform providing free SAT practice questions and comprehensive test preparation resources",
+              knowsAbout: [
+                "SAT Test Preparation",
+                "College Board Questions",
+                "Digital SAT",
+                "Standardized Test Prep",
+                "Educational Assessment",
+              ],
+            }),
+          }}
+        />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
