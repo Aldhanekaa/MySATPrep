@@ -6,7 +6,7 @@ import FooterSection from "@/components/footer";
 export const metadata: Metadata = {
   title: "Free SAT Practice Questions & Test Prep - MySATPrep",
   description:
-    "Boost your SAT scores with our comprehensive question bank featuring real Collegeboard's Questionbank questions. Track progress, identify weak areas, and master the SAT with personalized practice sessions.",
+    "Boost your SAT scores with our comprehensive question bank featuring real Collegeboard's Questionbank questions. We use official SAT Suite Question Bank Questions. Track progress, identify weak areas, and master the SAT with personalized practice sessions.",
   keywords: [
     "free SAT practice",
     "SAT test prep",
@@ -24,6 +24,9 @@ export const metadata: Metadata = {
     "SAT question bank",
     "digital SAT practice",
     "SAT Suite questions",
+    "SAT Suite Question Bank",
+    "SAT Question Bank",
+    "official SAT Suite questions",
     "official SAT questions",
     "SAT vocabulary practice",
     "SAT flashcards",
@@ -38,6 +41,9 @@ export const metadata: Metadata = {
     "free SAT resources",
     "SAT practice platform",
     "online SAT preparation",
+    "College Board Question Bank",
+    "official SAT Suite Question Bank Questions",
+    "authentic SAT Suite questions",
   ],
   authors: [{ name: "MySATPrep Team" }],
   creator: "MySATPrep",
@@ -248,7 +254,7 @@ export default function Home() {
         datePublished: "2024-01-01T00:00:00+00:00",
         dateModified: new Date().toISOString(),
         description:
-          "Boost your SAT scores with our comprehensive question bank featuring real Collegeboard's Questionbank questions. Track progress, identify weak areas, and master the SAT with personalized practice sessions.",
+          "Boost your SAT scores with our comprehensive question bank featuring real Collegeboard's Questionbank questions. We use official SAT Suite Question Bank Questions. Track progress, identify weak areas, and master the SAT with personalized practice sessions.",
         breadcrumb: {
           "@id": "https://www.mysatprep.fun/#breadcrumb",
         },
@@ -324,6 +330,9 @@ export default function Home() {
         knowsAbout: [
           "SAT Test Preparation",
           "College Board Questions",
+          "SAT Suite Question Bank",
+          "SAT Question Bank",
+          "Official SAT Suite Questions",
           "Digital SAT",
           "Standardized Test Prep",
           "Educational Assessment",

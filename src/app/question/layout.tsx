@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "SAT Question Search - Find Specific Questions by ID | MySATPrep",
   description:
-    "Search for specific SAT questions by ID from the College Board question bank. Access detailed solutions, explanations, and practice with targeted SAT questions to improve your test scores.",
+    "Search for specific SAT questions by ID from the College Board question bank. We use official SAT Suite Question Bank Questions. Access detailed solutions, explanations, and practice with targeted SAT questions to improve your test scores.",
   keywords: [
     "SAT question search",
     "SAT question ID lookup",

@@ -5,7 +5,7 @@ export const metadata: Metadata = {
   title:
     "SAT Progress Tracker - Track Your Collegeboard's Question Bank Progress",
   description:
-    "Track your College Board SAT Suite Question Bank progress with detailed analytics. Monitor your performance on official Collegeboard questions across Math, Reading, and Writing sections. View accuracy rates, time spent, and improvement trends.",
+    "Track your College Board SAT Suite Question Bank progress with detailed analytics. We use official SAT Suite Question Bank Questions. Monitor your performance on official Collegeboard questions across Math, Reading, and Writing sections. View accuracy rates, time spent, and improvement trends.",
   keywords: [
     "SAT progress tracker",
     "SAT performance tracker",

@@ -4,7 +4,7 @@ import { Metadata } from "next";
 export const metadata: Metadata = {
   title: "SAT Vocabulary Wordbank - 800+ Essential SAT Words",
   description:
-    "Master 800+ essential SAT vocabulary words with our comprehensive wordbank. Study high-frequency SAT vocab from College Board questions with definitions, examples, and practice exercises. Boost your SAT Reading and Writing scores.",
+    "Master 800+ essential SAT vocabulary words with our comprehensive wordbank. Study high-frequency SAT vocab from College Board questions with definitions, examples, and practice exercises. We use official SAT Suite Question Bank Questions. Boost your SAT Reading and Writing scores.",
   keywords: [
     "SAT vocabulary",
     "SAT vocab words",
@@ -45,6 +45,9 @@ export const metadata: Metadata = {
     "SAT vocabulary test",
     "memorize SAT vocabulary",
     "SAT vocabulary cards",
+    "SAT Suite Question Bank vocabulary",
+    "College Board SAT vocabulary",
+    "official SAT Suite words",
   ],
   authors: [{ name: "MySATPrep Team" }],
   creator: "MySATPrep",
@@ -234,6 +237,7 @@ export default function VocabsPage() {
       coursePrerequisites: "Basic English proficiency",
       educationalCredentialAwarded: "Certificate of Completion",
       isAccessibleForFree: true,
+      license: "https://creativecommons.org/licenses/by-nc-sa/4.0/",
       inLanguage: "en-US",
       learningResourceType: "Vocabulary List",
       educationalUse: "Study Material",

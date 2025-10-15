@@ -7,7 +7,7 @@ import FooterSection from "@/components/footer";
 export const metadata: Metadata = {
   title: "SAT Study Resources & Reference Materials",
   description:
-    "Access comprehensive SAT study resources including reference sheets, formula guides, test-taking strategies, and essential materials to excel on the SAT exam. Free downloadable resources for math, reading, and writing sections.",
+    "Access comprehensive SAT study resources including reference sheets, formula guides, test-taking strategies, and essential materials to excel on the SAT exam. We use official SAT Suite Question Bank Questions. Free downloadable resources for math, reading, and writing sections.",
   keywords: [
     "SAT study resources",
     "SAT reference sheet",
@@ -16,6 +16,9 @@ export const metadata: Metadata = {
     "SAT test strategies",
     "SAT preparation materials",
     "College Board resources",
+    "SAT Suite Question Bank",
+    "SAT Question Bank",
+    "official SAT Suite resources",
     "SAT math reference",
     "SAT study tips",
     "free SAT resources",

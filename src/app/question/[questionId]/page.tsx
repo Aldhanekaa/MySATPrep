@@ -41,7 +41,7 @@ export async function generateMetadata({
       return {
         title: "Question Not Found - MySATPrep",
         description:
-          "The requested SAT practice question could not be found. Browse our question bank for more SAT practice questions.",
+          "The requested SAT practice question could not be found. Browse our question bank for more SAT practice questions. We use official SAT Suite Question Bank Questions.",
         robots: {
           index: false,
           follow: true,
@@ -70,13 +70,16 @@ export async function generateMetadata({
 
     return {
       title: `${questionType} Practice Question #${question.questionId} - MySATPrep`,
-      description: `Practice this ${difficulty.toLowerCase()} ${questionType.toLowerCase()} SAT question. ${questionPreview}... Master SAT concepts with detailed explanations and step-by-step solutions.`,
+      description: `Practice this ${difficulty.toLowerCase()} ${questionType.toLowerCase()} SAT question. ${questionPreview}... We use official SAT Suite Question Bank Questions. Master SAT concepts with detailed explanations and step-by-step solutions.`,
       keywords: [
         "SAT practice question",
         questionType,
         `SAT ${question.primary_class_cd_desc || ""}`,
         `${difficulty} SAT question`,
         "College Board practice",
+        "SAT Suite Question Bank",
+        "SAT Question Bank",
+        "official SAT Suite questions",
         "SAT test prep",
         "practice problems",
         "SAT solutions",

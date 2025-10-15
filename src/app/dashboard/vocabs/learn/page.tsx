@@ -27,7 +27,7 @@ function PageBanner() {
 export const metadata: Metadata = {
   title: "SAT Vocabulary Flashcards - Learn 800+ Common Words in SAT",
   description:
-    "Learn SAT vocabulary with interactive flashcards featuring 800+ essential words from College Board's SAT Suite Question Bank. Master SAT vocab through spaced repetition, definitions, examples, and quiz mode for better Reading and Writing scores.",
+    "Learn SAT vocabulary with interactive flashcards featuring 800+ essential words from College Board's SAT Suite Question Bank. We use official SAT Suite Question Bank Questions. Master SAT vocab through spaced repetition, definitions, examples, and quiz mode for better Reading and Writing scores.",
   keywords: [
     "SAT vocabulary flashcards",
     "SAT vocab flashcards",

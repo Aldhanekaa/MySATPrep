@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   title:
     "AI-Powered SAT Vocabulary Practice - Practice With 800+ Common Words in SAT",
   description:
-    "Master SAT vocabulary with AI-powered practice modes featuring 800+ College Board words. Adaptive learning, personalized quizzes, context-based exercises, and intelligent spaced repetition from SAT Suite Question Bank vocabulary.",
+    "Master SAT vocabulary with AI-powered practice modes featuring 800+ College Board words. We use official SAT Suite Question Bank Questions. Adaptive learning, personalized quizzes, context-based exercises, and intelligent spaced repetition from SAT Suite Question Bank vocabulary.",
   keywords: [
     "AI SAT vocabulary practice",
     "SAT vocab practice modes",

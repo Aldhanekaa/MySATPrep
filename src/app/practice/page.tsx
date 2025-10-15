@@ -4,13 +4,16 @@ import { Metadata } from "next";
 export const metadata: Metadata = {
   title: "SAT Practice Questions",
   description:
-    "Practice with authentic SAT questions from College Board's official question bank. Improve your SAT scores with real test questions covering Math, Reading, and Writing sections.",
+    "Practice with authentic SAT questions from College Board's official question bank. We use official SAT Suite Question Bank Questions. Improve your SAT scores with real test questions covering Math, Reading, and Writing sections.",
   keywords: [
     "SAT practice questions",
     "free SAT practice",
     "SAT test prep",
     "College Board practice questions",
     "Collegeboard Questionbank practice",
+    "SAT Suite Question Bank",
+    "SAT Question Bank",
+    "official SAT Suite questions",
     "authentic SAT questions",
     "SAT math practice questions",
     "SAT reading practice questions",
