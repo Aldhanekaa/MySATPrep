@@ -196,11 +196,13 @@ export default function RootLayout({
         <Toaster position="bottom-right" expand={true} closeButton={true} />
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(c,l,a,r,i,t,y){
+            __html: `
+    (function(c,l,a,r,i,t,y){
         c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
-        t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i+"?ref=bwt";
+        t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
         y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
-    })(window, document, "clarity", "script", "tvx6mt4cmh");`,
+    })(window, document, "clarity", "script", "tvx8ozuprp");
+`,
           }}
         ></script>
       </body>
