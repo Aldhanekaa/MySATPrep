@@ -149,6 +149,8 @@ export async function GET(request: NextRequest) {
     }
 
     const data: API_Response_Question_List | undefined = await response.json();
+    console.log(" Collegeboard Data ", data);
+
     let questions = data || [];
 
     if (excludeQuestionIds.length > 0) {

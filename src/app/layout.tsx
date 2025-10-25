@@ -178,14 +178,13 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
+        {/* <Banner
+          message="Some features may be unavailable due to the ongoing global outage."
+          height="2rem"
+          variant="rainbow"
+        /> */}
         <AssessmentProvider>
           <MathJaxContext version={3} config={config}>
-            {/* <Banner
-              message="We just released a new feature!"
-              height="2rem"
-              variant="rainbow"
-            /> */}
-
             {children}
           </MathJaxContext>
         </AssessmentProvider>
@@ -194,7 +193,16 @@ export default function RootLayout({
         <GoogleTagManager gtmId={process.env.GT_KEY || ""} />
         <SpeedInsights />
         <Analytics />
-        <Toaster position="bottom-right" expand={false} closeButton={true} />
+        <Toaster position="bottom-right" expand={true} closeButton={true} />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(c,l,a,r,i,t,y){
+        c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+        t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i+"?ref=bwt";
+        y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+    })(window, document, "clarity", "script", "tvx6mt4cmh");`,
+          }}
+        ></script>
       </body>
     </html>
   );

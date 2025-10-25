@@ -354,6 +354,64 @@
     background-size: 200% 100%;
     mix-blend-mode: color-dodge;
   }
+
+  .warning-banner-gradient-1 {
+    mask-image: linear-gradient(to bottom, white, transparent),
+      radial-gradient(circle at top center, white, transparent);
+    mask-composite: intersect;
+    animation: moving-banner 18s linear infinite reverse;
+    --start: rgba(255, 193, 7, 0.6);
+    --mid: rgba(255, 152, 0, 0.7);
+    --end: rgba(255, 87, 34, 0.5);
+    --via: rgba(255, 235, 59, 0.4);
+    background-image: repeating-linear-gradient(
+      50deg,
+      var(--end),
+      var(--start) 3%,
+      var(--start) 6%,
+      transparent 9%,
+      transparent 15%,
+      var(--via) 19%,
+      var(--via) 23%,
+      var(--mid) 29%,
+      var(--mid) 31%,
+      var(--via) 35%,
+      var(--via) 37%,
+      transparent,
+      var(--end) calc(50% - 10px)
+    );
+    background-size: 200% 100%;
+    mix-blend-mode: multiply;
+  }
+
+  .warning-banner-gradient-2 {
+    mask-image: linear-gradient(to bottom, white, transparent),
+      radial-gradient(circle at top center, white, transparent);
+    mask-composite: intersect;
+    animation: moving-banner 22s linear infinite;
+    --start: rgba(255, 183, 77, 0.5);
+    --mid: rgba(255, 160, 0, 0.6);
+    --end: rgba(230, 81, 0, 0.55);
+    --via: rgba(255, 213, 79, 0.45);
+    background-image: repeating-linear-gradient(
+      35deg,
+      var(--end),
+      var(--start) 5%,
+      var(--start) 9%,
+      transparent 11%,
+      transparent 16%,
+      var(--mid) 18%,
+      var(--mid) 22%,
+      transparent,
+      var(--via) 38%,
+      var(--via) 42%,
+      transparent 44%,
+      var(--end) 48%,
+      var(--end) calc(50% - 14px)
+    );
+    background-size: 200% 100%;
+    mix-blend-mode: overlay;
+  }
 }
 
 @keyframes moving-banner {
