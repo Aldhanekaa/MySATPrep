@@ -6,8 +6,8 @@ export interface VocabularyWord {
   part_of_speech: partOfSpeechType;
   definition: string;
   example: string;
-  // page: number;
-  // categories: string[];
+  page: number;
+  categories: string[];
   difficulty: "easy" | "medium" | "hard";
   syllable_count: number;
   word_length: number;
