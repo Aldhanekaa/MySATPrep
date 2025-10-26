@@ -37,33 +37,37 @@
     }
   },
   "summary": {
-    "word_count": 851,
+    "word_count": 988,
     "difficulty_distribution": {
-      "medium": 404,
-      "easy": 322,
-      "hard": 125
+      "medium": 468,
+      "easy": 381,
+      "hard": 139
     },
     "category_distribution": {
-      "general": 605,
+      "general": 725,
       "power_authority": 26,
+      "action": 13,
       "communication_speech": 29,
       "social_relationships": 12,
       "behavior_personality": 33,
-      "emotions_feelings": 85,
-      "physical_appearance": 29,
+      "emotions_feelings": 82,
+      "physical_appearance": 28,
       "art_culture": 1,
+      "emotions": 3,
       "movement_action": 20,
       "business_economics": 7,
       "conflict_struggle": 8,
-      "intellectual_mental": 23,
-      "time_change": 17,
+      "intellectual_mental": 22,
+      "time_change": 16,
       "morality_ethics": 11,
-      "science_nature": 4
+      "science_nature": 4,
+      "social": 3,
+      "thinking": 2
     },
     "part_of_speech_distribution": {
-      "verb": 215,
-      "noun": 226,
-      "adjective": 409,
+      "verb": 250,
+      "adjective": 472,
+      "noun": 265,
       "adverb": 1
     },
     "average_word_length": 8.1,
@@ -95,6 +99,22 @@
       "category": "general",
       "syllable_count": 2,
       "word_length": 5,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
+      "word": "abbergasted",
+      "part_of_speech": "adjective",
+      "definition": "astounded",
+      "example": "Whenever I read an Agatha Christie mystery novel, I am always ss abbergasted when I learn the identity of the murderer.",
+      "difficulty": "medium",
+      "category": "general",
+      "syllable_count": 4,
+      "word_length": 11,
       "etymology": "Unknown",
       "definition_number": 1,
       "page": 1,
@@ -183,6 +203,22 @@
       ]
     },
     {
+      "word": "abide",
+      "part_of_speech": "verb",
+      "definition": "to put up with",
+      "example": "Though he did not agree with the decision, Chuck decided to abide by it.",
+      "difficulty": "easy",
+      "category": "general",
+      "syllable_count": 2,
+      "word_length": 5,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
       "word": "abject",
       "part_of_speech": "adjective",
       "definition": "wretched, pitiful",
@@ -228,6 +264,38 @@
       "page": 2,
       "categories": [
         "general"
+      ]
+    },
+    {
+      "word": "abort",
+      "part_of_speech": "verb",
+      "definition": "to give up on a half-finished project or effort",
+      "example": "After they ran out of food, the men, attempting to jump rope around the world, had to abort and go home.",
+      "difficulty": "easy",
+      "category": "general",
+      "syllable_count": 2,
+      "word_length": 5,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
+      "word": "abridge",
+      "part_of_speech": "verb",
+      "definition": "to cut down, shorten",
+      "example": "The publisher thought the dictionary was too long and abridged it.",
+      "difficulty": "easy",
+      "category": "action",
+      "syllable_count": 2,
+      "word_length": 7,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "action"
       ]
     },
     {
@@ -354,6 +422,22 @@
       "etymology": "Unknown",
       "definition_number": 1,
       "page": 3,
+      "categories": [
+        "general"
+      ]
+    },
+    {
+      "word": "accid",
+      "part_of_speech": "adjective",
+      "definition": "limp, not firm or strong",
+      "example": "If a plant is not watered enough, its leaves become droopy and ss accid .",
+      "difficulty": "easy",
+      "category": "general",
+      "syllable_count": 2,
+      "word_length": 5,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
       "categories": [
         "general"
       ]
@@ -519,6 +603,22 @@
       ]
     },
     {
+      "word": "acute",
+      "part_of_speech": "adjective",
+      "definition": "sharp, severe",
+      "example": "Arnold could not walk because the pain in his foot was so acute .",
+      "difficulty": "easy",
+      "category": "general",
+      "syllable_count": 2,
+      "word_length": 5,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
       "word": "adamant",
       "part_of_speech": "adjective",
       "definition": "impervious, immovable, unyielding",
@@ -546,6 +646,22 @@
       "etymology": "Unknown",
       "definition_number": 1,
       "page": 3,
+      "categories": [
+        "general"
+      ]
+    },
+    {
+      "word": "adhere",
+      "part_of_speech": "verb",
+      "definition": "to stick to something",
+      "example": "We adhered the poster to the wall with tape.",
+      "difficulty": "medium",
+      "category": "general",
+      "syllable_count": 2,
+      "word_length": 6,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
       "categories": [
         "general"
       ]
@@ -647,6 +763,22 @@
       ]
     },
     {
+      "word": "advocate",
+      "part_of_speech": "verb",
+      "definition": "to argue in favor of something",
+      "example": "Arnold advocated turning left at the stop sign, even though everyone else thought we should turn right.",
+      "difficulty": "medium",
+      "category": "general",
+      "syllable_count": 3,
+      "word_length": 8,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
       "word": "aerial",
       "part_of_speech": "adjective",
       "definition": "somehow related to the air",
@@ -697,6 +829,38 @@
       ]
     },
     {
+      "word": "affinity",
+      "part_of_speech": "noun",
+      "definition": "a spontaneous feeling of closeness",
+      "example": "Jerry didn't know why, but he felt an incredible affinity for Kramer the first time they met.",
+      "difficulty": "easy",
+      "category": "emotions",
+      "syllable_count": 4,
+      "word_length": 8,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "emotions"
+      ]
+    },
+    {
+      "word": "affluent",
+      "part_of_speech": "adjective",
+      "definition": "rich, wealthy",
+      "example": "Mrs. Grebelski was affluent, owning a huge house, three cars, and an island near Maine.",
+      "difficulty": "easy",
+      "category": "general",
+      "syllable_count": 2,
+      "word_length": 8,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
       "word": "affront",
       "part_of_speech": "noun",
       "definition": "an insult",
@@ -724,6 +888,22 @@
       "etymology": "Unknown",
       "definition_number": 1,
       "page": 4,
+      "categories": [
+        "general"
+      ]
+    },
+    {
+      "word": "aggregate",
+      "part_of_speech": "noun",
+      "definition": "a whole or total",
+      "example": "The three branches of the U.S. Government form an aggregate much more powerful than its individual parts.",
+      "difficulty": "hard",
+      "category": "general",
+      "syllable_count": 3,
+      "word_length": 9,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
       "categories": [
         "general"
       ]
@@ -772,6 +952,38 @@
       "etymology": "Latin",
       "definition_number": 1,
       "page": 5,
+      "categories": [
+        "general"
+      ]
+    },
+    {
+      "word": "agrant",
+      "part_of_speech": "adjective",
+      "definition": "offensive, egregious",
+      "example": "The judge's decision to set the man free simply because that man was his brother was a ss agrant abuse of power.",
+      "difficulty": "easy",
+      "category": "general",
+      "syllable_count": 2,
+      "word_length": 6,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
+      "word": "agration",
+      "part_of_speech": "noun",
+      "definition": "great fire",
+      "example": "The conss agration consumed the entire building.",
+      "difficulty": "medium",
+      "category": "general",
+      "syllable_count": 3,
+      "word_length": 8,
+      "etymology": "Latin",
+      "definition_number": 1,
+      "page": 1,
       "categories": [
         "general"
       ]
@@ -1018,6 +1230,22 @@
       ]
     },
     {
+      "word": "amenity",
+      "part_of_speech": "noun",
+      "definition": "an item that increases comfort",
+      "example": "Bill Gates's house is stocked with so many amenities , he never has to do anything for himself.",
+      "difficulty": "medium",
+      "category": "general",
+      "syllable_count": 4,
+      "word_length": 7,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
       "word": "amiable",
       "part_of_speech": "adjective",
       "definition": "friendly",
@@ -1224,6 +1452,22 @@
       "etymology": "Unknown",
       "definition_number": 1,
       "page": 7,
+      "categories": [
+        "general"
+      ]
+    },
+    {
+      "word": "annex",
+      "part_of_speech": "verb",
+      "definition": "to incorporate territory or space",
+      "example": "After defeating them in battle, the Russians annexed Poland.",
+      "difficulty": "easy",
+      "category": "general",
+      "syllable_count": 2,
+      "word_length": 5,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
       "categories": [
         "general"
       ]
@@ -1438,6 +1682,22 @@
       ]
     },
     {
+      "word": "apocryphal",
+      "part_of_speech": "adjective",
+      "definition": "Thctitious, false, wrong",
+      "example": "Because I am standing before you, it seems obvious that the stories circulating about my demise were apocryphal .",
+      "difficulty": "medium",
+      "category": "general",
+      "syllable_count": 4,
+      "word_length": 10,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
       "word": "appalling",
       "part_of_speech": "adjective",
       "definition": "inspiring shock, horror, disgust",
@@ -1481,6 +1741,22 @@
       "etymology": "Unknown",
       "definition_number": 1,
       "page": 8,
+      "categories": [
+        "general"
+      ]
+    },
+    {
+      "word": "apprehend",
+      "part_of_speech": "verb",
+      "definition": "to seize, arrest",
+      "example": "The criminal was apprehended at the scene.",
+      "difficulty": "medium",
+      "category": "general",
+      "syllable_count": 3,
+      "word_length": 9,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
       "categories": [
         "general"
       ]
@@ -1566,6 +1842,22 @@
       ]
     },
     {
+      "word": "arbitrary",
+      "part_of_speech": "adjective",
+      "definition": "based on factors that appear random",
+      "example": "The boy's decision to choose one college over another seems arbitrary .",
+      "difficulty": "medium",
+      "category": "action",
+      "syllable_count": 4,
+      "word_length": 9,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "action"
+      ]
+    },
+    {
       "word": "arbitration",
       "part_of_speech": "noun",
       "definition": "the process or act of resolving a dispute",
@@ -1646,6 +1938,22 @@
       ]
     },
     {
+      "word": "ardor",
+      "part_of_speech": "noun",
+      "definition": "extreme vigor, energy, enthusiasm",
+      "example": "The soldiers conveyed their ar dor with impassioned battle cries.",
+      "difficulty": "easy",
+      "category": "action",
+      "syllable_count": 2,
+      "word_length": 5,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "action"
+      ]
+    },
+    {
       "word": "arid",
       "part_of_speech": "adjective",
       "definition": "excessively dry",
@@ -1673,6 +1981,54 @@
       "etymology": "Unknown",
       "definition_number": 1,
       "page": 9,
+      "categories": [
+        "general"
+      ]
+    },
+    {
+      "word": "artifact",
+      "part_of_speech": "noun",
+      "definition": "a remaining piece from an extinct culture or place",
+      "example": "The scientists spent all day searching the cave for artifacts from the ancient Mayan civilization.",
+      "difficulty": "medium",
+      "category": "general",
+      "syllable_count": 3,
+      "word_length": 8,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
+      "word": "artisan",
+      "part_of_speech": "noun",
+      "definition": "a craftsman",
+      "example": "The artisan uses wood to make walking sticks.",
+      "difficulty": "medium",
+      "category": "general",
+      "syllable_count": 3,
+      "word_length": 7,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
+      "word": "ascertain",
+      "part_of_speech": "verb",
+      "definition": "to perceive, learn",
+      "example": "With a bit of research, the student ascertained that some plants can live for weeks without water.",
+      "difficulty": "medium",
+      "category": "general",
+      "syllable_count": 3,
+      "word_length": 9,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
       "categories": [
         "general"
       ]
@@ -1819,6 +2175,70 @@
       "page": 10,
       "categories": [
         "intellectual_mental"
+      ]
+    },
+    {
+      "word": "asylum",
+      "part_of_speech": "noun",
+      "definition": "a place of refuge, protection, a sanctuary",
+      "example": "For Thoreau, the forest served as an asylum from the pressures of urban life.",
+      "difficulty": "easy",
+      "category": "general",
+      "syllable_count": 3,
+      "word_length": 6,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
+      "word": "atone",
+      "part_of_speech": "verb",
+      "definition": "to repent, make amends",
+      "example": "The man atoned for forgetting his wife's birthday by buying her five dozen roses.",
+      "difficulty": "easy",
+      "category": "action",
+      "syllable_count": 2,
+      "word_length": 5,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "action"
+      ]
+    },
+    {
+      "word": "atrophy",
+      "part_of_speech": "verb",
+      "definition": "to wither away, decay",
+      "example": "If muscles do not receive enough blood, they will soon atrophy and die.",
+      "difficulty": "medium",
+      "category": "general",
+      "syllable_count": 3,
+      "word_length": 7,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
+      "word": "attain",
+      "part_of_speech": "verb",
+      "definition": "to achieve, arrive at",
+      "example": "The athletes strived to attain their best times in competition.",
+      "difficulty": "easy",
+      "category": "general",
+      "syllable_count": 2,
+      "word_length": 6,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
       ]
     },
     {
@@ -2046,6 +2466,22 @@
       ]
     },
     {
+      "word": "battery",
+      "part_of_speech": "noun",
+      "definition": "a device that supplies power",
+      "example": "Most cars run on a combination of power from a battery and gasoline.",
+      "difficulty": "medium",
+      "category": "general",
+      "syllable_count": 3,
+      "word_length": 7,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
       "word": "beguile",
       "part_of_speech": "verb",
       "definition": "to trick, deceive",
@@ -2240,6 +2676,22 @@
       ]
     },
     {
+      "word": "blight",
+      "part_of_speech": "noun",
+      "definition": "a plague, disease",
+      "example": "The potato blight destroyed the harvest and bankrupted many families.",
+      "difficulty": "easy",
+      "category": "general",
+      "syllable_count": 1,
+      "word_length": 6,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
       "word": "boisterous",
       "part_of_speech": "adjective",
       "definition": "loud and full of energy",
@@ -2336,6 +2788,22 @@
       ]
     },
     {
+      "word": "buffet",
+      "part_of_speech": "verb",
+      "definition": "to strike with force",
+      "example": "The strong winds buffeted the ships, threatening to capsize them.",
+      "difficulty": "easy",
+      "category": "general",
+      "syllable_count": 2,
+      "word_length": 6,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
       "word": "burnish",
       "part_of_speech": "verb",
       "definition": "to polish, shine",
@@ -2347,6 +2815,22 @@
       "etymology": "Unknown",
       "definition_number": 1,
       "page": 12,
+      "categories": [
+        "general"
+      ]
+    },
+    {
+      "word": "buttress",
+      "part_of_speech": "verb",
+      "definition": "to support, hold up",
+      "example": "The column buttresses the roof above the statue.",
+      "difficulty": "easy",
+      "category": "general",
+      "syllable_count": 2,
+      "word_length": 8,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
       "categories": [
         "general"
       ]
@@ -2512,6 +2996,22 @@
       ]
     },
     {
+      "word": "canvas",
+      "part_of_speech": "noun",
+      "definition": "a piece of cloth on which an artist paints",
+      "example": "Picasso liked to work on canvas rather than on bare cement.",
+      "difficulty": "easy",
+      "category": "general",
+      "syllable_count": 2,
+      "word_length": 6,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
       "word": "capacious",
       "part_of_speech": "adjective",
       "definition": "very spacious",
@@ -2608,6 +3108,22 @@
       ]
     },
     {
+      "word": "catalog",
+      "part_of_speech": "verb",
+      "definition": "to list, enter into a list",
+      "example": "The judge cataloged the victim's injuries before calculating how much money he would award.",
+      "difficulty": "medium",
+      "category": "general",
+      "syllable_count": 3,
+      "word_length": 7,
+      "etymology": "Greek",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
       "word": "catalyze",
       "part_of_speech": "verb",
       "definition": "to charge, inspire",
@@ -2656,6 +3172,38 @@
       ]
     },
     {
+      "word": "cavort",
+      "part_of_speech": "verb",
+      "definition": "to leap about, behave boisterously",
+      "example": "The adults ate their dinners on the patio, while the children cavorted around the pool.",
+      "difficulty": "easy",
+      "category": "general",
+      "syllable_count": 2,
+      "word_length": 6,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
+      "word": "censure",
+      "part_of_speech": "noun",
+      "definition": "harsh criticism",
+      "example": "The frustrated teenager could not put up with anymore of her critical mother's censure .",
+      "difficulty": "easy",
+      "category": "general",
+      "syllable_count": 2,
+      "word_length": 7,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
       "word": "cerebral",
       "part_of_speech": "adjective",
       "definition": "related to the intellect",
@@ -2671,6 +3219,118 @@
         "emotions_feelings",
         "intellectual_mental",
         "movement_action"
+      ]
+    },
+    {
+      "word": "chaos",
+      "part_of_speech": "noun",
+      "definition": "absolute disorder",
+      "example": "Mr. Thornton's sudden departure for the lavatory plunged his classroom into chaos .",
+      "difficulty": "easy",
+      "category": "general",
+      "syllable_count": 1,
+      "word_length": 5,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
+      "word": "chastise",
+      "part_of_speech": "verb",
+      "definition": "to criticize severely",
+      "example": "After being chastised by her peers for mimicking Britney Spears, Miranda dyed her hair black and affected a Gothic style.",
+      "difficulty": "easy",
+      "category": "general",
+      "syllable_count": 2,
+      "word_length": 8,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
+      "word": "cherish",
+      "part_of_speech": "verb",
+      "definition": "to feel or show affection toward something",
+      "example": "She continued to cherish her red plaid trousers, even though they had gone out of style and no longer fit her.",
+      "difficulty": "easy",
+      "category": "emotions",
+      "syllable_count": 2,
+      "word_length": 7,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "emotions"
+      ]
+    },
+    {
+      "word": "chide",
+      "part_of_speech": "verb",
+      "definition": "to voice disapproval",
+      "example": "Lucy chided Russell for his vulgar habits and sloppy appearance.",
+      "difficulty": "easy",
+      "category": "general",
+      "syllable_count": 1,
+      "word_length": 5,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
+      "word": "choreography",
+      "part_of_speech": "noun",
+      "definition": "the arrangement of dances",
+      "example": "The plot of the musical was banal, but the choreography was stunning.",
+      "difficulty": "medium",
+      "category": "general",
+      "syllable_count": 4,
+      "word_length": 12,
+      "etymology": "Greek",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
+      "word": "chronological",
+      "part_of_speech": "adjective",
+      "definition": "arranged in order of time",
+      "example": "Lionel carefully arranged the snapshots of his former girlfriends in chronological order, and then set fire to them.",
+      "difficulty": "hard",
+      "category": "general",
+      "syllable_count": 5,
+      "word_length": 13,
+      "etymology": "Greek",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
+      "word": "cious",
+      "part_of_speech": "adjective",
+      "definition": "offering one's services when they are neither wanted nor needed",
+      "example": "Brenda resented Allan's ofTh cious behavior when he selected colors that might best improve her artwork.",
+      "difficulty": "medium",
+      "category": "general",
+      "syllable_count": 1,
+      "word_length": 5,
+      "etymology": "Latin",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
       ]
     },
     {
@@ -2755,6 +3415,38 @@
       ]
     },
     {
+      "word": "clairvoyant",
+      "part_of_speech": "adjective",
+      "definition": "able to perceive things that normal people cannot",
+      "example": "Zelda's uncanny ability to detect my lies was nothing short of clairvoyant .",
+      "difficulty": "medium",
+      "category": "social",
+      "syllable_count": 2,
+      "word_length": 11,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "social"
+      ]
+    },
+    {
+      "word": "clamor",
+      "part_of_speech": "noun",
+      "definition": "loud noise",
+      "example": "Each morning the birds outside my window make such a clamor that they wake me up.",
+      "difficulty": "easy",
+      "category": "general",
+      "syllable_count": 2,
+      "word_length": 6,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
       "word": "clandestine",
       "part_of_speech": "adjective",
       "definition": "secret",
@@ -2766,6 +3458,22 @@
       "etymology": "Unknown",
       "definition_number": 1,
       "page": 15,
+      "categories": [
+        "general"
+      ]
+    },
+    {
+      "word": "cleave",
+      "part_of_speech": "verb",
+      "definition": "to divide into parts",
+      "example": "Following the scandalous disgrace of their leader, the entire political party cleaved into warring factions.",
+      "difficulty": "easy",
+      "category": "general",
+      "syllable_count": 1,
+      "word_length": 6,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
       "categories": [
         "general"
       ]
@@ -2929,6 +3637,22 @@
       "page": 16,
       "categories": [
         "intellectual_mental"
+      ]
+    },
+    {
+      "word": "collateral",
+      "part_of_speech": "adjective",
+      "definition": "secondary",
+      "example": "Divorcing my wife had the collateral effect of making me poor, as she was the only one of us with a job or money.",
+      "difficulty": "medium",
+      "category": "general",
+      "syllable_count": 4,
+      "word_length": 10,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
       ]
     },
     {
@@ -3156,6 +3880,22 @@
       ]
     },
     {
+      "word": "compound",
+      "part_of_speech": "verb",
+      "definition": "to combine parts",
+      "example": "The difficulty of finding a fire escape amid the smoke was compounded with the dangers posed by the panicking crowds.",
+      "difficulty": "easy",
+      "category": "general",
+      "syllable_count": 2,
+      "word_length": 8,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
       "word": "comprehensive",
       "part_of_speech": "adjective",
       "definition": "including everything",
@@ -3217,6 +3957,22 @@
       "page": 17,
       "categories": [
         "general"
+      ]
+    },
+    {
+      "word": "conciliatory",
+      "part_of_speech": "adjective",
+      "definition": "friendly, agreeable",
+      "example": "I took Amanda's invitation to dinner as a very conciliatory gesture.",
+      "difficulty": "hard",
+      "category": "social",
+      "syllable_count": 5,
+      "word_length": 12,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "social"
       ]
     },
     {
@@ -3343,6 +4099,22 @@
       "etymology": "Latin",
       "definition_number": 1,
       "page": 18,
+      "categories": [
+        "general"
+      ]
+    },
+    {
+      "word": "confidant",
+      "part_of_speech": "noun",
+      "definition": "a person entrusted with secrets",
+      "example": "Shortly after we met, she became my chief confidant.",
+      "difficulty": "easy",
+      "category": "general",
+      "syllable_count": 3,
+      "word_length": 9,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
       "categories": [
         "general"
       ]
@@ -3732,6 +4504,22 @@
       ]
     },
     {
+      "word": "convention",
+      "part_of_speech": "noun",
+      "definition": "an assembly of people",
+      "example": "The hotel was full because of the cattle- ranchersÕ convention .",
+      "difficulty": "hard",
+      "category": "social",
+      "syllable_count": 3,
+      "word_length": 10,
+      "etymology": "Latin",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "social"
+      ]
+    },
+    {
       "word": "convivial",
       "part_of_speech": "adjective",
       "definition": "characterized by feasting, drinking, merriment",
@@ -3775,6 +4563,22 @@
       "etymology": "Latin",
       "definition_number": 1,
       "page": 20,
+      "categories": [
+        "general"
+      ]
+    },
+    {
+      "word": "cordial",
+      "part_of_speech": "adjective",
+      "definition": "warm, affectionate",
+      "example": "His cor dial greeting melted my anger at once.",
+      "difficulty": "easy",
+      "category": "general",
+      "syllable_count": 2,
+      "word_length": 7,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
       "categories": [
         "general"
       ]
@@ -3871,6 +4675,38 @@
       "etymology": "Unknown",
       "definition_number": 1,
       "page": 20,
+      "categories": [
+        "general"
+      ]
+    },
+    {
+      "word": "coup",
+      "part_of_speech": "noun",
+      "definition": "a brilliant, unexpected act",
+      "example": "Alexander pulled off an amazing coup when he got a date with Cynthia by purposely getting hit by her car.",
+      "difficulty": "easy",
+      "category": "general",
+      "syllable_count": 1,
+      "word_length": 4,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
+      "word": "covert",
+      "part_of_speech": "adjective",
+      "definition": "secretly engaged in",
+      "example": "Nerwin waged a covert campaign against his enemies, while outwardly appearing to remain friendly.",
+      "difficulty": "easy",
+      "category": "general",
+      "syllable_count": 2,
+      "word_length": 6,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
       "categories": [
         "general"
       ]
@@ -4036,6 +4872,54 @@
       ]
     },
     {
+      "word": "cursory",
+      "part_of_speech": "adjective",
+      "definition": "brief to the point of being superficial",
+      "example": "Late for the meeting, she cast a cursory glance at the agenda.",
+      "difficulty": "medium",
+      "category": "general",
+      "syllable_count": 3,
+      "word_length": 7,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
+      "word": "curt",
+      "part_of_speech": "adjective",
+      "definition": "abruptly and rudely short",
+      "example": "Her curt reply to my question made me realize that she was upset at me.",
+      "difficulty": "easy",
+      "category": "general",
+      "syllable_count": 1,
+      "word_length": 4,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
+      "word": "curtail",
+      "part_of_speech": "verb",
+      "definition": "to lessen, reduce",
+      "example": "Since losing his job, he had to curtail his spending.",
+      "difficulty": "easy",
+      "category": "general",
+      "syllable_count": 2,
+      "word_length": 7,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
       "word": "daunting",
       "part_of_speech": "adjective",
       "definition": "intimidating, causing one to lose courage",
@@ -4049,6 +4933,22 @@
       "page": 21,
       "categories": [
         "movement_action"
+      ]
+    },
+    {
+      "word": "dearth",
+      "part_of_speech": "noun",
+      "definition": "a lack, scarcity",
+      "example": "An eager reader, she was dismayed by the dearth of classic books at the library.",
+      "difficulty": "easy",
+      "category": "general",
+      "syllable_count": 1,
+      "word_length": 6,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
       ]
     },
     {
@@ -4134,6 +5034,22 @@
       ]
     },
     {
+      "word": "decry",
+      "part_of_speech": "verb",
+      "definition": "to criticize openly",
+      "example": "The kind video rental clerk decried the policy of charging customers late fees.",
+      "difficulty": "easy",
+      "category": "general",
+      "syllable_count": 2,
+      "word_length": 5,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
       "word": "deface",
       "part_of_speech": "verb",
       "definition": "to ruin or injure something's appearance",
@@ -4147,6 +5063,22 @@
       "page": 22,
       "categories": [
         "physical_appearance"
+      ]
+    },
+    {
+      "word": "defamatory",
+      "part_of_speech": "adjective",
+      "definition": "harmful toward another's reputation",
+      "example": "The defamatory gossip spreading about the actor made the public less willing to see the actor's new movie.",
+      "difficulty": "hard",
+      "category": "general",
+      "syllable_count": 5,
+      "word_length": 10,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
       ]
     },
     {
@@ -4274,6 +5206,22 @@
       "etymology": "Unknown",
       "definition_number": 1,
       "page": 22,
+      "categories": [
+        "general"
+      ]
+    },
+    {
+      "word": "delity",
+      "part_of_speech": "noun",
+      "definition": "loyalty, devotion",
+      "example": "Guard dogs are known for the great fidelity they show toward their masters.",
+      "difficulty": "easy",
+      "category": "general",
+      "syllable_count": 3,
+      "word_length": 6,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
       "categories": [
         "general"
       ]
@@ -4632,6 +5580,70 @@
       ]
     },
     {
+      "word": "didactic",
+      "part_of_speech": "adjective",
+      "definition": "intended to instruct",
+      "example": "She wrote up a didactic document showing new employees how to handle the company's customers.",
+      "difficulty": "medium",
+      "category": "general",
+      "syllable_count": 3,
+      "word_length": 8,
+      "etymology": "Latin",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
+      "word": "diffident",
+      "part_of_speech": "adjective",
+      "definition": "shy, quiet, modest",
+      "example": "While eating dinner with the adults, the diffident youth did not speak for fear of seeming presumptuous.",
+      "difficulty": "easy",
+      "category": "general",
+      "syllable_count": 3,
+      "word_length": 9,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
+      "word": "diffuse",
+      "part_of_speech": "verb",
+      "definition": "to scatter, thin out, break up",
+      "example": "He diffused the tension in the room by making in a joke.",
+      "difficulty": "easy",
+      "category": "general",
+      "syllable_count": 2,
+      "word_length": 7,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
+      "word": "dilatory",
+      "part_of_speech": "adjective",
+      "definition": "tending to delay, causing delay",
+      "example": "The general's dilatory strategy enabled the enemy to regroup.",
+      "difficulty": "medium",
+      "category": "general",
+      "syllable_count": 4,
+      "word_length": 8,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
       "word": "diligent",
       "part_of_speech": "adjective",
       "definition": "showing care in doing one's work",
@@ -4745,6 +5757,22 @@
       ]
     },
     {
+      "word": "discordant",
+      "part_of_speech": "adjective",
+      "definition": "not agreeing, not in harmony with",
+      "example": "The girlsÕ sobs were a discor dant sound amid the general laughter that filled the restaurant.",
+      "difficulty": "medium",
+      "category": "general",
+      "syllable_count": 3,
+      "word_length": 10,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
       "word": "discrepancy",
       "part_of_speech": "noun",
       "definition": "difference, failure of things to correspond",
@@ -4793,6 +5821,22 @@
       ]
     },
     {
+      "word": "disdain",
+      "part_of_speech": "verb",
+      "definition": "to scorn, hold in low esteem",
+      "example": "Insecure about their jobs, the older employees disdained the recently hired ones, who were young and capable.",
+      "difficulty": "easy",
+      "category": "general",
+      "syllable_count": 2,
+      "word_length": 7,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
       "word": "disgruntled",
       "part_of_speech": "adjective",
       "definition": "upset, not content",
@@ -4806,6 +5850,22 @@
       "page": 25,
       "categories": [
         "general"
+      ]
+    },
+    {
+      "word": "disheartened",
+      "part_of_speech": "adjective",
+      "definition": "feeling a loss of spirit or morale",
+      "example": "The team was disheartened after losing in the finals of the tournament.",
+      "difficulty": "medium",
+      "category": "emotions",
+      "syllable_count": 4,
+      "word_length": 12,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "emotions"
       ]
     },
     {
@@ -4933,6 +5993,38 @@
       "etymology": "Unknown",
       "definition_number": 1,
       "page": 26,
+      "categories": [
+        "general"
+      ]
+    },
+    {
+      "word": "dissent",
+      "part_of_speech": "verb",
+      "definition": "to disagree",
+      "example": "The principal argued that the child should repeat the fourth grade, but the unhappy parents dissented .",
+      "difficulty": "easy",
+      "category": "general",
+      "syllable_count": 2,
+      "word_length": 7,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
+      "word": "dissipate",
+      "part_of_speech": "verb",
+      "definition": "to disappear, cause to disappear",
+      "example": "The sun finally came out and dissipated the haze.",
+      "difficulty": "medium",
+      "category": "general",
+      "syllable_count": 3,
+      "word_length": 9,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
       "categories": [
         "general"
       ]
@@ -5226,22 +6318,6 @@
       ]
     },
     {
-      "word": "ecund",
-      "part_of_speech": "adjective",
-      "definition": "fruitful, fertile",
-      "example": "The fecund tree bore enough apples to last us through the entire season.",
-      "difficulty": "easy",
-      "category": "general",
-      "syllable_count": 2,
-      "word_length": 5,
-      "etymology": "Unknown",
-      "definition_number": 1,
-      "page": 33,
-      "categories": [
-        "emotions_feelings"
-      ]
-    },
-    {
       "word": "edict",
       "part_of_speech": "noun",
       "definition": "an order, decree",
@@ -5269,6 +6345,54 @@
       "etymology": "Unknown",
       "definition_number": 1,
       "page": 28,
+      "categories": [
+        "general"
+      ]
+    },
+    {
+      "word": "effervescent",
+      "part_of_speech": "adjective",
+      "definition": "bubbly, lively",
+      "example": "My friend is so effervescent that she makes everyone smile.",
+      "difficulty": "medium",
+      "category": "general",
+      "syllable_count": 4,
+      "word_length": 12,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
+      "word": "efficacious",
+      "part_of_speech": "adjective",
+      "definition": "effective",
+      "example": "My doctor promised me that the cold medicine was efficacious , but IÕm still snifssing.",
+      "difficulty": "medium",
+      "category": "general",
+      "syllable_count": 2,
+      "word_length": 7,
+      "etymology": "Latin",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
+      "word": "effrontery",
+      "part_of_speech": "noun",
+      "definition": "impudence, nerve, insolence",
+      "example": "When I told my aunt that she was boring, my mother scolded me for my effrontery .",
+      "difficulty": "medium",
+      "category": "general",
+      "syllable_count": 4,
+      "word_length": 10,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
       "categories": [
         "general"
       ]
@@ -5370,6 +6494,22 @@
       ]
     },
     {
+      "word": "elicitous",
+      "part_of_speech": "adjective",
+      "definition": "well suited, apt",
+      "example": "While his comments were idiotic and rambling, mine were felicitous and helpful.",
+      "difficulty": "hard",
+      "category": "general",
+      "syllable_count": 4,
+      "word_length": 9,
+      "etymology": "Latin",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
       "word": "eloquent",
       "part_of_speech": "adjective",
       "definition": "expressive, articulate, moving",
@@ -5434,6 +6574,22 @@
       ]
     },
     {
+      "word": "embellish",
+      "part_of_speech": "verb",
+      "definition": "to decorate, adorn",
+      "example": "My mom embellished the living room by adding lace curtains.",
+      "difficulty": "medium",
+      "category": "action",
+      "syllable_count": 3,
+      "word_length": 9,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "action"
+      ]
+    },
+    {
       "word": "embezzle",
       "part_of_speech": "verb",
       "definition": "to steal money by falsifying records",
@@ -5461,6 +6617,22 @@
       "etymology": "Unknown",
       "definition_number": 1,
       "page": 29,
+      "categories": [
+        "general"
+      ]
+    },
+    {
+      "word": "eminent",
+      "part_of_speech": "adjective",
+      "definition": "distinguished, prominent, famous",
+      "example": "Mr. Phillips is such an eminent scholar that every professor on campus has come to hear him lecture.",
+      "difficulty": "medium",
+      "category": "general",
+      "syllable_count": 3,
+      "word_length": 7,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
       "categories": [
         "general"
       ]
@@ -5512,6 +6684,22 @@
       "page": 29,
       "categories": [
         "emotions_feelings"
+      ]
+    },
+    {
+      "word": "empirical",
+      "part_of_speech": "adjective",
+      "definition": "based on observation or experience",
+      "example": "The scientist gathered empirical data on the growth rate of dandelions by studying the dandelions behind his house.",
+      "difficulty": "medium",
+      "category": "general",
+      "syllable_count": 4,
+      "word_length": 9,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
       ]
     },
     {
@@ -5574,6 +6762,22 @@
       "etymology": "Unknown",
       "definition_number": 1,
       "page": 29,
+      "categories": [
+        "general"
+      ]
+    },
+    {
+      "word": "enervate",
+      "part_of_speech": "verb",
+      "definition": "to weaken, exhaust",
+      "example": "Writing these sentences enervates me so much that I will have to take a nap after I finish.",
+      "difficulty": "medium",
+      "category": "general",
+      "syllable_count": 3,
+      "word_length": 8,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
       "categories": [
         "general"
       ]
@@ -5707,6 +6911,22 @@
       ]
     },
     {
+      "word": "epistolary",
+      "part_of_speech": "adjective",
+      "definition": "relating to or contained in letters",
+      "example": "Some people call me ÒAuntie's boy,Ó because my aunt and I have such a close epistolary relationship that we write each other every day.",
+      "difficulty": "hard",
+      "category": "general",
+      "syllable_count": 5,
+      "word_length": 10,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
       "word": "epitome",
       "part_of_speech": "noun",
       "definition": "a perfect example, embodiment",
@@ -5752,22 +6972,6 @@
       "page": 30,
       "categories": [
         "communication_speech"
-      ]
-    },
-    {
-      "word": "eral",
-      "part_of_speech": "adjective",
-      "definition": "wild, savage",
-      "example": "That beast looks so feral that I would fear being alone with it.",
-      "difficulty": "easy",
-      "category": "general",
-      "syllable_count": 2,
-      "word_length": 4,
-      "etymology": "Unknown",
-      "definition_number": 1,
-      "page": 33,
-      "categories": [
-        "general"
       ]
     },
     {
@@ -5846,38 +7050,6 @@
       "etymology": "Unknown",
       "definition_number": 1,
       "page": 30,
-      "categories": [
-        "general"
-      ]
-    },
-    {
-      "word": "etid",
-      "part_of_speech": "adjective",
-      "definition": "having a foul odor",
-      "example": "I can tell from the fetid smell in your refrigerator that your milk has spoiled.",
-      "difficulty": "easy",
-      "category": "action",
-      "syllable_count": 2,
-      "word_length": 4,
-      "etymology": "Unknown",
-      "definition_number": 1,
-      "page": 33,
-      "categories": [
-        "general"
-      ]
-    },
-    {
-      "word": "etter",
-      "part_of_speech": "verb",
-      "definition": "to chain, restrain",
-      "example": "The dog was fettered to the parking meter.",
-      "difficulty": "easy",
-      "category": "general",
-      "syllable_count": 2,
-      "word_length": 5,
-      "etymology": "Unknown",
-      "definition_number": 1,
-      "page": 33,
       "categories": [
         "general"
       ]
@@ -6054,6 +7226,22 @@
       "etymology": "Unknown",
       "definition_number": 1,
       "page": 31,
+      "categories": [
+        "general"
+      ]
+    },
+    {
+      "word": "exhort",
+      "part_of_speech": "verb",
+      "definition": "to urge, prod, spur",
+      "example": "Henry exhorted his colleagues to join him in protesting against the university's hiring policies.",
+      "difficulty": "easy",
+      "category": "general",
+      "syllable_count": 2,
+      "word_length": 6,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
       "categories": [
         "general"
       ]
@@ -6267,6 +7455,38 @@
       ]
     },
     {
+      "word": "facade",
+      "part_of_speech": "noun",
+      "definition": "the wall of a building",
+      "example": "Meet me in front of the museum's main facade.",
+      "difficulty": "easy",
+      "category": "action",
+      "syllable_count": 2,
+      "word_length": 6,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "action"
+      ]
+    },
+    {
+      "word": "facile",
+      "part_of_speech": "adjective",
+      "definition": "easy, requiring little effort",
+      "example": "This game is so facile that even a four-year- old can master it.",
+      "difficulty": "easy",
+      "category": "general",
+      "syllable_count": 2,
+      "word_length": 6,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
       "word": "fallacious",
       "part_of_speech": "adjective",
       "definition": "incorrect, misleading",
@@ -6326,6 +7546,86 @@
       "etymology": "Latin",
       "definition_number": 1,
       "page": 33,
+      "categories": [
+        "general"
+      ]
+    },
+    {
+      "word": "fecund",
+      "part_of_speech": "adjective",
+      "definition": "fruitful, fertile",
+      "example": "The fecund tree bore enough apples to last us through the entire season.",
+      "difficulty": "easy",
+      "category": "general",
+      "syllable_count": 2,
+      "word_length": 6,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
+      "word": "feral",
+      "part_of_speech": "adjective",
+      "definition": "wild, savage",
+      "example": "That beast looks so feral that I would fear being alone with it.",
+      "difficulty": "easy",
+      "category": "general",
+      "syllable_count": 2,
+      "word_length": 5,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
+      "word": "fetid",
+      "part_of_speech": "adjective",
+      "definition": "having a foul odor",
+      "example": "I can tell from the fetid smell in your refrigerator that your milk has spoiled.",
+      "difficulty": "easy",
+      "category": "action",
+      "syllable_count": 2,
+      "word_length": 5,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "action"
+      ]
+    },
+    {
+      "word": "fetter",
+      "part_of_speech": "verb",
+      "definition": "to chain, restrain",
+      "example": "The dog was fettered to the parking meter.",
+      "difficulty": "easy",
+      "category": "general",
+      "syllable_count": 2,
+      "word_length": 6,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
+      "word": "fickle",
+      "part_of_speech": "adjective",
+      "definition": "shifting in character, inconstant",
+      "example": "In Greek dramas, the fickle gods help Achilles one day, and then harm him the next.",
+      "difficulty": "easy",
+      "category": "general",
+      "syllable_count": 1,
+      "word_length": 4,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
       "categories": [
         "general"
       ]
@@ -6427,6 +7727,38 @@
       ]
     },
     {
+      "word": "fortitude",
+      "part_of_speech": "noun",
+      "definition": "strength, guts",
+      "example": "Achilles' fortitude in battle is legendary.",
+      "difficulty": "medium",
+      "category": "general",
+      "syllable_count": 3,
+      "word_length": 9,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
+      "word": "fortuitous",
+      "part_of_speech": "adjective",
+      "definition": "happening by chance, often lucky or fortunate",
+      "example": "After looking for Manuel and not finding him at home, Harriet had a fortuitous encounter with him at the post office.",
+      "difficulty": "hard",
+      "category": "general",
+      "syllable_count": 3,
+      "word_length": 10,
+      "etymology": "Latin",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
       "word": "forum",
       "part_of_speech": "noun",
       "definition": "a medium for lecture or discussion",
@@ -6477,6 +7809,22 @@
       ]
     },
     {
+      "word": "fraught",
+      "part_of_speech": "adjective",
+      "definition": "",
+      "example": "usually used with ÒwithÓ",
+      "difficulty": "easy",
+      "category": "general",
+      "syllable_count": 1,
+      "word_length": 7,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
       "word": "frenetic",
       "part_of_speech": "adjective",
       "definition": "frenzied, hectic, frantic",
@@ -6522,6 +7870,38 @@
       "page": 34,
       "categories": [
         "business_economics"
+      ]
+    },
+    {
+      "word": "functory",
+      "part_of_speech": "adjective",
+      "definition": "showing little interest or enthusiasm",
+      "example": "The radio broadcaster announced the news of the massacre in a surprisingly perfunctory manner.",
+      "difficulty": "medium",
+      "category": "general",
+      "syllable_count": 3,
+      "word_length": 8,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
+      "word": "furtive",
+      "part_of_speech": "adjective",
+      "definition": "secretive, sly",
+      "example": "Jane's placement of her drugs in her sock drawer was not as furtive as she thought, as the sock drawer is the first place most parents look.",
+      "difficulty": "easy",
+      "category": "general",
+      "syllable_count": 2,
+      "word_length": 7,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
       ]
     },
     {
@@ -6718,6 +8098,22 @@
       ]
     },
     {
+      "word": "gurative",
+      "part_of_speech": "adjective",
+      "definition": "symbolic",
+      "example": "Using figurative language, Jane likened the storm to an angry bull.",
+      "difficulty": "medium",
+      "category": "general",
+      "syllable_count": 3,
+      "word_length": 8,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
       "word": "hackneyed",
       "part_of_speech": "adjective",
       "definition": "unoriginal, trite",
@@ -6750,22 +8146,6 @@
       ]
     },
     {
-      "word": "haos",
-      "part_of_speech": "noun",
-      "definition": "absolute disorder",
-      "example": "Mr. Thornton's sudden departure for the lavatory plunged his classroom into chaos .",
-      "difficulty": "easy",
-      "category": "general",
-      "syllable_count": 1,
-      "word_length": 4,
-      "etymology": "Unknown",
-      "definition_number": 1,
-      "page": 14,
-      "categories": [
-        "general"
-      ]
-    },
-    {
       "word": "hapless",
       "part_of_speech": "adjective",
       "definition": "unlucky",
@@ -6777,6 +8157,38 @@
       "etymology": "Germanic",
       "definition_number": 1,
       "page": 36,
+      "categories": [
+        "general"
+      ]
+    },
+    {
+      "word": "harangue",
+      "part_of_speech": "noun",
+      "definition": "a ranting speech",
+      "example": "Everyone had heard the teacher's harangue about gum chewing in class before.",
+      "difficulty": "easy",
+      "category": "general",
+      "syllable_count": 2,
+      "word_length": 8,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
+      "word": "hardy",
+      "part_of_speech": "adjective",
+      "definition": "robust, capable of surviving through adverse conditions",
+      "example": "I too would have expected the plants to be dead by mid-November, but apparently theyÕre very har dy .",
+      "difficulty": "easy",
+      "category": "general",
+      "syllable_count": 2,
+      "word_length": 5,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
       "categories": [
         "general"
       ]
@@ -6795,22 +8207,6 @@
       "page": 36,
       "categories": [
         "emotions_feelings"
-      ]
-    },
-    {
-      "word": "hastise",
-      "part_of_speech": "verb",
-      "definition": "to criticize severely",
-      "example": "After being chastised by her peers for mimicking Britney Spears, Miranda dyed her hair black and affected a Gothic style.",
-      "difficulty": "easy",
-      "category": "general",
-      "syllable_count": 2,
-      "word_length": 7,
-      "etymology": "Unknown",
-      "definition_number": 1,
-      "page": 14,
-      "categories": [
-        "general"
       ]
     },
     {
@@ -6879,22 +8275,6 @@
       ]
     },
     {
-      "word": "herish",
-      "part_of_speech": "verb",
-      "definition": "to feel or show affection toward something",
-      "example": "She continued to cherish her red plaid trousers, even though they had gone out of style and no longer Tht her.",
-      "difficulty": "easy",
-      "category": "emotions",
-      "syllable_count": 2,
-      "word_length": 6,
-      "etymology": "Unknown",
-      "definition_number": 1,
-      "page": 14,
-      "categories": [
-        "emotions_feelings"
-      ]
-    },
-    {
       "word": "heterogeneous",
       "part_of_speech": "adjective",
       "definition": "varied, diverse in character",
@@ -6927,22 +8307,6 @@
       ]
     },
     {
-      "word": "hide",
-      "part_of_speech": "verb",
-      "definition": "to voice disapproval",
-      "example": "Lucy chided Russell for his vulgar habits and sloppy appearance.",
-      "difficulty": "easy",
-      "category": "general",
-      "syllable_count": 1,
-      "word_length": 4,
-      "etymology": "Unknown",
-      "definition_number": 1,
-      "page": 14,
-      "categories": [
-        "physical_appearance"
-      ]
-    },
-    {
       "word": "hierarchy",
       "part_of_speech": "noun",
       "definition": "a system with ranked groups, usually according to social, economic, or political",
@@ -6960,37 +8324,19 @@
       ]
     },
     {
-      "word": "horeography",
+      "word": "hronicle",
       "part_of_speech": "noun",
-      "definition": "the arrangement of dances",
-      "example": "The plot of the musical was banal, but the choreography was stunning.",
+      "definition": "a written history",
+      "example": "The library featured the newly updated chronicle of W orld War II.",
       "difficulty": "medium",
       "category": "general",
-      "syllable_count": 4,
-      "word_length": 11,
-      "etymology": "Greek",
+      "syllable_count": 2,
+      "word_length": 8,
+      "etymology": "Unknown",
       "definition_number": 1,
-      "page": 14,
+      "page": 1,
       "categories": [
         "general"
-      ]
-    },
-    {
-      "word": "hronological",
-      "part_of_speech": "adjective",
-      "definition": "arranged in order of time",
-      "example": "Lionel carefully arranged the snapshots of his former girlfriends in chronological order, and then set Thre to them.",
-      "difficulty": "hard",
-      "category": "general",
-      "syllable_count": 5,
-      "word_length": 12,
-      "etymology": "Greek",
-      "definition_number": 1,
-      "page": 14,
-      "categories": [
-        "emotions_feelings",
-        "intellectual_mental",
-        "time_change"
       ]
     },
     {
@@ -7069,6 +8415,22 @@
       "etymology": "Latin",
       "definition_number": 1,
       "page": 37,
+      "categories": [
+        "general"
+      ]
+    },
+    {
+      "word": "igate",
+      "part_of_speech": "adjective",
+      "definition": "dissolute, extravagant",
+      "example": "The pross igate gambler loved to drink, spend money, steal, cheat, and hang out with prostitutes.",
+      "difficulty": "easy",
+      "category": "general",
+      "syllable_count": 2,
+      "word_length": 5,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
       "categories": [
         "general"
       ]
@@ -7170,6 +8532,38 @@
       ]
     },
     {
+      "word": "impecunious",
+      "part_of_speech": "adjective",
+      "definition": "poor",
+      "example": "ÒI fear he's too impecunious to take me out tonight,Ó the bratty girl whined.",
+      "difficulty": "hard",
+      "category": "general",
+      "syllable_count": 4,
+      "word_length": 11,
+      "etymology": "Latin",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
+      "word": "imperative",
+      "part_of_speech": "adjective",
+      "definition": "necessary, pressing",
+      "example": "It is imperative that you have these folders organized by midday.",
+      "difficulty": "medium",
+      "category": "general",
+      "syllable_count": 4,
+      "word_length": 10,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
       "word": "imperious",
       "part_of_speech": "adjective",
       "definition": "commanding, domineering",
@@ -7183,6 +8577,38 @@
       "page": 37,
       "categories": [
         "behavior_personality"
+      ]
+    },
+    {
+      "word": "impertinent",
+      "part_of_speech": "adjective",
+      "definition": "rude, insolent",
+      "example": "Most of your comments are so impertinent that I don't wish to dignify them with an answer.",
+      "difficulty": "medium",
+      "category": "general",
+      "syllable_count": 4,
+      "word_length": 11,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
+      "word": "impervious",
+      "part_of_speech": "adjective",
+      "definition": "impenetrable, incapable of being affected",
+      "example": "Because of their thick layer of fur, many seals are almost impervious to the cold.",
+      "difficulty": "hard",
+      "category": "general",
+      "syllable_count": 3,
+      "word_length": 10,
+      "etymology": "Latin",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
       ]
     },
     {
@@ -7202,6 +8628,22 @@
       ]
     },
     {
+      "word": "impinge",
+      "part_of_speech": "verb",
+      "definition": "to impact, affect, make an impression",
+      "example": "The hail impinged the roof, leaving large dents.",
+      "difficulty": "easy",
+      "category": "action",
+      "syllable_count": 2,
+      "word_length": 7,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "action"
+      ]
+    },
+    {
       "word": "implacable",
       "part_of_speech": "adjective",
       "definition": "incapable of being appeased or mitigated",
@@ -7213,6 +8655,22 @@
       "etymology": "Unknown",
       "definition_number": 1,
       "page": 38,
+      "categories": [
+        "general"
+      ]
+    },
+    {
+      "word": "implement",
+      "part_of_speech": "noun",
+      "definition": "an instrument, utensil, tool",
+      "example": "Do you have a knife or some other sort of implement that I could use to pry the lid off of this jar?",
+      "difficulty": "medium",
+      "category": "general",
+      "syllable_count": 3,
+      "word_length": 9,
+      "etymology": "French",
+      "definition_number": 1,
+      "page": 1,
       "categories": [
         "general"
       ]
@@ -7314,6 +8772,54 @@
       ]
     },
     {
+      "word": "inarticulate",
+      "part_of_speech": "adjective",
+      "definition": "incapable of expressing oneself clearly through speech",
+      "example": "Though he spoke for over an hour, the lecturer was completely inarticulate and the students had no idea what he was talking about.",
+      "difficulty": "hard",
+      "category": "general",
+      "syllable_count": 5,
+      "word_length": 12,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
+      "word": "incarnate",
+      "part_of_speech": "adjective",
+      "definition": "existing in the ssesh, embodied",
+      "example": "In the church pageant, I play the role of greed incarnate .",
+      "difficulty": "hard",
+      "category": "general",
+      "syllable_count": 3,
+      "word_length": 9,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
+      "word": "incendiary",
+      "part_of_speech": "noun",
+      "definition": "a person who agitates",
+      "example": "If we catch the incendiary who screamed ÒbombÓ in the middle of the soccer match, weÕre going to put him in jail.",
+      "difficulty": "medium",
+      "category": "general",
+      "syllable_count": 4,
+      "word_length": 10,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
       "word": "incessant",
       "part_of_speech": "adjective",
       "definition": "unending",
@@ -7378,6 +8884,22 @@
       ]
     },
     {
+      "word": "incontrovertible",
+      "part_of_speech": "adjective",
+      "definition": "indisputable",
+      "example": "Only stubborn Tina would attempt to disprove the incontrovertible laws of physics.",
+      "difficulty": "hard",
+      "category": "general",
+      "syllable_count": 5,
+      "word_length": 16,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
       "word": "incorrigible",
       "part_of_speech": "adjective",
       "definition": "incapable of correction, delinquent",
@@ -7405,6 +8927,22 @@
       "etymology": "French",
       "definition_number": 1,
       "page": 39,
+      "categories": [
+        "general"
+      ]
+    },
+    {
+      "word": "incumbent",
+      "part_of_speech": "noun",
+      "definition": "one who holds an office",
+      "example": "The incumbent senator is already serving his fifth term.",
+      "difficulty": "medium",
+      "category": "general",
+      "syllable_count": 3,
+      "word_length": 9,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
       "categories": [
         "general"
       ]
@@ -7471,6 +9009,22 @@
       "page": 39,
       "categories": [
         "general"
+      ]
+    },
+    {
+      "word": "indolent",
+      "part_of_speech": "adjective",
+      "definition": "lazy",
+      "example": "Why should my indolent children, who can't even pick themselves up off the couch to pour their own juice, be rewarded with a trip to the mall?",
+      "difficulty": "medium",
+      "category": "action",
+      "syllable_count": 3,
+      "word_length": 8,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "action"
       ]
     },
     {
@@ -8373,6 +9927,54 @@
       ]
     },
     {
+      "word": "laudatory",
+      "part_of_speech": "adjective",
+      "definition": "expressing admiration or praise",
+      "example": "Such laudatory comments are unusual from someone who is usually so reserved in his opinions.",
+      "difficulty": "medium",
+      "category": "general",
+      "syllable_count": 4,
+      "word_length": 9,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
+      "word": "lavish",
+      "part_of_speech": "adjective",
+      "definition": "given without limits",
+      "example": "Because they had worked very hard, the performers appreciated the critic's lavish praise.",
+      "difficulty": "easy",
+      "category": "general",
+      "syllable_count": 2,
+      "word_length": 6,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
+      "word": "legerdemain",
+      "part_of_speech": "noun",
+      "definition": "deception, slight-of-hand",
+      "example": "Smuggling the French plants through customs by claiming that they were fake was a remarkable bit of leger demain .",
+      "difficulty": "medium",
+      "category": "general",
+      "syllable_count": 4,
+      "word_length": 11,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
       "word": "lenient",
       "part_of_speech": "adjective",
       "definition": "demonstrating tolerance or gentleness",
@@ -8403,6 +10005,38 @@
       "categories": [
         "emotions_feelings",
         "power_authority"
+      ]
+    },
+    {
+      "word": "liability",
+      "part_of_speech": "noun",
+      "definition": "something for which one is legally responsible, usually involving a",
+      "example": "",
+      "difficulty": "medium",
+      "category": "general",
+      "syllable_count": 4,
+      "word_length": 9,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
+      "word": "libertarian",
+      "part_of_speech": "adjective",
+      "definition": "advocating principles of liberty and free will",
+      "example": "The dissatisfied subjects overthrew the monarch and replaced him with a libertarian ruler who respected their democratic principles.",
+      "difficulty": "medium",
+      "category": "general",
+      "syllable_count": 4,
+      "word_length": 11,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
       ]
     },
     {
@@ -8632,6 +10266,22 @@
       ]
     },
     {
+      "word": "manifest",
+      "part_of_speech": "adjective",
+      "definition": "easily understandable, obvious",
+      "example": "When I wrote the wrong sum on the chalkboard, my mistake was so manifest that the entire class burst into laughter.",
+      "difficulty": "medium",
+      "category": "thinking",
+      "syllable_count": 3,
+      "word_length": 8,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "thinking"
+      ]
+    },
+    {
       "word": "manifold",
       "part_of_speech": "adjective",
       "definition": "diverse, varied",
@@ -8844,6 +10494,22 @@
       ]
     },
     {
+      "word": "moderate",
+      "part_of_speech": "adjective",
+      "definition": "not extreme",
+      "example": "Luckily, the restaurant we chose had moderate prices; none of us have any money.",
+      "difficulty": "medium",
+      "category": "general",
+      "syllable_count": 3,
+      "word_length": 8,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
       "word": "modicum",
       "part_of_speech": "noun",
       "definition": "a small amount of something",
@@ -8871,6 +10537,22 @@
       "etymology": "Unknown",
       "definition_number": 1,
       "page": 46,
+      "categories": [
+        "general"
+      ]
+    },
+    {
+      "word": "mollify",
+      "part_of_speech": "verb",
+      "definition": "to soften in temper",
+      "example": "The police officer mollified the angry woman by giving her a warning instead of a ticket.",
+      "difficulty": "medium",
+      "category": "general",
+      "syllable_count": 3,
+      "word_length": 7,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
       "categories": [
         "general"
       ]
@@ -8955,6 +10637,22 @@
       "etymology": "Unknown",
       "definition_number": 1,
       "page": 47,
+      "categories": [
+        "general"
+      ]
+    },
+    {
+      "word": "munificence",
+      "part_of_speech": "noun",
+      "definition": "generosity in giving",
+      "example": "The royal family's munificence made everyone else in their country rich.",
+      "difficulty": "medium",
+      "category": "general",
+      "syllable_count": 1,
+      "word_length": 5,
+      "etymology": "French",
+      "definition_number": 1,
+      "page": 1,
       "categories": [
         "general"
       ]
@@ -9249,6 +10947,22 @@
       ]
     },
     {
+      "word": "nurture",
+      "part_of_speech": "verb",
+      "definition": "to assist the development of",
+      "example": "Although Serena had never watered the plant, which was about to die, Javier was able to nurture it back to life.",
+      "difficulty": "easy",
+      "category": "general",
+      "syllable_count": 2,
+      "word_length": 7,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
       "word": "obdurate",
       "part_of_speech": "adjective",
       "definition": "unyielding to persuasion or moral influences",
@@ -9490,6 +11204,22 @@
       ]
     },
     {
+      "word": "orid",
+      "part_of_speech": "adjective",
+      "definition": "flowery, ornate",
+      "example": "The writer's ss orid prose belongs on a sentimental Hallmark card.",
+      "difficulty": "easy",
+      "category": "general",
+      "syllable_count": 2,
+      "word_length": 4,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
       "word": "ornate",
       "part_of_speech": "adjective",
       "definition": "highly elaborate, excessively decorated",
@@ -9503,6 +11233,22 @@
       "page": 50,
       "categories": [
         "general"
+      ]
+    },
+    {
+      "word": "orthodox",
+      "part_of_speech": "adjective",
+      "definition": "conventional, conforming to established protocol",
+      "example": "The company's profits dwindled because the management pursued orthodox business policies that were incompatible with new industrial trends.",
+      "difficulty": "medium",
+      "category": "action",
+      "syllable_count": 3,
+      "word_length": 8,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "action"
       ]
     },
     {
@@ -9565,6 +11311,22 @@
       "etymology": "Unknown",
       "definition_number": 1,
       "page": 50,
+      "categories": [
+        "general"
+      ]
+    },
+    {
+      "word": "out",
+      "part_of_speech": "verb",
+      "definition": "to disregard or disobey openly",
+      "example": "I ss outed the school's dress code by wearing a tie-dyed tank top and a pair of cut-off jeans.",
+      "difficulty": "easy",
+      "category": "general",
+      "syllable_count": 1,
+      "word_length": 3,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
       "categories": [
         "general"
       ]
@@ -9762,6 +11524,22 @@
       ]
     },
     {
+      "word": "partisan",
+      "part_of_speech": "noun",
+      "definition": "a follower, adherent",
+      "example": "The king did not believe that his rival could round up enough partisans to overthrow the monarchy.",
+      "difficulty": "medium",
+      "category": "general",
+      "syllable_count": 3,
+      "word_length": 8,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
       "word": "patent",
       "part_of_speech": "adjective",
       "definition": "readily seen or understood, clear",
@@ -9922,6 +11700,22 @@
       ]
     },
     {
+      "word": "perfidious",
+      "part_of_speech": "adjective",
+      "definition": "disloyal, unfaithful",
+      "example": "After the official was caught selling government secrets to enemy agents, he was executed for his perfidious ways.",
+      "difficulty": "medium",
+      "category": "general",
+      "syllable_count": 1,
+      "word_length": 5,
+      "etymology": "Latin",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
       "word": "permeate",
       "part_of_speech": "verb",
       "definition": "to spread throughout, saturate",
@@ -9986,6 +11780,38 @@
       ]
     },
     {
+      "word": "pert",
+      "part_of_speech": "adjective",
+      "definition": "ssippant, bold",
+      "example": "My parents forgave Sandra's pert humor at the dinner table because it had been so long since they had last seen her.",
+      "difficulty": "easy",
+      "category": "general",
+      "syllable_count": 1,
+      "word_length": 4,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
+      "word": "pertinacious",
+      "part_of_speech": "adjective",
+      "definition": "stubbornly persistent",
+      "example": "Harry's parents were frustrated with his pertinacious insistence that a monster lived in his closet. Then they opened the closet door and were eaten.",
+      "difficulty": "hard",
+      "category": "general",
+      "syllable_count": 4,
+      "word_length": 12,
+      "etymology": "Latin",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
       "word": "perusal",
       "part_of_speech": "noun",
       "definition": "a careful examination, review",
@@ -9997,6 +11823,22 @@
       "etymology": "Unknown",
       "definition_number": 1,
       "page": 52,
+      "categories": [
+        "general"
+      ]
+    },
+    {
+      "word": "pervasive",
+      "part_of_speech": "adjective",
+      "definition": "having the tendency to spread throughout",
+      "example": "Stepping off the plane in Havana, I recognized the pervasive odor of sugar cane fields on fire.",
+      "difficulty": "medium",
+      "category": "general",
+      "syllable_count": 3,
+      "word_length": 9,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
       "categories": [
         "general"
       ]
@@ -10271,6 +12113,22 @@
       "page": 53,
       "categories": [
         "business_economics"
+      ]
+    },
+    {
+      "word": "portent",
+      "part_of_speech": "noun",
+      "definition": "an omen",
+      "example": "When a black cat crossed my sister's path while she was walking to school, she took it as a portent that she would do badly on her spelling test.",
+      "difficulty": "easy",
+      "category": "general",
+      "syllable_count": 2,
+      "word_length": 7,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
       ]
     },
     {
@@ -10934,6 +12792,22 @@
       ]
     },
     {
+      "word": "quandary",
+      "part_of_speech": "noun",
+      "definition": "a perplexed, unresolvable state",
+      "example": "Carlos found himself in a quandary : should he choose mint chocolate chip or cookie dough?",
+      "difficulty": "medium",
+      "category": "general",
+      "syllable_count": 3,
+      "word_length": 8,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
       "word": "quell",
       "part_of_speech": "verb",
       "definition": "to control or diffuse a potentially explosive situation",
@@ -11043,6 +12917,22 @@
       "page": 57,
       "categories": [
         "general"
+      ]
+    },
+    {
+      "word": "rapport",
+      "part_of_speech": "noun",
+      "definition": "mutual understanding and harmony",
+      "example": "When Margaret met her paramour, they felt an instant rapport .",
+      "difficulty": "easy",
+      "category": "thinking",
+      "syllable_count": 2,
+      "word_length": 7,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "thinking"
       ]
     },
     {
@@ -11174,6 +13064,22 @@
       ]
     },
     {
+      "word": "reconcile",
+      "part_of_speech": "verb",
+      "definition": "to return to harmony",
+      "example": "The feuding neighbors finally reconciled when one brought the other a delicious tuna noodle casserole.",
+      "difficulty": "medium",
+      "category": "general",
+      "syllable_count": 3,
+      "word_length": 9,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
       "word": "rectitude",
       "part_of_speech": "noun",
       "definition": "uprightness, extreme morality",
@@ -11189,6 +13095,22 @@
         "communication_speech",
         "power_authority",
         "morality_ethics"
+      ]
+    },
+    {
+      "word": "redoubtable",
+      "part_of_speech": "adjective",
+      "definition": "formidable",
+      "example": "The fortress looked redoubtable set against a stormy sky.",
+      "difficulty": "medium",
+      "category": "action",
+      "syllable_count": 3,
+      "word_length": 11,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "action"
       ]
     },
     {
@@ -11240,6 +13162,38 @@
       ]
     },
     {
+      "word": "regurgitate",
+      "part_of_speech": "verb",
+      "definition": "to vomit",
+      "example": "Feeling sick, Chuck regurgitated his dinner.",
+      "difficulty": "medium",
+      "category": "general",
+      "syllable_count": 4,
+      "word_length": 11,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
+      "word": "relegate",
+      "part_of_speech": "verb",
+      "definition": "to assign to the proper place",
+      "example": "At the astrology conference, Simon was relegated to the Scorpio room.",
+      "difficulty": "medium",
+      "category": "general",
+      "syllable_count": 3,
+      "word_length": 8,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
       "word": "relish",
       "part_of_speech": "verb",
       "definition": "to enjoy",
@@ -11283,6 +13237,22 @@
       "etymology": "Unknown",
       "definition_number": 1,
       "page": 58,
+      "categories": [
+        "general"
+      ]
+    },
+    {
+      "word": "renovate",
+      "part_of_speech": "verb",
+      "definition": "restore, return to original state",
+      "example": "The renovated antique candelabra looked as good as new.",
+      "difficulty": "hard",
+      "category": "general",
+      "syllable_count": 3,
+      "word_length": 8,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
       "categories": [
         "general"
       ]
@@ -11464,6 +13434,22 @@
       ]
     },
     {
+      "word": "repulse",
+      "part_of_speech": "verb",
+      "definition": "to disgust",
+      "example": "Antisocial Annie tried to repulse people by neglecting to brush her teeth.",
+      "difficulty": "easy",
+      "category": "general",
+      "syllable_count": 2,
+      "word_length": 7,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
       "word": "reputable",
       "part_of_speech": "adjective",
       "definition": "of good reputation",
@@ -11512,6 +13498,22 @@
       ]
     },
     {
+      "word": "reservoir",
+      "part_of_speech": "noun",
+      "definition": "reserves, large supply",
+      "example": "Igor the Indomitable had quite a reservoir of strengh and could lift ten tons, even after running 700 miles, jumping over three mountains, and swimming across an ocean.",
+      "difficulty": "medium",
+      "category": "general",
+      "syllable_count": 3,
+      "word_length": 9,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
       "word": "resilient",
       "part_of_speech": "adjective",
       "definition": "able to recover from misfortune; able to withstand adversity",
@@ -11539,6 +13541,22 @@
       "etymology": "Unknown",
       "definition_number": 1,
       "page": 60,
+      "categories": [
+        "general"
+      ]
+    },
+    {
+      "word": "resolve",
+      "part_of_speech": "verb",
+      "definition": "to find a solution",
+      "example": "Sarah and Emma resolved their differences and shook hands.",
+      "difficulty": "easy",
+      "category": "general",
+      "syllable_count": 2,
+      "word_length": 7,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
       "categories": [
         "general"
       ]
@@ -11960,6 +13978,22 @@
       ]
     },
     {
+      "word": "sedentary",
+      "part_of_speech": "adjective",
+      "definition": "sitting, settled",
+      "example": "The sedentary cat did little but loll in the sun.",
+      "difficulty": "medium",
+      "category": "general",
+      "syllable_count": 4,
+      "word_length": 9,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
       "word": "semaphore",
       "part_of_speech": "noun",
       "definition": "a visual signal",
@@ -12056,6 +14090,22 @@
       ]
     },
     {
+      "word": "servile",
+      "part_of_speech": "adjective",
+      "definition": "subservient",
+      "example": "The servile porter crept around the hotel lobby, bowing and quaking before the guests.",
+      "difficulty": "easy",
+      "category": "general",
+      "syllable_count": 2,
+      "word_length": 7,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
       "word": "sinuous",
       "part_of_speech": "adjective",
       "definition": "lithe, serpentine",
@@ -12131,6 +14181,22 @@
       "etymology": "Unknown",
       "definition_number": 1,
       "page": 63,
+      "categories": [
+        "general"
+      ]
+    },
+    {
+      "word": "solvent",
+      "part_of_speech": "noun",
+      "definition": "a substance that can dissolve other substances",
+      "example": "Water is sometimes called the universal solvent because almost all other substances can dissolve into it.",
+      "difficulty": "easy",
+      "category": "general",
+      "syllable_count": 2,
+      "word_length": 7,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
       "categories": [
         "general"
       ]
@@ -12329,6 +14395,22 @@
       ]
     },
     {
+      "word": "stupefy",
+      "part_of_speech": "verb",
+      "definition": "to astonish, make insensible",
+      "example": "Veronica's audacity and ungratefulness stupefied her best friend, Heather.",
+      "difficulty": "medium",
+      "category": "action",
+      "syllable_count": 3,
+      "word_length": 7,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "action"
+      ]
+    },
+    {
       "word": "subjugate",
       "part_of_speech": "verb",
       "definition": "to bring under control, subdue",
@@ -12393,6 +14475,22 @@
       ]
     },
     {
+      "word": "surfeit",
+      "part_of_speech": "noun",
+      "definition": "an overabundant supply or indulgence",
+      "example": "After partaking of the surfeit of tacos and tamales at the All-You-Can-Eat Taco Tamale Lunch Special, Beth felt rather sick.",
+      "difficulty": "easy",
+      "category": "general",
+      "syllable_count": 2,
+      "word_length": 7,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
       "word": "surmise",
       "part_of_speech": "verb",
       "definition": "to infer with little evidence",
@@ -12439,6 +14537,22 @@
       "categories": [
         "intellectual_mental",
         "science_nature"
+      ]
+    },
+    {
+      "word": "swarthy",
+      "part_of_speech": "adjective",
+      "definition": "of dark color or complexion",
+      "example": "When he got drunk, Robinson's white skin became rather swarthy .",
+      "difficulty": "medium",
+      "category": "general",
+      "syllable_count": 2,
+      "word_length": 7,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
       ]
     },
     {
@@ -12650,6 +14764,22 @@
       ]
     },
     {
+      "word": "toady",
+      "part_of_speech": "noun",
+      "definition": "one who flatters in the hope of gaining favors",
+      "example": "The other kids referred to the teacher's pet as the Tenth Grade T oady .",
+      "difficulty": "easy",
+      "category": "general",
+      "syllable_count": 2,
+      "word_length": 5,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
       "word": "tome",
       "part_of_speech": "noun",
       "definition": "a large book",
@@ -12661,22 +14791,6 @@
       "etymology": "Unknown",
       "definition_number": 1,
       "page": 65,
-      "categories": [
-        "general"
-      ]
-    },
-    {
-      "word": "tone",
-      "part_of_speech": "verb",
-      "definition": "to repent, make amends",
-      "example": "The man atoned for forgetting his wife's birthday by buying her Thve dozen roses.",
-      "difficulty": "easy",
-      "category": "action",
-      "syllable_count": 1,
-      "word_length": 4,
-      "etymology": "Unknown",
-      "definition_number": 1,
-      "page": 10,
       "categories": [
         "general"
       ]
@@ -12714,6 +14828,22 @@
       ]
     },
     {
+      "word": "tortuous",
+      "part_of_speech": "adjective",
+      "definition": "winding",
+      "example": "The scary thing about driving in mountains are the narrow, tortuous roads.",
+      "difficulty": "medium",
+      "category": "general",
+      "syllable_count": 2,
+      "word_length": 8,
+      "etymology": "Latin",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
       "word": "tractable",
       "part_of_speech": "adjective",
       "definition": "easily controlled",
@@ -12727,6 +14857,22 @@
       "page": 65,
       "categories": [
         "power_authority"
+      ]
+    },
+    {
+      "word": "tranquil",
+      "part_of_speech": "adjective",
+      "definition": "calm",
+      "example": "There is a time of night when nothing moves and everything is tranquil .",
+      "difficulty": "easy",
+      "category": "general",
+      "syllable_count": 2,
+      "word_length": 8,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
       ]
     },
     {
@@ -12860,22 +15006,6 @@
       ]
     },
     {
-      "word": "trophy",
-      "part_of_speech": "verb",
-      "definition": "to wither away, decay",
-      "example": "If muscles do not receive enough blood, they will soon atrophy and die.",
-      "difficulty": "medium",
-      "category": "general",
-      "syllable_count": 2,
-      "word_length": 6,
-      "etymology": "Unknown",
-      "definition_number": 1,
-      "page": 10,
-      "categories": [
-        "general"
-      ]
-    },
-    {
       "word": "truculent",
       "part_of_speech": "adjective",
       "definition": "ready to fight, cruel",
@@ -12908,17 +15038,17 @@
       ]
     },
     {
-      "word": "ttain",
+      "word": "ttribute",
       "part_of_speech": "verb",
-      "definition": "to achieve, arrive at",
-      "example": "The athletes strived to attain their best times in competition.",
-      "difficulty": "easy",
+      "definition": "to credit, assign",
+      "example": "He attributes all of his success to his mother's undying encouragement.",
+      "difficulty": "medium",
       "category": "general",
-      "syllable_count": 1,
-      "word_length": 5,
+      "syllable_count": 2,
+      "word_length": 8,
       "etymology": "Unknown",
       "definition_number": 1,
-      "page": 10,
+      "page": 1,
       "categories": [
         "general"
       ]
@@ -12989,6 +15119,22 @@
       ]
     },
     {
+      "word": "uence",
+      "part_of_speech": "noun",
+      "definition": "a gathering together",
+      "example": "A conss uence of different factors made tonight the perfect night.",
+      "difficulty": "medium",
+      "category": "general",
+      "syllable_count": 1,
+      "word_length": 5,
+      "etymology": "French",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
       "word": "umbrage",
       "part_of_speech": "noun",
       "definition": "resentment, offense",
@@ -13050,6 +15196,22 @@
       "etymology": "Unknown",
       "definition_number": 1,
       "page": 67,
+      "categories": [
+        "general"
+      ]
+    },
+    {
+      "word": "uous",
+      "part_of_speech": "adjective",
+      "definition": "exceeding what is necessary",
+      "example": "Tracy had already won the campaign so her constant flattery of others was superfluous .",
+      "difficulty": "easy",
+      "category": "general",
+      "syllable_count": 1,
+      "word_length": 4,
+      "etymology": "Latin",
+      "definition_number": 1,
+      "page": 1,
       "categories": [
         "general"
       ]
@@ -13199,6 +15361,22 @@
       ]
     },
     {
+      "word": "vehement",
+      "part_of_speech": "adjective",
+      "definition": "ardent, passionate",
+      "example": "The fervent protestors chained themselves to the building and shouted all night long.",
+      "difficulty": "easy",
+      "category": "general",
+      "syllable_count": 1,
+      "word_length": 4,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
       "word": "vehemently",
       "part_of_speech": "adverb",
       "definition": "marked by intense force or emotion",
@@ -13264,22 +15442,6 @@
       ]
     },
     {
-      "word": "vent",
-      "part_of_speech": "adjective",
-      "definition": "ardent, passionate",
-      "example": "The fervent protestors chained themselves to the building and shouted all night long.",
-      "difficulty": "easy",
-      "category": "general",
-      "syllable_count": 1,
-      "word_length": 4,
-      "etymology": "Unknown",
-      "definition_number": 1,
-      "page": 33,
-      "categories": [
-        "general"
-      ]
-    },
-    {
       "word": "veracity",
       "part_of_speech": "noun",
       "definition": "truthfulness, accuracy",
@@ -13310,6 +15472,22 @@
       "categories": [
         "emotions_feelings",
         "communication_speech"
+      ]
+    },
+    {
+      "word": "verdant",
+      "part_of_speech": "adjective",
+      "definition": "green in tint or color",
+      "example": "The ver dant leaves on the trees made the world look emerald.",
+      "difficulty": "easy",
+      "category": "general",
+      "syllable_count": 2,
+      "word_length": 7,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "general"
       ]
     },
     {
@@ -13438,6 +15616,22 @@
       "page": 68,
       "categories": [
         "emotions_feelings"
+      ]
+    },
+    {
+      "word": "virtuoso",
+      "part_of_speech": "noun",
+      "definition": "one who excels in an art; a highly skilled musical performer",
+      "example": "Even though L ydia has studied piano for many years, she's only average at it. She's no virtuoso , that's for sure.",
+      "difficulty": "medium",
+      "category": "action",
+      "syllable_count": 3,
+      "word_length": 8,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "page": 1,
+      "categories": [
+        "action"
       ]
     },
     {

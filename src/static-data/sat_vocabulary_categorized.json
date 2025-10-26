@@ -45,21 +45,34 @@
       "hard": 139
     },
     "category_distribution": {
-      "general": 847,
-      "action": 74,
-      "emotions": 33,
-      "social": 14,
-      "moral": 12,
-      "thinking": 8
+      "general": 725,
+      "power_authority": 26,
+      "action": 13,
+      "communication_speech": 29,
+      "social_relationships": 12,
+      "behavior_personality": 33,
+      "emotions_feelings": 82,
+      "physical_appearance": 28,
+      "art_culture": 1,
+      "emotions": 3,
+      "movement_action": 20,
+      "business_economics": 7,
+      "conflict_struggle": 8,
+      "intellectual_mental": 22,
+      "time_change": 16,
+      "morality_ethics": 11,
+      "science_nature": 4,
+      "social": 3,
+      "thinking": 2
     },
     "part_of_speech_distribution": {
-      "verb": 249,
-      "noun": 262,
-      "adjective": 476,
+      "verb": 250,
+      "adjective": 472,
+      "noun": 265,
       "adverb": 1
     },
-    "average_word_length": 8.6,
-    "average_syllable_count": 2.9
+    "average_word_length": 8.1,
+    "average_syllable_count": 2.7
   },
   "words": [
     {
@@ -86,6 +99,21 @@
       "category": "general",
       "syllable_count": 2,
       "word_length": 5,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
+      "word": "abbergasted",
+      "part_of_speech": "adjective",
+      "definition": "astounded",
+      "example": "Whenever I read an Agatha Christie mystery novel, I am always ss abbergasted when I learn the identity of the murderer.",
+      "difficulty": "medium",
+      "category": "general",
+      "syllable_count": 4,
+      "word_length": 11,
       "etymology": "Unknown",
       "definition_number": 1,
       "categories": [
@@ -371,6 +399,21 @@
       "category": "general",
       "syllable_count": 3,
       "word_length": 10,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
+      "word": "accid",
+      "part_of_speech": "adjective",
+      "definition": "limp, not firm or strong",
+      "example": "If a plant is not watered enough, its leaves become droopy and ss accid .",
+      "difficulty": "easy",
+      "category": "general",
+      "syllable_count": 2,
+      "word_length": 5,
       "etymology": "Unknown",
       "definition_number": 1,
       "categories": [
@@ -849,6 +892,36 @@
       "part_of_speech": "adjective",
       "definition": "believing that the existence of God cannot be proven or disproven",
       "example": "Joey's parents are very religious, but he is agnostic .",
+      "difficulty": "medium",
+      "category": "general",
+      "syllable_count": 3,
+      "word_length": 8,
+      "etymology": "Latin",
+      "definition_number": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
+      "word": "agrant",
+      "part_of_speech": "adjective",
+      "definition": "offensive, egregious",
+      "example": "The judge's decision to set the man free simply because that man was his brother was a ss agrant abuse of power.",
+      "difficulty": "easy",
+      "category": "general",
+      "syllable_count": 2,
+      "word_length": 6,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
+      "word": "agration",
+      "part_of_speech": "noun",
+      "definition": "great fire",
+      "example": "The conss agration consumed the entire building.",
       "difficulty": "medium",
       "category": "general",
       "syllable_count": 3,
@@ -2035,36 +2108,6 @@
       ]
     },
     {
-      "word": "ttribute",
-      "part_of_speech": "verb",
-      "definition": "to credit, assign",
-      "example": "He attributes all of his success to his mother's undying encouragement.",
-      "difficulty": "medium",
-      "category": "general",
-      "syllable_count": 2,
-      "word_length": 8,
-      "etymology": "Unknown",
-      "definition_number": 1,
-      "categories": [
-        "general"
-      ]
-    },
-    {
-      "word": "typical",
-      "part_of_speech": "adjective",
-      "definition": "having the distinctive qualities of a particular type",
-      "example": "Screaming and crying is atypical adult behavior.",
-      "difficulty": "medium",
-      "category": "general",
-      "syllable_count": 3,
-      "word_length": 7,
-      "etymology": "Unknown",
-      "definition_number": 1,
-      "categories": [
-        "behavior_personality"
-      ]
-    },
-    {
       "word": "audacious",
       "part_of_speech": "adjective",
       "definition": "excessively bold",
@@ -3059,21 +3102,6 @@
       ]
     },
     {
-      "word": "hronicle",
-      "part_of_speech": "noun",
-      "definition": "a written history",
-      "example": "The library featured the newly updated chronicle of W orld War II.",
-      "difficulty": "medium",
-      "category": "general",
-      "syllable_count": 2,
-      "word_length": 8,
-      "etymology": "Unknown",
-      "definition_number": 1,
-      "categories": [
-        "general"
-      ]
-    },
-    {
       "word": "chronological",
       "part_of_speech": "adjective",
       "definition": "arranged in order of time",
@@ -3083,6 +3111,21 @@
       "syllable_count": 5,
       "word_length": 13,
       "etymology": "Greek",
+      "definition_number": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
+      "word": "cious",
+      "part_of_speech": "adjective",
+      "definition": "offering one's services when they are neither wanted nor needed",
+      "example": "Brenda resented Allan's ofTh cious behavior when he selected colors that might best improve her artwork.",
+      "difficulty": "medium",
+      "category": "general",
+      "syllable_count": 1,
+      "word_length": 5,
+      "etymology": "Latin",
       "definition_number": 1,
       "categories": [
         "general"
@@ -3826,36 +3869,6 @@
       ]
     },
     {
-      "word": "agration",
-      "part_of_speech": "noun",
-      "definition": "great fire",
-      "example": "The conss agration consumed the entire building.",
-      "difficulty": "medium",
-      "category": "general",
-      "syllable_count": 3,
-      "word_length": 8,
-      "etymology": "Latin",
-      "definition_number": 1,
-      "categories": [
-        "general"
-      ]
-    },
-    {
-      "word": "uence",
-      "part_of_speech": "noun",
-      "definition": "a gathering together",
-      "example": "A conss uence of different factors made tonight the perfect night.",
-      "difficulty": "medium",
-      "category": "general",
-      "syllable_count": 1,
-      "word_length": 5,
-      "etymology": "French",
-      "definition_number": 1,
-      "categories": [
-        "general"
-      ]
-    },
-    {
       "word": "conformist",
       "part_of_speech": "noun",
       "definition": "one who behaves the same as others",
@@ -4396,21 +4409,6 @@
       ]
     },
     {
-      "word": "covet",
-      "part_of_speech": "verb",
-      "definition": "to desire enviously",
-      "example": "I coveted Moses's house, wife, and car.",
-      "difficulty": "easy",
-      "category": "general",
-      "syllable_count": 2,
-      "word_length": 5,
-      "etymology": "Unknown",
-      "definition_number": 1,
-      "categories": [
-        "emotions_feelings"
-      ]
-    },
-    {
       "word": "covert",
       "part_of_speech": "adjective",
       "definition": "secretly engaged in",
@@ -4423,6 +4421,21 @@
       "definition_number": 1,
       "categories": [
         "general"
+      ]
+    },
+    {
+      "word": "covet",
+      "part_of_speech": "verb",
+      "definition": "to desire enviously",
+      "example": "I coveted Moses's house, wife, and car.",
+      "difficulty": "easy",
+      "category": "general",
+      "syllable_count": 2,
+      "word_length": 5,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "categories": [
+        "emotions_feelings"
       ]
     },
     {
@@ -4872,6 +4885,21 @@
       "category": "general",
       "syllable_count": 3,
       "word_length": 9,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
+      "word": "delity",
+      "part_of_speech": "noun",
+      "definition": "loyalty, devotion",
+      "example": "Guard dogs are known for the great fidelity they show toward their masters.",
+      "difficulty": "easy",
+      "category": "general",
+      "syllable_count": 3,
+      "word_length": 6,
       "etymology": "Unknown",
       "definition_number": 1,
       "categories": [
@@ -6067,6 +6095,21 @@
       ]
     },
     {
+      "word": "elicitous",
+      "part_of_speech": "adjective",
+      "definition": "well suited, apt",
+      "example": "While his comments were idiotic and rambling, mine were felicitous and helpful.",
+      "difficulty": "hard",
+      "category": "general",
+      "syllable_count": 4,
+      "word_length": 9,
+      "etymology": "Latin",
+      "definition_number": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
       "word": "eloquent",
       "part_of_speech": "adjective",
       "definition": "expressive, articulate, moving",
@@ -7058,21 +7101,6 @@
       ]
     },
     {
-      "word": "elicitous",
-      "part_of_speech": "adjective",
-      "definition": "well suited, apt",
-      "example": "While his comments were idiotic and rambling, mine were felicitous and helpful.",
-      "difficulty": "hard",
-      "category": "general",
-      "syllable_count": 4,
-      "word_length": 9,
-      "etymology": "Latin",
-      "definition_number": 1,
-      "categories": [
-        "general"
-      ]
-    },
-    {
       "word": "feral",
       "part_of_speech": "adjective",
       "definition": "wild, savage",
@@ -7081,21 +7109,6 @@
       "category": "general",
       "syllable_count": 2,
       "word_length": 5,
-      "etymology": "Unknown",
-      "definition_number": 1,
-      "categories": [
-        "general"
-      ]
-    },
-    {
-      "word": "vehement",
-      "part_of_speech": "adjective",
-      "definition": "ardent, passionate",
-      "example": "The fervent protestors chained themselves to the building and shouted all night long.",
-      "difficulty": "easy",
-      "category": "general",
-      "syllable_count": 1,
-      "word_length": 4,
       "etymology": "Unknown",
       "definition_number": 1,
       "categories": [
@@ -7141,111 +7154,6 @@
       "category": "general",
       "syllable_count": 1,
       "word_length": 4,
-      "etymology": "Unknown",
-      "definition_number": 1,
-      "categories": [
-        "general"
-      ]
-    },
-    {
-      "word": "delity",
-      "part_of_speech": "noun",
-      "definition": "loyalty, devotion",
-      "example": "Guard dogs are known for the great fidelity they show toward their masters.",
-      "difficulty": "easy",
-      "category": "general",
-      "syllable_count": 3,
-      "word_length": 6,
-      "etymology": "Unknown",
-      "definition_number": 1,
-      "categories": [
-        "general"
-      ]
-    },
-    {
-      "word": "gurative",
-      "part_of_speech": "adjective",
-      "definition": "symbolic",
-      "example": "Using figurative language, Jane likened the storm to an angry bull.",
-      "difficulty": "medium",
-      "category": "general",
-      "syllable_count": 3,
-      "word_length": 8,
-      "etymology": "Unknown",
-      "definition_number": 1,
-      "categories": [
-        "general"
-      ]
-    },
-    {
-      "word": "abbergasted",
-      "part_of_speech": "adjective",
-      "definition": "astounded",
-      "example": "Whenever I read an Agatha Christie mystery novel, I am always ss abbergasted when I learn the identity of the murderer.",
-      "difficulty": "medium",
-      "category": "general",
-      "syllable_count": 4,
-      "word_length": 11,
-      "etymology": "Unknown",
-      "definition_number": 1,
-      "categories": [
-        "general"
-      ]
-    },
-    {
-      "word": "accid",
-      "part_of_speech": "adjective",
-      "definition": "limp, not firm or strong",
-      "example": "If a plant is not watered enough, its leaves become droopy and ss accid .",
-      "difficulty": "easy",
-      "category": "general",
-      "syllable_count": 2,
-      "word_length": 5,
-      "etymology": "Unknown",
-      "definition_number": 1,
-      "categories": [
-        "general"
-      ]
-    },
-    {
-      "word": "agrant",
-      "part_of_speech": "adjective",
-      "definition": "offensive, egregious",
-      "example": "The judge's decision to set the man free simply because that man was his brother was a ss agrant abuse of power.",
-      "difficulty": "easy",
-      "category": "general",
-      "syllable_count": 2,
-      "word_length": 6,
-      "etymology": "Unknown",
-      "definition_number": 1,
-      "categories": [
-        "general"
-      ]
-    },
-    {
-      "word": "orid",
-      "part_of_speech": "adjective",
-      "definition": "flowery, ornate",
-      "example": "The writer's ss orid prose belongs on a sentimental Hallmark card.",
-      "difficulty": "easy",
-      "category": "general",
-      "syllable_count": 2,
-      "word_length": 4,
-      "etymology": "Unknown",
-      "definition_number": 1,
-      "categories": [
-        "general"
-      ]
-    },
-    {
-      "word": "out",
-      "part_of_speech": "verb",
-      "definition": "to disregard or disobey openly",
-      "example": "I ss outed the school's dress code by wearing a tie-dyed tank top and a pair of cut-off jeans.",
-      "difficulty": "easy",
-      "category": "general",
-      "syllable_count": 1,
-      "word_length": 3,
       "etymology": "Unknown",
       "definition_number": 1,
       "categories": [
@@ -7480,6 +7388,21 @@
       ]
     },
     {
+      "word": "functory",
+      "part_of_speech": "adjective",
+      "definition": "showing little interest or enthusiasm",
+      "example": "The radio broadcaster announced the news of the massacre in a surprisingly perfunctory manner.",
+      "difficulty": "medium",
+      "category": "general",
+      "syllable_count": 3,
+      "word_length": 8,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
       "word": "furtive",
       "part_of_speech": "adjective",
       "definition": "secretive, sly",
@@ -7673,6 +7596,21 @@
       "definition_number": 1,
       "categories": [
         "behavior_personality"
+      ]
+    },
+    {
+      "word": "gurative",
+      "part_of_speech": "adjective",
+      "definition": "symbolic",
+      "example": "Using figurative language, Jane likened the storm to an angry bull.",
+      "difficulty": "medium",
+      "category": "general",
+      "syllable_count": 3,
+      "word_length": 8,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "categories": [
+        "general"
       ]
     },
     {
@@ -7873,6 +7811,21 @@
       ]
     },
     {
+      "word": "hronicle",
+      "part_of_speech": "noun",
+      "definition": "a written history",
+      "example": "The library featured the newly updated chronicle of W orld War II.",
+      "difficulty": "medium",
+      "category": "general",
+      "syllable_count": 2,
+      "word_length": 8,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
       "word": "hypocrisy",
       "part_of_speech": "noun",
       "definition": "pretending to believe what one does not",
@@ -7942,6 +7895,21 @@
       "syllable_count": 4,
       "word_length": 10,
       "etymology": "Latin",
+      "definition_number": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
+      "word": "igate",
+      "part_of_speech": "adjective",
+      "definition": "dissolute, extravagant",
+      "example": "The pross igate gambler loved to drink, spend money, steal, cheat, and hang out with prostitutes.",
+      "difficulty": "easy",
+      "category": "general",
+      "syllable_count": 2,
+      "word_length": 5,
+      "etymology": "Unknown",
       "definition_number": 1,
       "categories": [
         "general"
@@ -10484,21 +10452,6 @@
       ]
     },
     {
-      "word": "cious",
-      "part_of_speech": "adjective",
-      "definition": "offering one's services when they are neither wanted nor needed",
-      "example": "Brenda resented Allan's ofTh cious behavior when he selected colors that might best improve her artwork.",
-      "difficulty": "medium",
-      "category": "general",
-      "syllable_count": 1,
-      "word_length": 5,
-      "etymology": "Latin",
-      "definition_number": 1,
-      "categories": [
-        "general"
-      ]
-    },
-    {
       "word": "ominous",
       "part_of_speech": "adjective",
       "definition": "foreboding or foreshadowing evil",
@@ -10556,6 +10509,21 @@
       "definition_number": 1,
       "categories": [
         "behavior_personality"
+      ]
+    },
+    {
+      "word": "orid",
+      "part_of_speech": "adjective",
+      "definition": "flowery, ornate",
+      "example": "The writer's ss orid prose belongs on a sentimental Hallmark card.",
+      "difficulty": "easy",
+      "category": "general",
+      "syllable_count": 2,
+      "word_length": 4,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "categories": [
+        "general"
       ]
     },
     {
@@ -10642,6 +10610,21 @@
       "category": "general",
       "syllable_count": 3,
       "word_length": 9,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
+      "word": "out",
+      "part_of_speech": "verb",
+      "definition": "to disregard or disobey openly",
+      "example": "I ss outed the school's dress code by wearing a tie-dyed tank top and a pair of cut-off jeans.",
+      "difficulty": "easy",
+      "category": "general",
+      "syllable_count": 1,
+      "word_length": 3,
       "etymology": "Unknown",
       "definition_number": 1,
       "categories": [
@@ -11003,21 +10986,6 @@
       "syllable_count": 1,
       "word_length": 5,
       "etymology": "Latin",
-      "definition_number": 1,
-      "categories": [
-        "general"
-      ]
-    },
-    {
-      "word": "functory",
-      "part_of_speech": "adjective",
-      "definition": "showing little interest or enthusiasm",
-      "example": "The radio broadcaster announced the news of the massacre in a surprisingly perfunctory manner.",
-      "difficulty": "medium",
-      "category": "general",
-      "syllable_count": 3,
-      "word_length": 8,
-      "etymology": "Unknown",
       "definition_number": 1,
       "categories": [
         "general"
@@ -11711,21 +11679,6 @@
       "category": "general",
       "syllable_count": 2,
       "word_length": 7,
-      "etymology": "Unknown",
-      "definition_number": 1,
-      "categories": [
-        "general"
-      ]
-    },
-    {
-      "word": "igate",
-      "part_of_speech": "adjective",
-      "definition": "dissolute, extravagant",
-      "example": "The pross igate gambler loved to drink, spend money, steal, cheat, and hang out with prostitutes.",
-      "difficulty": "easy",
-      "category": "general",
-      "syllable_count": 2,
-      "word_length": 5,
       "etymology": "Unknown",
       "definition_number": 1,
       "categories": [
@@ -13626,21 +13579,6 @@
       ]
     },
     {
-      "word": "uous",
-      "part_of_speech": "adjective",
-      "definition": "exceeding what is necessary",
-      "example": "Tracy had already won the campaign so her constant flattery of others was superfluous .",
-      "difficulty": "easy",
-      "category": "general",
-      "syllable_count": 1,
-      "word_length": 4,
-      "etymology": "Latin",
-      "definition_number": 1,
-      "categories": [
-        "general"
-      ]
-    },
-    {
       "word": "surfeit",
       "part_of_speech": "noun",
       "definition": "an overabundant supply or indulgence",
@@ -14169,6 +14107,21 @@
       ]
     },
     {
+      "word": "ttribute",
+      "part_of_speech": "verb",
+      "definition": "to credit, assign",
+      "example": "He attributes all of his success to his mother's undying encouragement.",
+      "difficulty": "medium",
+      "category": "general",
+      "syllable_count": 2,
+      "word_length": 8,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
       "word": "turgid",
       "part_of_speech": "adjective",
       "definition": "swollen, excessively embellished in style or language",
@@ -14200,6 +14153,21 @@
       ]
     },
     {
+      "word": "typical",
+      "part_of_speech": "adjective",
+      "definition": "having the distinctive qualities of a particular type",
+      "example": "Screaming and crying is atypical adult behavior.",
+      "difficulty": "medium",
+      "category": "general",
+      "syllable_count": 3,
+      "word_length": 7,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "categories": [
+        "behavior_personality"
+      ]
+    },
+    {
       "word": "ubiquitous",
       "part_of_speech": "adjective",
       "definition": "existing everywhere, widespread",
@@ -14209,6 +14177,21 @@
       "syllable_count": 4,
       "word_length": 10,
       "etymology": "Latin",
+      "definition_number": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
+      "word": "uence",
+      "part_of_speech": "noun",
+      "definition": "a gathering together",
+      "example": "A conss uence of different factors made tonight the perfect night.",
+      "difficulty": "medium",
+      "category": "general",
+      "syllable_count": 1,
+      "word_length": 5,
+      "etymology": "French",
       "definition_number": 1,
       "categories": [
         "general"
@@ -14271,6 +14254,21 @@
       "syllable_count": 3,
       "word_length": 8,
       "etymology": "Unknown",
+      "definition_number": 1,
+      "categories": [
+        "general"
+      ]
+    },
+    {
+      "word": "uous",
+      "part_of_speech": "adjective",
+      "definition": "exceeding what is necessary",
+      "example": "Tracy had already won the campaign so her constant flattery of others was superfluous .",
+      "difficulty": "easy",
+      "category": "general",
+      "syllable_count": 1,
+      "word_length": 4,
+      "etymology": "Latin",
       "definition_number": 1,
       "categories": [
         "general"
@@ -14409,6 +14407,21 @@
       "definition_number": 1,
       "categories": [
         "emotions_feelings"
+      ]
+    },
+    {
+      "word": "vehement",
+      "part_of_speech": "adjective",
+      "definition": "ardent, passionate",
+      "example": "The fervent protestors chained themselves to the building and shouted all night long.",
+      "difficulty": "easy",
+      "category": "general",
+      "syllable_count": 1,
+      "word_length": 4,
+      "etymology": "Unknown",
+      "definition_number": 1,
+      "categories": [
+        "general"
       ]
     },
     {
