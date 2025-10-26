@@ -24,7 +24,7 @@ def clean_characters(text):
     
     # Character mappings for common encoding issues
     char_replacements = {
-        'Õ': "'",      # Curly apostrophe/single quote
+        ''': "'",      # Curly apostrophe/single quote
         'Ó': '"',      # Opening double quote  
         'Ò': '"',      # Closing double quote
         'Þ': 'fi',     # Ligature for 'fi'
