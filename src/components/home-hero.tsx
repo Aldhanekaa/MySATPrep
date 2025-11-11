@@ -48,18 +48,18 @@ export function HeroSection() {
         <section>
           <div className="relative mx-auto max-w-6xl px-6 pt-32 lg:pb-16 lg:pt-48">
             <div className="relative z-10 mx-auto max-w-4xl text-center">
-              <AnimatedGroup
-                variants={{
-                  container: {
-                    visible: {
-                      transition: {
-                        staggerChildren: 0.05,
-                        delayChildren: 0.75,
-                      },
-                    },
-                  },
-                  ...transitionVariants,
-                }}
+              <section
+              // variants={{
+              //   container: {
+              //     visible: {
+              //       transition: {
+              //         staggerChildren: 0.05,
+              //         delayChildren: 0.75,
+              //       },
+              //     },
+              //   },
+              //   ...transitionVariants,
+              // }}
               >
                 <ContinuePracticeRushButton />
 
@@ -122,7 +122,7 @@ export function HeroSection() {
                   </div>
                   <div className="absolute inset-0 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] mix-blend-overlay [background-size:16px_16px] [mask-image:radial-gradient(ellipse_50%_50%_at_50%_50%,#000_70%,transparent_100%)] dark:opacity-5" />
                 </div>
-              </AnimatedGroup>
+              </section>
             </div>
           </div>
         </section>

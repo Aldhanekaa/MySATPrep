@@ -102,7 +102,6 @@ const QuestionProblemCard = React.memo(function QuestionProblemCard({
   hideSubjectHeaders?: boolean;
   answerVisibility?: string;
 }) {
-  const sonner = useSonner();
   const router = useRouter();
 
   // Load saved questions from localStorage
@@ -121,42 +120,42 @@ const QuestionProblemCard = React.memo(function QuestionProblemCard({
     {}
   );
 
-  // Effect to keep practiceStatistics updated with latest localStorage data
-  useEffect(() => {
-    const updatePracticeStatistics = () => {
-      try {
-        const currentStats = window.localStorage.getItem("practiceStatistics");
-        const parsedStats = currentStats ? JSON.parse(currentStats) : {};
+  // // Effect to keep practiceStatistics updated with latest localStorage data
+  // useEffect(() => {
+  //   const updatePracticeStatistics = () => {
+  //     try {
+  //       const currentStats = window.localStorage.getItem("practiceStatistics");
+  //       const parsedStats = currentStats ? JSON.parse(currentStats) : {};
 
-        // Only update if the data has actually changed
-        if (
-          JSON.stringify(practiceStatistics) !== JSON.stringify(parsedStats)
-        ) {
-          setPracticeStatistics(parsedStats);
-        }
-      } catch (error) {
-        console.error("Error syncing practiceStatistics:", error);
-      }
-    };
+  //       // Only update if the data has actually changed
+  //       if (
+  //         JSON.stringify(practiceStatistics) !== JSON.stringify(parsedStats)
+  //       ) {
+  //         setPracticeStatistics(parsedStats);
+  //       }
+  //     } catch (error) {
+  //       console.error("Error syncing practiceStatistics:", error);
+  //     }
+  //   };
 
-    // Update on storage events (changes from other tabs/windows)
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === "practiceStatistics") {
-        updatePracticeStatistics();
-      }
-    };
+  //   // Update on storage events (changes from other tabs/windows)
+  //   const handleStorageChange = (e: StorageEvent) => {
+  //     if (e.key === "practiceStatistics") {
+  //       updatePracticeStatistics();
+  //     }
+  //   };
 
-    // Reduce polling frequency to improve performance
-    const interval = setInterval(updatePracticeStatistics, 3000); // Changed from 1000ms to 3000ms
+  //   // Reduce polling frequency to improve performance
+  //   const interval = setInterval(updatePracticeStatistics, 3000); // Changed from 1000ms to 3000ms
 
-    // Listen for storage events
-    window.addEventListener("storage", handleStorageChange);
+  //   // Listen for storage events
+  //   window.addEventListener("storage", handleStorageChange);
 
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener("storage", handleStorageChange);
-    };
-  }, [practiceStatistics, setPracticeStatistics]);
+  //   return () => {
+  //     clearInterval(interval);
+  //     window.removeEventListener("storage", handleStorageChange);
+  //   };
+  // }, [practiceStatistics, setPracticeStatistics]);
 
   // Load answer choice history from localStorage (for hidden answer mode)
   const [answerChoiceHistory, setAnswerChoiceHistory] = useLocalStorage<{

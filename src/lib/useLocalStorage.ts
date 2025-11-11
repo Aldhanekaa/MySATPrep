@@ -36,15 +36,37 @@ export function useLocalStorage<T>(
       // Allow value to be a function so we have the same API as useState
       const valueToStore =
         value instanceof Function ? value(storedValue) : value;
-      // Save state
-      setStoredValue(valueToStore);
+
       // Save to local storage
       if (typeof window !== "undefined") {
-        window.localStorage.setItem(key, JSON.stringify(valueToStore));
+        try {
+          const serializedValue = JSON.stringify(valueToStore);
+          window.localStorage.setItem(key, serializedValue);
+          // console.log(`✅ Successfully saved to localStorage: ${key}`);
+        } catch (storageError) {
+          if (
+            storageError instanceof DOMException &&
+            storageError.name === "QuotaExceededError"
+          ) {
+            console.error(`❌ localStorage quota exceeded for key: ${key}`);
+          } else {
+            console.error(
+              `❌ Failed to serialize/save to localStorage for key: ${key}`,
+              storageError
+            );
+          }
+          // Don't update state if localStorage save failed
+          return;
+        }
+      } else {
+        console.warn("⚠️ Cannot save to localStorage: running on server-side");
+        // Still update state even if we can't persist
       }
+
+      // Save state only after successful localStorage save (or on server-side)
+      setStoredValue(valueToStore);
     } catch (error) {
-      // A more advanced implementation would handle the error case
-      console.log(error);
+      console.error(`❌ Unexpected error in setValue for key: ${key}`, error);
     }
   };
 

@@ -15,8 +15,16 @@ async function fetchQuestionById(
       process.env.NEXT_PUBLIC_URL
         ? process.env.NEXT_PUBLIC_URL
         : process.env.NEXT_PUBLIC_VERCEL_ENV !== "production"
-        ? `https://${process.env.NEXT_PUBLIC_VERCEL_BRANCH_URL}`
-        : `https://${process.env.NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL}`
+        ? `${
+            process.env.NEXT_PUBLIC_VERCEL_BRANCH_URL
+              ? `https://${process.env.NEXT_PUBLIC_VERCEL_BRANCH_URL}`
+              : "http://localhost:3000"
+          }`
+        : `${
+            process.env.NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL
+              ? `https://${process.env.NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL}`
+              : "http://localhost:3000"
+          }`
     }/api/question-by-id/${questionId}`
   );
 
@@ -138,11 +146,11 @@ export default async function Page({
   // Fetch question data using the utility function
   const result = await fetchQuestionById(questionId);
 
-  console.log(
-    "Question data:",
-    questionId,
-    JSON.stringify(result.data, null, 2)
-  );
+  // console.log(
+  //   "Question data:",
+  //   questionId,
+  //   JSON.stringify(result.data, null, 2)
+  // );
 
   if (!result.data) {
     return (
@@ -155,7 +163,7 @@ export default async function Page({
 
   const questionData = result.data;
 
-  console.log("Question data:", JSON.stringify(result.data, null, 2));
+  // console.log("Question data:", JSON.stringify(result.data, null, 2));
 
   return (
     <React.Fragment>

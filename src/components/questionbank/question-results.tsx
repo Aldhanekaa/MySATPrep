@@ -122,7 +122,7 @@ export function QuestionResults({
 
   // Check if question has been answered before in practice statistics
   const answeredQuestions =
-    practiceStatistics[assessmentName]?.answeredQuestionsDetailed || [];
+    practiceStatistics[assessmentName]?.answeredQuestions || [];
 
   // Combined state for view and answer visibility
   interface CombinedState {
@@ -277,6 +277,7 @@ export function QuestionResults({
 
   // Memoized filtered questions that includes Bluebook filtering
   const actualFilteredQuestions = useMemo(() => {
+    // console.log("answeredQuestions", answeredQuestions);
     const filtered = filterQuestions(
       state.questionsWithData,
       state.selectedDifficulties,

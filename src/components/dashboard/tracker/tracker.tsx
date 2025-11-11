@@ -391,6 +391,12 @@ export default function Tracker() {
       (q) => !q.isCorrect
     ).length;
 
+    console.log(
+      ` answeredQuestionsDetailed ${answeredQuestionsDetailed.length}`
+    );
+    console.log(
+      ` answeredQuestionIds ${assessmentStats?.answeredQuestions.length}`
+    );
     // Count total questions by difficulty
     const totalByDifficulty = questionsState.allQuestions.reduce(
       (acc, question) => {

@@ -159,7 +159,7 @@ export const filterQuestionsByDateRange = (
 export const filterQuestionsByAnswerStatus = (
   questions: QuestionWithData[],
   answerStatus: "all" | "answered" | "not-answered",
-  answeredQuestions: AnsweredQuestion[] = []
+  answeredQuestions: string[] = []
 ): QuestionWithData[] => {
   // Default behavior: show all questions when status is "all"
   if (answerStatus === "all") {
@@ -167,9 +167,7 @@ export const filterQuestionsByAnswerStatus = (
   }
 
   // Create a Set of answered question IDs for efficient lookup
-  const answeredQuestionIds = new Set(
-    answeredQuestions.map((aq) => aq.questionId)
-  );
+  const answeredQuestionIds = new Set(answeredQuestions.map((aq) => aq));
 
   // Filter questions based on answer status
   return questions.filter((question) => {
@@ -266,7 +264,7 @@ export const filterQuestions = (
   bluebookExternalIds?: BluebookExternalIds,
   selectedSubject?: string,
   answerStatus: "all" | "answered" | "not-answered" = "all",
-  answeredQuestions: AnsweredQuestion[] = []
+  answeredQuestions: string[] = []
 ): QuestionWithData[] => {
   let filtered = questions;
 
