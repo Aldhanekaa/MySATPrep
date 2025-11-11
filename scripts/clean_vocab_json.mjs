@@ -24,7 +24,7 @@ function normalizeText(text) {
     [/\uFB00/g, "ff"], // ﬀ
     [/\uFB03/g, "ffi"], // ﬃ
     [/\uFB04/g, "ffl"], // ﬄ
-    [/\u00DF/g, "ss"], // ß -> ss (approx)
+    [/\u00DF/g, " "], // ß ->   (approx)
     [/\u00D0/g, "D"],
     [/\u00DE/g, "Th"],
     [/\u00FE/g, "th"],

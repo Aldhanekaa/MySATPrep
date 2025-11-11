@@ -75,10 +75,10 @@ export async function GET(
         const questionResult = await fetchQuestionData(questionId);
 
         if (questionResult.success && questionResult.data) {
-          console.log(
-            "Question problem data:",
-            JSON.stringify(questionResult.data, null, 2)
-          );
+          // console.log(
+          //   "Question problem data:",
+          //   JSON.stringify(questionResult.data, null, 2)
+          // );
 
           return NextResponse.json(
             {

@@ -115,8 +115,8 @@ def clean_characters(text: str) -> str:
     # Character mappings for common encoding issues
     char_replacements = {
         ''': "'",      # Curly apostrophe/single quote
-        'Ó': '"',      # Opening double quote  
-        'Ò': '"',      # Closing double quote
+        '”': '"',      # Opening double quote  
+        '“': '"',      # Closing double quote
         'Þ': 'fi',     # Ligature for 'fi'
         'ß': 'fl',     # Ligature for 'fl'
         'È': 'A',      # Accented A
