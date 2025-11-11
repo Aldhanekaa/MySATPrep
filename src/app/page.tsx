@@ -6,7 +6,7 @@ import FooterSection from "@/components/footer";
 export const metadata: Metadata = {
   title: "Free SAT Practice Questions & Test Prep - MySATPrep",
   description:
-    "Boost your SAT scores with our comprehensive question bank featuring real Collegeboard's Questionbank questions. We use official SAT Suite Question Bank Questions. Track progress, identify weak areas, and master the SAT with personalized practice sessions.",
+    "We use official SAT Suite Question Bank Questions to provide a better interface for studying, with an answer interface, integrated timers+Desmos, and more",
   keywords: [
     "free SAT practice",
     "SAT test prep",
