@@ -10,7 +10,11 @@ import { useState } from "react";
 export function useLocalStorage<T>(
   key: string,
   initialValue: T
-): [T, (value: T | ((val: T) => T)) => void] {
+): [
+  T,
+  (value: T | ((val: T) => T)) => void,
+  (value: T | ((val: T) => T)) => void
+] {
   // State to store our value
   // Pass initial state function to useState so logic is only executed once
   const [storedValue, setStoredValue] = useState<T>(() => {
@@ -19,7 +23,7 @@ export function useLocalStorage<T>(
     }
     try {
       // Get from local storage by key
-      const item = window.localStorage.getItem(key);
+      const item = localStorage.getItem(key);
       // Parse stored json or if none return initialValue
       return item ? JSON.parse(item) : initialValue;
     } catch (error) {
@@ -29,6 +33,7 @@ export function useLocalStorage<T>(
     }
   });
 
+  // Being repeatedly used in components that is being shown multiple times in a page makes this operation overlaps and causes innacurate updates.
   // Return a wrapped version of useState's setter function that ...
   // ... persists the new value to localStorage.
   const setValue = (value: T | ((val: T) => T)) => {
@@ -41,8 +46,10 @@ export function useLocalStorage<T>(
       if (typeof window !== "undefined") {
         try {
           const serializedValue = JSON.stringify(valueToStore);
-          window.localStorage.setItem(key, serializedValue);
-          // console.log(`✅ Successfully saved to localStorage: ${key}`);
+          // in order to fix the overlapping issue, we have
+
+          localStorage.setItem(key, serializedValue);
+          console.log(`✅ Successfully saved to localStorage: ${key}`);
         } catch (storageError) {
           if (
             storageError instanceof DOMException &&
@@ -70,5 +77,30 @@ export function useLocalStorage<T>(
     }
   };
 
-  return [storedValue, setValue];
+  // this function will only updates and merge values given in the parameter to the correspondinng item inside the current localStorage, and thus preventing overlapping updates between components
+  const updateValue = <T>(value: T | ((val: T) => T)) => {
+    // Get from local storage by key
+    const currentLocalStorageData = localStorage.getItem(key);
+
+    if (currentLocalStorageData) {
+      try {
+        const parsedData = JSON.parse(currentLocalStorageData);
+        const newValue = value instanceof Function ? value(parsedData) : value;
+
+        // Merge the new value with the existing data
+        const updatedData = { ...parsedData, ...newValue };
+
+        // Save the updated data back to local storage
+        localStorage.setItem(key, JSON.stringify(updatedData));
+        setStoredValue(updatedData);
+      } catch (error) {
+        console.error(
+          `❌ Failed to update localStorage for key: ${key}`,
+          error
+        );
+      }
+    }
+  };
+
+  return [storedValue, setValue, updateValue];
 }

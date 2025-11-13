@@ -494,8 +494,13 @@ const QuestionProblemCard = React.memo(function QuestionProblemCard({
           updatedHistory: updatedHistory[questionId],
         });
       } else {
+        const currentStats = window.localStorage.getItem("practiceStatistics");
+        const parsedStats: PracticeStatistics = currentStats
+          ? JSON.parse(currentStats)
+          : {};
+
         // Save to practiceStatistics when answer visibility is shown
-        const updatedStats = { ...practiceStatistics };
+        const updatedStats = { ...parsedStats };
 
         // Initialize assessment stats if they don't exist
         if (!updatedStats[assessment]) {
@@ -506,7 +511,7 @@ const QuestionProblemCard = React.memo(function QuestionProblemCard({
           };
         }
 
-        const assessmentStats = updatedStats[assessment];
+        const assessmentStats = { ...updatedStats[assessment] };
 
         // Add to answered questions if not already there
         if (!assessmentStats.answeredQuestions?.includes(questionId)) {
@@ -535,6 +540,8 @@ const QuestionProblemCard = React.memo(function QuestionProblemCard({
           selectedAnswer: answer, // Store user's selected answer
           plainQuestion: question.question,
         });
+
+        updatedStats[assessment] = assessmentStats;
 
         // Save to localStorage
         setPracticeStatistics(updatedStats);
