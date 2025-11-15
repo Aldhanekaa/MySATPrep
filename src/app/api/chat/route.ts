@@ -42,7 +42,7 @@ export async function POST(req: Request) {
   //   console.log("Received data:", data);
 
   const result = await generateText({
-    model: openrouter.chat("deepseek/deepseek-chat-v3.1:free"),
+    model: openrouter.chat("z-ai/glm-4.5-air:free"),
     system: getSystem(task, data), // Context: ${JSON.stringify(data)}
     prompt: message,
   });
