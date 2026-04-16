@@ -443,3 +443,25 @@
 .animate-aurora {
   animation: aurora 60s linear infinite;
 }
+
+.questionProblemCard table {
+        border-collapse: collapse !important;
+        width: 100%;
+}
+
+.questionProblemCard th, td {
+        padding: 8px 12px !important;
+        border: 1px solid #e5e7eb !important;
+        border-radius: 0 !important;
+        background: #ffffff !important;
+      }
+
+.questionProblemCard th {
+        background: #f9fafb !important;
+        font-weight: 600;
+      }
+
+.questionProblemCard tr:hover td {
+        background: #f8fafc;
+      }
+
