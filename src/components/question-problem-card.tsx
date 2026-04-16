@@ -654,7 +654,7 @@ const QuestionProblemCard = React.memo(function QuestionProblemCard({
 
       <Card
         variant="accent"
-        className={cn("w-full", "transition-all duration-300")}
+        className={cn("w-full", "transition-all duration-300", "questionProblemCard")}
       >
         <CardHeader>
           <CardHeading className="w-full">
