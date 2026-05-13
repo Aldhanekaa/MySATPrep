@@ -62,6 +62,13 @@ export async function fetchQuestionData(
           | SPRDisclosedQuestion
           | MultipleChoiceDisclosedQuestion = data[0];
 
+        console.log("Fetched IBN Question Data:", questionData);
+        console.log("Fetched IBN Question Data (answer):", questionData.answer);
+        // console.log(
+        //   "Fetched IBN Question Data (answer.correct_choice):",
+        //   questionData.answer,
+        // );
+
         if (questionData.answer.style === "Multiple Choice") {
           return {
             success: true,
