@@ -26,12 +26,12 @@ async function fetchQuestionById(
           }`
   }/api/question-by-id/${questionId}`;
 
-  console.log("Fetching question data from API route:", targetUrl);
+  // console.log("Fetching question data from API route:", targetUrl);
   const response = await fetch(targetUrl);
-  console.log(
-    "Fetching question data from API route: DONE! Response:",
-    response,
-  );
+  // console.log(
+  //   "Fetching question data from API route: DONE! Response:",
+  //   response,
+  // );
 
   if (!response.ok) {
     const errorText = await response.text();
@@ -40,7 +40,7 @@ async function fetchQuestionById(
       statusText: response.statusText,
       body: errorText,
     };
-    console.error("Failed to fetch question:", errorDetails);
+    // console.error("Failed to fetch question:", errorDetails);
     throw new Error(
       `Failed to fetch question: ${response.status} ${response.statusText} - ${errorText}`,
     );
