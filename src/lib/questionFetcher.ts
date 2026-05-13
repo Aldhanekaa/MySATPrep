@@ -12,6 +12,33 @@ export interface QuestionFetchResult {
   status?: number;
 }
 
+function findCorrectChoiceOrAnswerOnIBNQuestion(
+  data: SPRDisclosedQuestion | MultipleChoiceDisclosedQuestion,
+): Array<string> {
+  if (
+    data.answer.style == "Multiple Choice" &&
+    "correct_choice" in data.answer
+  ) {
+    return [data.answer.correct_choice.toUpperCase()];
+  } else {
+    const rationale = data.answer.rationale;
+
+    // try to find the correct choice in the rationale by looking for patterns like "The correct answer is {answer}." or "Choice {answer} is correct."
+    const correctChoiceMatch = rationale.match(
+      /The correct answer is ([A-D])\.|Choice ([A-D]) is correct\./i,
+    );
+
+    console.log("correctChoiceMatch", correctChoiceMatch);
+
+    if (correctChoiceMatch) {
+      const correctChoice = correctChoiceMatch[1] || correctChoiceMatch[2];
+      return [correctChoice.toUpperCase()];
+    }
+  }
+
+  return [];
+}
+
 /**
  * Fetches question data from College Board APIs
  * Handles both disclosed questions (-DC suffix) and regular questions
@@ -64,6 +91,10 @@ export async function fetchQuestionData(
 
         console.log("Fetched IBN Question Data:", questionData);
         console.log("Fetched IBN Question Data (answer):", questionData.answer);
+
+        const correctAnswer =
+          findCorrectChoiceOrAnswerOnIBNQuestion(questionData);
+        console.log("Correct answer found:", correctAnswer);
         // console.log(
         //   "Fetched IBN Question Data (answer.correct_choice):",
         //   questionData.answer,
@@ -79,9 +110,7 @@ export async function fetchQuestionData(
                 C: questionData.answer.choices.c.body,
                 D: questionData.answer.choices.d.body,
               },
-              correct_answer: [
-                questionData.answer.correct_choice.toUpperCase(),
-              ],
+              correct_answer: correctAnswer,
               rationale: questionData.answer.rationale,
               stem: questionData.prompt,
               type: "mcq",
