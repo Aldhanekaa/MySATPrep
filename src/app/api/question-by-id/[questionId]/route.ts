@@ -9,7 +9,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ questionId: string }> }
+  { params }: { params: Promise<{ questionId: string }> },
 ): Promise<NextResponse> {
   const { questionId } = await params;
 
@@ -41,20 +41,34 @@ export async function GET(
         signal: AbortSignal.timeout(30000),
       });
 
+      // console.log(
+      //   `Fetching questions for assessment: ${assessmentData.text} DONE! Response status: ${response.status}`,
+      // );
+      // console.log("response:", response);
+
       if (!response.ok) {
         console.error(
           `Error fetching domain ${assessmentData.text}:`,
-          response.status
+          response.status,
         );
         continue; // Skip this domain and continue with others
       }
 
       const data: API_Response_Question_List | undefined =
         await response.json();
+      // console.log("data:", data);
+
       const questionsData = data || [];
       const questionData = questionsData.find(
-        (q) => q.questionId === questionId
+        (q) => q.questionId === questionId,
       );
+      // console.log(
+      //   questionData
+      //     ? "Question found in domain data"
+      //     : "Question not found in domain data",
+      // );
+      console.log(questionData);
+
       // console.log(
       //   `Fetched  ${questionsData.length} questions for assessment: ${
       //     assessmentData.text
@@ -96,7 +110,7 @@ export async function GET(
                 "CDN-Cache-Control": "public, s-maxage=60",
                 "Vercel-CDN-Cache-Control": "public, s-maxage=3600",
               },
-            }
+            },
           );
         }
       }
@@ -115,7 +129,7 @@ export async function GET(
           "CDN-Cache-Control": "public, s-maxage=60",
           "Vercel-CDN-Cache-Control": "public, s-maxage=3600",
         },
-      }
+      },
     );
   } catch (error) {
     console.error("Error fetching question stats:", error);
@@ -125,7 +139,7 @@ export async function GET(
         error: "Failed to fetch question bank stats",
         details: error instanceof Error ? error.message : "Unknown error",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

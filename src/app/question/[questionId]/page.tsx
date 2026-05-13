@@ -8,16 +8,15 @@ import React from "react";
 import type { Metadata } from "next";
 
 async function fetchQuestionById(
-  questionId: string
+  questionId: string,
 ): Promise<QuestionById_Response> {
-  const response = await fetch(
-    `${
-      process.env.NEXT_PUBLIC_URL
-        ? process.env.NEXT_PUBLIC_URL
-        : process.env.NEXT_PUBLIC_VERCEL_ENV !== "production"
+  const targetUrl = `${
+    process.env.NEXT_PUBLIC_URL
+      ? process.env.NEXT_PUBLIC_URL
+      : process.env.NEXT_PUBLIC_VERCEL_ENV !== "production"
         ? `${
-            process.env.NEXT_PUBLIC_VERCEL_BRANCH_URL
-              ? `https://${process.env.NEXT_PUBLIC_VERCEL_BRANCH_URL}`
+            process.env.VERCEL_BRANCH_URL
+              ? `https://${process.env.VERCEL_BRANCH_URL}`
               : "http://localhost:3000"
           }`
         : `${
@@ -25,11 +24,26 @@ async function fetchQuestionById(
               ? `https://${process.env.NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL}`
               : "http://localhost:3000"
           }`
-    }/api/question-by-id/${questionId}`
-  );
+  }/api/question-by-id/${questionId}`;
+
+  // console.log("Fetching question data from API route:", targetUrl);
+  const response = await fetch(targetUrl);
+  // console.log(
+  //   "Fetching question data from API route: DONE! Response:",
+  //   response,
+  // );
 
   if (!response.ok) {
-    throw new Error("Failed to fetch question");
+    const errorText = await response.text();
+    const errorDetails = {
+      status: response.status,
+      statusText: response.statusText,
+      body: errorText,
+    };
+    // console.error("Failed to fetch question:", errorDetails);
+    throw new Error(
+      `Failed to fetch question: ${response.status} ${response.statusText} - ${errorText}`,
+    );
   }
 
   return response.json();
@@ -64,10 +78,10 @@ export async function generateMetadata({
       question.difficulty === "E"
         ? "Easy"
         : question.difficulty === "M"
-        ? "Medium"
-        : question.difficulty === "H"
-        ? "Hard"
-        : "Standard";
+          ? "Medium"
+          : question.difficulty === "H"
+            ? "Hard"
+            : "Standard";
 
     // Create a clean description from the question content
     const questionPreview =
