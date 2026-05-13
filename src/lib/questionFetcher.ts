@@ -19,7 +19,7 @@ export interface QuestionFetchResult {
  * @returns Promise<QuestionFetchResult>
  */
 export async function fetchQuestionData(
-  questionId: string
+  questionId: string,
 ): Promise<QuestionFetchResult> {
   if (!questionId || questionId === "") {
     return {
@@ -143,6 +143,11 @@ export async function fetchQuestionData(
 
     const data: ExternalID_ResponseQuestion = await response.json();
 
+    console.log(
+      `Question of ${questionId} fetched from College Board API:`,
+      data,
+    );
+
     if (!data || !data.externalid) {
       return {
         success: false,
@@ -157,12 +162,16 @@ export async function fetchQuestionData(
       return {
         success: true,
         data: {
-          answerOptions: data.answerOptions.reduce((acc, option, idx) => {
-            const key = ["a", "b", "c", "d"][idx];
-            if (key)
-              acc[key.toUpperCase() as "A" | "B" | "C" | "D"] = option.content;
-            return acc;
-          }, {} as { [key in "A" | "B" | "C" | "D"]: string }),
+          answerOptions: data.answerOptions.reduce(
+            (acc, option, idx) => {
+              const key = ["a", "b", "c", "d"][idx];
+              if (key)
+                acc[key.toUpperCase() as "A" | "B" | "C" | "D"] =
+                  option.content;
+              return acc;
+            },
+            {} as { [key in "A" | "B" | "C" | "D"]: string },
+          ),
           correct_answer: data.correct_answer.map((e) => e.toUpperCase()),
           rationale: data.rationale,
           stem: data.stem,
