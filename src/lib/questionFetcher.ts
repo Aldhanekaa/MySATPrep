@@ -165,14 +165,24 @@ export async function fetchQuestionData(
           answerOptions: data.answerOptions.reduce(
             (acc, option, idx) => {
               const key = ["a", "b", "c", "d"][idx];
-              if (key)
+              if (key) {
+                console.log(
+                  `data.answerOptions.reduce Mapping option key.toUpperCase() key:${key} to content: ${option.content}`,
+                );
                 acc[key.toUpperCase() as "A" | "B" | "C" | "D"] =
                   option.content;
+              }
+
               return acc;
             },
             {} as { [key in "A" | "B" | "C" | "D"]: string },
           ),
-          correct_answer: data.correct_answer.map((e) => e.toUpperCase()),
+          correct_answer: data.correct_answer.map((e) => {
+            console.log(
+              `data.correct_answer.map Mapping correct answer ${e} to e.toUpperCase()`,
+            );
+            return e.toUpperCase();
+          }),
           rationale: data.rationale,
           stem: data.stem,
           stimulus: data.stimulus,
