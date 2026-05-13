@@ -59,7 +59,7 @@ function translateFractionWordsToAnswer(fractionWord: string): string {
   };
 
   // Try to match patterns like "three halves", "one quarter", etc.
-  const fractionPattern = /^(\w+)\s+(\w+)s?$/i;
+  const fractionPattern = /^(\w+)\s+(\w+)?$/i;
   const match = normalized.match(fractionPattern);
 
   if (match) {
@@ -104,8 +104,9 @@ function findCorrectChoiceOrAnswerOnIBNQuestion(
 
       // If it's a written fraction (from alt text), translate it to numeric form
       if (correctChoiceMatch[3]) {
-        const translatedFraction =
-          translateFractionWordsToAnswer(correctChoice);
+        const translatedFraction = translateFractionWordsToAnswer(
+          correctChoiceMatch[3],
+        );
         return [translatedFraction.toUpperCase()];
       }
 
