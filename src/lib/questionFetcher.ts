@@ -12,6 +12,72 @@ export interface QuestionFetchResult {
   status?: number;
 }
 
+/**
+ * Translates written fractions (e.g., "three halves", "one quarter") to numeric fractions (e.g., "3/2", "1/4")
+ * @param fractionWord - The written fraction
+ * @returns The numeric fraction as a string (e.g., "3/2") or the original input if not recognized
+ */
+function translateFractionWordsToAnswer(fractionWord: string): string {
+  if (!fractionWord) return "";
+
+  const normalized = fractionWord.toLowerCase().trim();
+
+  // Numerator words
+  const numerators: { [key: string]: number } = {
+    one: 1,
+    two: 2,
+    three: 3,
+    four: 4,
+    five: 5,
+    six: 6,
+    seven: 7,
+    eight: 8,
+    nine: 9,
+    ten: 10,
+  };
+
+  // Denominator words
+  const denominators: { [key: string]: number } = {
+    half: 2,
+    halves: 2,
+    third: 3,
+    thirds: 3,
+    quarter: 4,
+    quarters: 4,
+    fifth: 5,
+    fifths: 5,
+    sixth: 6,
+    sixths: 6,
+    seventh: 7,
+    sevenths: 7,
+    eighth: 8,
+    eighths: 8,
+    ninth: 9,
+    ninths: 9,
+    tenth: 10,
+    tenths: 10,
+  };
+
+  // Try to match patterns like "three halves", "one quarter", etc.
+  const fractionPattern = /^(\w+)\s+(\w+)s?$/i;
+  const match = normalized.match(fractionPattern);
+
+  if (match) {
+    const numeratorWord = match[1];
+    const denominatorWord = match[2] + (normalized.endsWith("s") ? "s" : "");
+
+    const numerator = numerators[numeratorWord];
+    const denominator = denominators[denominatorWord];
+
+    if (numerator !== undefined && denominator !== undefined) {
+      return `${numerator}/${denominator}`;
+    }
+  }
+
+  // If no pattern matched, return the original
+  return fractionWord;
+}
+
 function findCorrectChoiceOrAnswerOnIBNQuestion(
   data: SPRDisclosedQuestion | MultipleChoiceDisclosedQuestion,
 ): Array<string> {
@@ -23,15 +89,26 @@ function findCorrectChoiceOrAnswerOnIBNQuestion(
   } else {
     const rationale = data.answer.rationale;
 
-    // try to find the correct choice in the rationale by looking for patterns like "The correct answer is {answer}." or "Choice {answer} is correct."
+    // try to find the correct choice in the rationale by looking for patterns like:
+    // "The correct answer is {answer}." or "Choice {answer} is correct."
+    // Also handles math expressions like: "The correct answer is <span class="math-container"><img ... alt="three halves"></span>."
     const correctChoiceMatch = rationale.match(
-      /The correct answer is ([A-D])\.|Choice ([A-D]) is correct\./i,
+      /The correct answer is ([A-D])\.|Choice ([A-D]) is correct\.|alt="([^"]*)"/i,
     );
 
     console.log("correctChoiceMatch", correctChoiceMatch);
 
     if (correctChoiceMatch) {
-      const correctChoice = correctChoiceMatch[1] || correctChoiceMatch[2];
+      const correctChoice =
+        correctChoiceMatch[1] || correctChoiceMatch[2] || correctChoiceMatch[3];
+
+      // If it's a written fraction (from alt text), translate it to numeric form
+      if (correctChoiceMatch[3]) {
+        const translatedFraction =
+          translateFractionWordsToAnswer(correctChoice);
+        return [translatedFraction.toUpperCase()];
+      }
+
       return [correctChoice.toUpperCase()];
     }
   }

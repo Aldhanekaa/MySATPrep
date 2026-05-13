@@ -14,7 +14,7 @@ async function fetchQuestionById(
     `${
       process.env.VERCEL_TARGET_ENV == "preview" ||
       process.env.VERCEL_TARGET_ENV == "development"
-        ? process.env.VERCEL_BRANCH_URL
+        ? `https://${process.env.VERCEL_BRANCH_URL}`
         : process.env.NEXT_PUBLIC_URL
           ? process.env.NEXT_PUBLIC_URL
           : process.env.NEXT_PUBLIC_VERCEL_ENV !== "production"
