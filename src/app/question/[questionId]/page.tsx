@@ -27,7 +27,12 @@ async function fetchQuestionById(
   }/api/question-by-id/${questionId}`;
 
   // console.log("Fetching question data from API route:", targetUrl);
-  const response = await fetch(targetUrl);
+  const response = await fetch(targetUrl, {
+    cache: "force-cache",
+    next: { revalidate: 86400 },
+
+    signal: AbortSignal.timeout(30000),
+  });
   // console.log(
   //   "Fetching question data from API route: DONE! Response:",
   //   response,
