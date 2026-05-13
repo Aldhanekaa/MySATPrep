@@ -44,7 +44,7 @@ export async function GET(
       console.log(
         `Fetching questions for assessment: ${assessmentData.text} DONE! Response status: ${response.status}`,
       );
-      console.log("response:", response);
+      // console.log("response:", response);
 
       if (!response.ok) {
         console.error(
@@ -56,12 +56,19 @@ export async function GET(
 
       const data: API_Response_Question_List | undefined =
         await response.json();
-      console.log("data:", data);
+      // console.log("data:", data);
 
       const questionsData = data || [];
       const questionData = questionsData.find(
         (q) => q.questionId === questionId,
       );
+      console.log(
+        questionData
+          ? "Question found in domain data"
+          : "Question not found in domain data",
+      );
+      console.log(questionData);
+
       // console.log(
       //   `Fetched  ${questionsData.length} questions for assessment: ${
       //     assessmentData.text
