@@ -8,24 +8,27 @@ import React from "react";
 import type { Metadata } from "next";
 
 async function fetchQuestionById(
-  questionId: string
+  questionId: string,
 ): Promise<QuestionById_Response> {
   const response = await fetch(
     `${
-      process.env.NEXT_PUBLIC_URL
-        ? process.env.NEXT_PUBLIC_URL
-        : process.env.NEXT_PUBLIC_VERCEL_ENV !== "production"
-        ? `${
-            process.env.NEXT_PUBLIC_VERCEL_BRANCH_URL
-              ? `https://${process.env.NEXT_PUBLIC_VERCEL_BRANCH_URL}`
-              : "http://localhost:3000"
-          }`
-        : `${
-            process.env.NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL
-              ? `https://${process.env.NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL}`
-              : "http://localhost:3000"
-          }`
-    }/api/question-by-id/${questionId}`
+      process.env.VERCEL_TARGET_ENV == "preview" ||
+      process.env.VERCEL_TARGET_ENV == "development"
+        ? process.env.VERCEL_BRANCH_URL
+        : process.env.NEXT_PUBLIC_URL
+          ? process.env.NEXT_PUBLIC_URL
+          : process.env.NEXT_PUBLIC_VERCEL_ENV !== "production"
+            ? `${
+                process.env.NEXT_PUBLIC_VERCEL_BRANCH_URL
+                  ? `https://${process.env.NEXT_PUBLIC_VERCEL_BRANCH_URL}`
+                  : "http://localhost:3000"
+              }`
+            : `${
+                process.env.NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL
+                  ? `https://${process.env.NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL}`
+                  : "http://localhost:3000"
+              }`
+    }/api/question-by-id/${questionId}`,
   );
 
   if (!response.ok) {
@@ -64,10 +67,10 @@ export async function generateMetadata({
       question.difficulty === "E"
         ? "Easy"
         : question.difficulty === "M"
-        ? "Medium"
-        : question.difficulty === "H"
-        ? "Hard"
-        : "Standard";
+          ? "Medium"
+          : question.difficulty === "H"
+            ? "Hard"
+            : "Standard";
 
     // Create a clean description from the question content
     const questionPreview =
