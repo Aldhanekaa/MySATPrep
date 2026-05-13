@@ -206,7 +206,7 @@ export async function fetchQuestionData(
             success: true,
             data: {
               answerOptions: undefined,
-              correct_answer: [],
+              correct_answer: correctAnswer,
               rationale: questionData.answer.rationale,
               stem: questionData.prompt,
               type: "spr",
