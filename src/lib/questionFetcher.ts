@@ -18,9 +18,12 @@ export interface QuestionFetchResult {
  * @returns The numeric fraction as a string (e.g., "3/2") or the original input if not recognized
  */
 function translateFractionWordsToAnswer(fractionWord: string): string {
+  console.log("translateFractionWordsToAnswer");
+  console.log("fractionWord", fractionWord);
   if (!fractionWord) return "";
 
   const normalized = fractionWord.toLowerCase().trim();
+  console.log("normalized", normalized);
 
   // Numerator words
   const numerators: { [key: string]: number } = {
@@ -61,6 +64,7 @@ function translateFractionWordsToAnswer(fractionWord: string): string {
   // Try to match patterns like "three halves", "one quarter", etc.
   const fractionPattern = /^(\w+)\s+(\w+)?$/i;
   const match = normalized.match(fractionPattern);
+  console.log("match", match);
 
   if (match) {
     const numeratorWord = match[1];
@@ -102,6 +106,7 @@ function findCorrectChoiceOrAnswerOnIBNQuestion(
       const correctChoice =
         correctChoiceMatch[1] || correctChoiceMatch[2] || correctChoiceMatch[3];
 
+      console.log("correctChoiceMatch[3]", correctChoiceMatch[3]);
       // If it's a written fraction (from alt text), translate it to numeric form
       if (correctChoiceMatch[3]) {
         const translatedFraction = translateFractionWordsToAnswer(
