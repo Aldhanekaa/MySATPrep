@@ -18,8 +18,8 @@ export interface QuestionFetchResult {
  * @returns The numeric fraction as a string (e.g., "3/2") or the original input if not recognized
  */
 function translateFractionWordsToAnswer(fractionWord: string): string {
-  console.log("translateFractionWordsToAnswer");
-  console.log("fractionWord", fractionWord);
+  // console.log("translateFractionWordsToAnswer");
+  // console.log("fractionWord", fractionWord);
   if (!fractionWord) return "";
 
   const normalized = fractionWord.toLowerCase().trim();
@@ -64,7 +64,7 @@ function translateFractionWordsToAnswer(fractionWord: string): string {
   // Try to match patterns like "three halves", "one quarter", etc.
   const fractionPattern = /^(\w+)\s+(\w+)?$/i;
   const match = normalized.match(fractionPattern);
-  console.log("match", match);
+  // console.log("match", match);
 
   if (match) {
     const numeratorWord = match[1];
@@ -100,7 +100,7 @@ function findCorrectChoiceOrAnswerOnIBNQuestion(
       /The correct answer is ([A-D])\.|Choice ([A-D]) is correct\.|alt="([^"]*)"/i,
     );
 
-    console.log("correctChoiceMatch", correctChoiceMatch);
+    // console.log("correctChoiceMatch", correctChoiceMatch);
 
     if (correctChoiceMatch) {
       const correctChoice =
@@ -172,12 +172,12 @@ export async function fetchQuestionData(
           | SPRDisclosedQuestion
           | MultipleChoiceDisclosedQuestion = data[0];
 
-        console.log("Fetched IBN Question Data:", questionData);
-        console.log("Fetched IBN Question Data (answer):", questionData.answer);
+        // console.log("Fetched IBN Question Data:", questionData);
+        // console.log("Fetched IBN Question Data (answer):", questionData.answer);
 
         const correctAnswer =
           findCorrectChoiceOrAnswerOnIBNQuestion(questionData);
-        console.log("Correct answer found:", correctAnswer);
+        // console.log("Correct answer found:", correctAnswer);
         // console.log(
         //   "Fetched IBN Question Data (answer.correct_choice):",
         //   questionData.answer,
@@ -285,9 +285,9 @@ export async function fetchQuestionData(
             (acc, option, idx) => {
               const key = ["a", "b", "c", "d"][idx];
               if (key) {
-                console.log(
-                  `data.answerOptions.reduce Mapping option key.toUpperCase() key:${key} to content: ${option.content}`,
-                );
+                // console.log(
+                //   `data.answerOptions.reduce Mapping option key.toUpperCase() key:${key} to content: ${option.content}`,
+                // );
                 acc[key.toUpperCase() as "A" | "B" | "C" | "D"] =
                   option.content;
               }
@@ -297,9 +297,9 @@ export async function fetchQuestionData(
             {} as { [key in "A" | "B" | "C" | "D"]: string },
           ),
           correct_answer: data.correct_answer.map((e) => {
-            console.log(
-              `data.correct_answer.map Mapping correct answer ${e} to e.toUpperCase()`,
-            );
+            // console.log(
+            //   `data.correct_answer.map Mapping correct answer ${e} to e.toUpperCase()`,
+            // );
             return e.toUpperCase();
           }),
           rationale: data.rationale,

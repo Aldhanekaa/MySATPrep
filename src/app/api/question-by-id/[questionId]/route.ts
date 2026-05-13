@@ -41,9 +41,9 @@ export async function GET(
         signal: AbortSignal.timeout(30000),
       });
 
-      console.log(
-        `Fetching questions for assessment: ${assessmentData.text} DONE! Response status: ${response.status}`,
-      );
+      // console.log(
+      //   `Fetching questions for assessment: ${assessmentData.text} DONE! Response status: ${response.status}`,
+      // );
       // console.log("response:", response);
 
       if (!response.ok) {
@@ -62,11 +62,11 @@ export async function GET(
       const questionData = questionsData.find(
         (q) => q.questionId === questionId,
       );
-      console.log(
-        questionData
-          ? "Question found in domain data"
-          : "Question not found in domain data",
-      );
+      // console.log(
+      //   questionData
+      //     ? "Question found in domain data"
+      //     : "Question not found in domain data",
+      // );
       console.log(questionData);
 
       // console.log(
