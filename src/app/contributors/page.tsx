@@ -6,51 +6,45 @@ import FooterSection from "@/components/footer";
 import ContributorsSection from "@/components/contributors-section";
 
 export const metadata: Metadata = {
-  title: "SAT Study Resources & Reference Materials",
+  title: "Contributors - MySATPrep",
   description:
-    "Access comprehensive SAT study resources including reference sheets, formula guides, test-taking strategies, and essential materials to excel on the SAT exam. We use official SAT Suite Question Bank Questions. Free downloadable resources for math, reading, and writing sections.",
+    "Meet the contributors behind MySATPrep. Explore the open source community members who build features, suggest improvements, and report bugs to make SAT prep better for everyone.",
   keywords: [
-    "SAT study resources",
-    "SAT reference sheet",
-    "SAT math formulas",
-    "SAT study guide",
-    "SAT test strategies",
-    "SAT preparation materials",
-    "College Board resources",
-    "SAT Suite Question Bank",
-    "SAT Question Bank",
-    "official SAT Suite resources",
-    "SAT math reference",
-    "SAT study tips",
-    "free SAT resources",
-    "SAT formula sheet",
-    "standardized test resources",
-    "SAT exam preparation",
+    "MySATPrep contributors",
+    "open source contributors",
+    "SAT prep community",
+    "MySATPrep team",
+    "feature contributors",
+    "bug reporters",
+    "community feedback",
+    "GitHub contributors",
+    "SAT education platform",
+    "MySATPrep open source",
   ],
   openGraph: {
-    title: "SAT Study Resources & Reference Materials - MySATPrep",
+    title: "Contributors - MySATPrep",
     description:
-      "Access comprehensive SAT study resources including reference sheets, formula guides, and test-taking strategies. Free downloadable materials for all SAT sections.",
+      "Meet the contributors and community members helping build MySATPrep through feature ideas, bug reports, and open source collaboration.",
     type: "website",
-    url: "/resources",
+    url: "/contributors",
     images: [
       {
-        url: "/og-resources.png",
+        url: "/og-contributors.png",
         width: 1200,
         height: 630,
-        alt: "SAT Study Resources and Reference Materials - MySATPrep",
+        alt: "MySATPrep Contributors",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "SAT Study Resources & Reference Materials - MySATPrep",
+    title: "Contributors - MySATPrep",
     description:
-      "Access comprehensive SAT study resources including reference sheets, formula guides, and test-taking strategies. Free downloadable materials.",
-    images: ["/og-resources.png"],
+      "Meet the contributors and community members helping improve MySATPrep through collaboration and feedback.",
+    images: ["/og-contributors.png"],
   },
   alternates: {
-    canonical: "/resources",
+    canonical: "/contributors",
   },
   robots: {
     index: true,
