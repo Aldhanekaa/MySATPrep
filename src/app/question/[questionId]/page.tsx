@@ -10,23 +10,24 @@ import type { Metadata } from "next";
 async function fetchQuestionById(
   questionId: string,
 ): Promise<QuestionById_Response> {
-  const response = await fetch(
-    `${
-      process.env.NEXT_PUBLIC_URL
-        ? process.env.NEXT_PUBLIC_URL
-        : process.env.NEXT_PUBLIC_VERCEL_ENV !== "production"
-          ? `${
-              process.env.VERCEL_BRANCH_URL
-                ? `https://${process.env.VERCEL_BRANCH_URL}`
-                : "http://localhost:3000"
-            }`
-          : `${
-              process.env.NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL
-                ? `https://${process.env.NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL}`
-                : "http://localhost:3000"
-            }`
-    }/api/question-by-id/${questionId}`,
-  );
+  const targetUrl = `${
+    process.env.NEXT_PUBLIC_URL
+      ? process.env.NEXT_PUBLIC_URL
+      : process.env.NEXT_PUBLIC_VERCEL_ENV !== "production"
+        ? `${
+            process.env.VERCEL_BRANCH_URL
+              ? `https://${process.env.VERCEL_BRANCH_URL}`
+              : "http://localhost:3000"
+          }`
+        : `${
+            process.env.NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL
+              ? `https://${process.env.NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL}`
+              : "http://localhost:3000"
+          }`
+  }/api/question-by-id/${questionId}`;
+
+  console.log("Fetching question data from API route:", targetUrl);
+  const response = await fetch(targetUrl);
 
   if (!response.ok) {
     throw new Error("Failed to fetch question");
