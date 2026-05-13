@@ -28,9 +28,22 @@ async function fetchQuestionById(
 
   console.log("Fetching question data from API route:", targetUrl);
   const response = await fetch(targetUrl);
+  console.log(
+    "Fetching question data from API route: DONE! Response:",
+    response,
+  );
 
   if (!response.ok) {
-    throw new Error("Failed to fetch question");
+    const errorText = await response.text();
+    const errorDetails = {
+      status: response.status,
+      statusText: response.statusText,
+      body: errorText,
+    };
+    console.error("Failed to fetch question:", errorDetails);
+    throw new Error(
+      `Failed to fetch question: ${response.status} ${response.statusText} - ${errorText}`,
+    );
   }
 
   return response.json();
