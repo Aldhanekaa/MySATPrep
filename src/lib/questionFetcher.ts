@@ -68,7 +68,7 @@ function translateFractionWordsToAnswer(fractionWord: string): string {
 
   if (match) {
     const numeratorWord = match[1];
-    const denominatorWord = match[2] + (normalized.endsWith("s") ? "s" : "");
+    const denominatorWord = match[2]; // Already has the correct form from regex
 
     const numerator = numerators[numeratorWord];
     const denominator = denominators[denominatorWord];
