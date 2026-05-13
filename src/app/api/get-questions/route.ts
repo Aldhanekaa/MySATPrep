@@ -4,6 +4,8 @@ import { API_Response_Question_List } from "@/types/question";
 import { NextRequest, NextResponse } from "next/server";
 import { skillCds as Skills } from "@/static-data/domains";
 import { fetchQuestionData, QuestionFetchResult } from "@/lib/questionFetcher";
+import { fetchCbJwtTokenInternal } from "@/lib/fetchCbJwtTokenInternal";
+import { fetchCbJwtToken } from "@/lib/fetchCbJwtToken";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -41,7 +43,7 @@ export async function GET(request: NextRequest) {
         success: false,
         error: `Invalid skill codes provided: ${skillCds.join(", ")}`,
       },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -56,7 +58,7 @@ export async function GET(request: NextRequest) {
         success: false,
         error: `Invalid difficulties provided: ${difficulties.join(", ")}`,
       },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -87,7 +89,7 @@ export async function GET(request: NextRequest) {
         success: false,
         error: "Domains parameter is required",
       },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -95,7 +97,7 @@ export async function GET(request: NextRequest) {
     // Validate domains parameter
     const domainList = domainsParam.split(",");
     const invalidDomains = domainList.filter(
-      (domain) => !DomainItemsArray.includes(domain.trim())
+      (domain) => !DomainItemsArray.includes(domain.trim()),
     );
 
     if (invalidDomains.length > 0) {
@@ -104,38 +106,87 @@ export async function GET(request: NextRequest) {
           success: false,
           error: `Invalid domains provided: ${invalidDomains.join(", ")}`,
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
   }
 
   // Prepare the request to College Board API
-  const apiUrl =
-    "https://qbank-api.collegeboard.org/msreportingquestionbank-prod/questionbank/digital/get-questions";
+  const apiUrls = [
+    "https://qbank-api.collegeboard.org/msreportingquestionbank-prod/questionbank/digital/get-questions",
+    "https://digitalpractice-api.collegeboard.org/mspractice-studentquestionbank-prod/get-questions",
+  ];
+
+  let questions: API_Response_Question_List = [];
+  const responseStatus = [];
 
   try {
-    // Make the request to College Board API
-    const response = await fetch(apiUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-        // Add any required authentication headers here if needed
-        // 'Authorization': `Bearer ${process.env.COLLEGEBOARD_API_KEY}`,
-      },
-      body: JSON.stringify({
-        asmtEventId: asmtEventId,
-        test: 2,
-        domain: domainsParam,
-      }),
-      next: { revalidate: 86400 },
-      cache: "force-cache",
-      // Add timeout to prevent hanging requests
-      signal: AbortSignal.timeout(30000), // 30 second timeout
-    });
+    for (const apiUrl of apiUrls) {
+      const isProtectedEndpoint = apiUrl.includes("digitalpractice-api");
 
-    if (!response.ok) {
-      const errorText = await response.text();
+      let CB_AUTHORIZATION_TOKEN = "";
+
+      if (isProtectedEndpoint) {
+        const { cbJwtToken, status, error } = await fetchCbJwtTokenInternal();
+
+        if (typeof cbJwtToken === "string") CB_AUTHORIZATION_TOKEN = cbJwtToken;
+
+        if (status !== 200) {
+          continue; // if failed then do not use it lol
+        }
+        if (!cbJwtToken) {
+          continue; //  if failed then do not use it lol
+        }
+      }
+
+      // Make the request to College Board API
+      const response = await fetch(apiUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          // Add any required authentication headers here if needed
+          // 'Authorization': `Bearer ${process.env.COLLEGEBOARD_API_KEY}`,
+          ...(isProtectedEndpoint
+            ? {
+                "x-cb-catapult-authorization-token":
+                  CB_AUTHORIZATION_TOKEN || "",
+                "x-cb-catapult-authentication-token":
+                  process.env.AUTHENTICATION_CB_MYPRACTICE || "",
+              }
+            : {}),
+        },
+        body: JSON.stringify({
+          asmtEventId: asmtEventId,
+          test: 2,
+          domain: domainsParam,
+        }),
+        next: { revalidate: 86400 },
+        cache: "force-cache",
+        // Add timeout to prevent hanging requests
+        signal: AbortSignal.timeout(30000), // 30 second timeout
+      });
+
+      // console.log("CB_AUTHORIZATION_TOKEN", CB_AUTHORIZATION_TOKEN);
+      responseStatus.push({
+        url: apiUrl,
+        status: response.status,
+        errorText: response.status !== 200 && (await response.text()),
+        statusText: response.statusText,
+      });
+
+      const data: API_Response_Question_List | undefined =
+        await response.json();
+      // console.log(" Collegeboard Data ", data);
+
+      questions = [...questions, ...(data || [])];
+    }
+  } catch (error) {
+    console.log(responseStatus);
+    if (responseStatus[0].status !== 200) {
+      let response = responseStatus[0];
+      console.error("Error fetching questions:", error);
+      const errorText = response.errorText || "No error text available";
       console.error("College Board API error:", response.status, errorText);
 
       return NextResponse.json(
@@ -144,18 +195,20 @@ export async function GET(request: NextRequest) {
           error: `College Board API error: ${response.status} ${response.statusText}`,
           details: errorText,
         },
-        { status: response.status }
+        { status: response.status },
       );
+    } else if (responseStatus[1] && responseStatus[1].status !== 200) {
+      let response = responseStatus[1];
+      console.error("Error fetching questions on mypractice api:", error);
+      const errorText = response.errorText || "No error text available";
+      console.error("College Board API error:", response.status, errorText);
     }
+  }
 
-    const data: API_Response_Question_List | undefined = await response.json();
-    // console.log(" Collegeboard Data ", data);
-
-    let questions = data || [];
-
+  try {
     if (excludeQuestionIds.length > 0) {
       questions = questions.filter(
-        (question) => !excludeQuestionIds.includes(question.questionId)
+        (question) => !excludeQuestionIds.includes(question.questionId),
       );
     }
 
@@ -167,7 +220,7 @@ export async function GET(request: NextRequest) {
 
     if (difficulties.length > 0) {
       questions = questions.filter((question) =>
-        difficulties.includes(question.difficulty)
+        difficulties.includes(question.difficulty),
       );
     }
 
@@ -186,16 +239,16 @@ export async function GET(request: NextRequest) {
           "CDN-Cache-Control": "public, s-maxage=60",
           "Vercel-CDN-Cache-Control": "public, s-maxage=3600",
         },
-      }
+      },
     );
   } catch (error) {
-    console.error("Error fetching questions:", error);
+    console.error("Error processing questions:", error);
     return NextResponse.json(
       {
         success: false,
-        error: "Failed to fetch questions",
+        error: "Failed to process questions",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -4,6 +4,8 @@ import {
   MultipleChoiceDisclosedQuestion,
   SPRDisclosedQuestion,
 } from "@/types/question";
+import { fetchCbJwtTokenInternal } from "./fetchCbJwtTokenInternal";
+import { fetchCbJwtToken } from "./fetchCbJwtToken";
 
 export interface QuestionFetchResult {
   success: boolean;
@@ -234,100 +236,136 @@ export async function fetchQuestionData(
   }
 
   // Handle regular questions
-  const apiUrl =
-    "https://qbank-api.collegeboard.org/msreportingquestionbank-prod/questionbank/digital/get-question";
+  const apiUrls = [
+    "https://qbank-api.collegeboard.org/msreportingquestionbank-prod/questionbank/digital/get-question",
+    "https://digitalpractice-api.collegeboard.org/mspractice-studentquestionbank-prod/get-question",
+  ];
+
+  let lastErrorStatus = 404;
 
   try {
-    const response = await fetch(apiUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      },
-      body: JSON.stringify({ external_id: questionId }),
-      cache: "force-cache",
-      next: { revalidate: 86400 },
-      signal: AbortSignal.timeout(30000),
-    });
+    let responseStatus = [];
+    let questionData: ExternalID_ResponseQuestion | null = null;
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("College Board API error:", response.status, errorText);
-      return {
-        success: false,
-        error: `College Board API error: ${response.status} ${response.statusText}`,
-        status: response.status,
-      };
-    }
+    for (let i = 0; i < apiUrls.length; i++) {
+      const apiUrl = apiUrls[i];
+      const isProtectedEndpoint = apiUrl.includes("digitalpractice-api");
 
-    const data: ExternalID_ResponseQuestion = await response.json();
+      let CB_AUTHORIZATION_TOKEN = "";
 
-    console.log(
-      `Question of ${questionId} fetched from College Board API:`,
-      data,
-    );
+      if (isProtectedEndpoint) {
+        const { cbJwtToken, status, error } = await fetchCbJwtTokenInternal();
 
-    if (!data || !data.externalid) {
-      return {
-        success: false,
-        error: "Given Question Id Not Found",
-        status: 404,
-      };
-    }
+        if (typeof cbJwtToken === "string") CB_AUTHORIZATION_TOKEN = cbJwtToken;
 
-    // console.log("Fetched question data:", data);
+        if (status !== 200) {
+          continue; // if failed then do not use it lol
+        }
+        if (!cbJwtToken) {
+          continue; //  if failed then do not use it lol
+        }
+      }
+      // console.log("CB_AUTHORIZATION_TOKEN", CB_AUTHORIZATION_TOKEN);
+      // console.log(
+      //   "process.env.AUTHENTICATION_CB_MYPRACTICE",
+      //   process.env.AUTHENTICATION_CB_MYPRACTICE,
+      // );
 
-    if (data.type === "mcq") {
-      return {
-        success: true,
-        data: {
-          answerOptions: data.answerOptions.reduce(
-            (acc, option, idx) => {
-              const key = ["a", "b", "c", "d"][idx];
-              if (key) {
-                // console.log(
-                //   `data.answerOptions.reduce Mapping option key.toUpperCase() key:${key} to content: ${option.content}`,
-                // );
-                acc[key.toUpperCase() as "A" | "B" | "C" | "D"] =
-                  option.content;
+      // console.log("apiUrl", apiUrl);
+
+      const response = await fetch(apiUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          ...(isProtectedEndpoint
+            ? {
+                "x-cb-catapult-authorization-token":
+                  CB_AUTHORIZATION_TOKEN || "",
+                "x-cb-catapult-authentication-token":
+                  process.env.AUTHENTICATION_CB_MYPRACTICE || "",
               }
+            : {}),
+        },
+        body: JSON.stringify({ external_id: questionId }),
+        cache: "force-cache",
+        next: { revalidate: 86400 },
+        signal: AbortSignal.timeout(30000),
+      });
 
-              return acc;
-            },
-            {} as { [key in "A" | "B" | "C" | "D"]: string },
-          ),
-          correct_answer: data.correct_answer.map((e) => {
-            // console.log(
-            //   `data.correct_answer.map Mapping correct answer ${e} to e.toUpperCase()`,
-            // );
-            return e.toUpperCase();
-          }),
-          rationale: data.rationale,
-          stem: data.stem,
-          stimulus: data.stimulus,
-          type: "mcq",
-          externalid: data.externalid,
-        },
-      };
-    } else if (data.type === "spr") {
-      return {
-        success: true,
-        data: {
-          answerOptions: undefined,
-          correct_answer: data.correct_answer,
-          rationale: data.rationale,
-          stem: data.stem,
-          type: "spr",
-          externalid: data.externalid,
-          stimulus: data.stimulus,
-        },
-      };
+      // console.log("external_id: questionId", questionId);
+      // console.log(response);
+      // console.log(responseStatus);
+
+      responseStatus.push(response.status);
+
+      // if (!response.ok) {
+      //   const errorText = await response.text();
+      //   console.error("College Board API error:", response.status, errorText);
+      //   lastErrorStatus = response.status;
+      //   continue;
+      // }
+
+      const data: ExternalID_ResponseQuestion = await response.json();
+      questionData = data;
+
+      // console.log(
+      //   `Question of ${questionId} fetched from College Board API:`,
+      //   data,
+      // );
+
+      if (!data || !data.externalid) {
+        continue;
+      }
+    }
+
+    if (questionData) {
+      if (questionData.type === "mcq") {
+        return {
+          success: true,
+          data: {
+            answerOptions: questionData.answerOptions.reduce(
+              (acc, option, idx) => {
+                const key = ["a", "b", "c", "d"][idx];
+                if (key) {
+                  acc[key.toUpperCase() as "A" | "B" | "C" | "D"] =
+                    option.content;
+                }
+
+                return acc;
+              },
+              {} as { [key in "A" | "B" | "C" | "D"]: string },
+            ),
+            correct_answer: questionData.correct_answer.map((e) => {
+              return e.toUpperCase();
+            }),
+            rationale: questionData.rationale,
+            stem: questionData.stem,
+            stimulus: questionData.stimulus,
+            type: "mcq",
+            externalid: questionData.externalid,
+          },
+        };
+      } else if (questionData.type === "spr") {
+        return {
+          success: true,
+          data: {
+            answerOptions: undefined,
+            correct_answer: questionData.correct_answer,
+            rationale: questionData.rationale,
+            stem: questionData.stem,
+            type: "spr",
+            externalid: questionData.externalid,
+            stimulus: questionData.stimulus,
+          },
+        };
+      }
     }
 
     return {
       success: false,
-      error: "Unknown question type",
-      status: 400,
+      error: "Given Question Id Not Found",
+      status: lastErrorStatus,
     };
   } catch (error) {
     console.error("Error in fetching question:", error);

@@ -6,6 +6,8 @@ import {
 } from "@/types";
 import { fetchQuestionData } from "@/lib/questionFetcher";
 import { NextRequest, NextResponse } from "next/server";
+import { fetchCbJwtTokenInternal } from "@/lib/fetchCbJwtTokenInternal";
+import { fetchCbJwtToken } from "@/lib/fetchCbJwtToken";
 
 export async function GET(
   request: NextRequest,
@@ -13,9 +15,11 @@ export async function GET(
 ): Promise<NextResponse> {
   const { questionId } = await params;
 
-  // Prepare the request to College Board API for all domains
-  const apiUrl =
-    "https://qbank-api.collegeboard.org/msreportingquestionbank-prod/questionbank/digital/get-questions";
+  // Prepare requests to College Board APIs for all domains
+  const apiUrls = [
+    "https://qbank-api.collegeboard.org/msreportingquestionbank-prod/questionbank/digital/get-questions",
+    "https://digitalpractice-api.collegeboard.org/mspractice-studentquestionbank-prod/get-questions",
+  ];
 
   try {
     // Fetch questions for each domain separately to get detailed breakdown
@@ -24,58 +28,88 @@ export async function GET(
         Assessments[assessment as keyof typeof Assessments];
       console.log(`Fetching questions for assessment: ${assessmentData.text}`);
 
-      const response = await fetch(apiUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        body: JSON.stringify({
-          asmtEventId: assessmentData.id,
-          test: 2,
-          domain: DomainItemsArray.join(","), // Assuming you want to fetch all domains
-        }),
-        cache: "force-cache",
-        next: { revalidate: 86400 },
+      let questionsData: API_Response_Question_List = [];
 
-        signal: AbortSignal.timeout(30000),
-      });
+      for (const apiUrl of apiUrls) {
+        const isProtectedEndpoint = apiUrl.includes("digitalpractice-api");
 
-      // console.log(
-      //   `Fetching questions for assessment: ${assessmentData.text} DONE! Response status: ${response.status}`,
-      // );
-      // console.log("response:", response);
+        let CB_AUTHORIZATION_TOKEN = "";
 
-      if (!response.ok) {
-        console.error(
-          `Error fetching domain ${assessmentData.text}:`,
-          response.status,
-        );
-        continue; // Skip this domain and continue with others
+        if (isProtectedEndpoint) {
+          const { cbJwtToken, status, error } = await fetchCbJwtTokenInternal();
+
+          if (typeof cbJwtToken === "string")
+            CB_AUTHORIZATION_TOKEN = cbJwtToken;
+
+          if (status !== 200) {
+            continue; // if failed then do not use it lol
+          }
+          if (!cbJwtToken) {
+            continue; //  if failed then do not use it lol
+          }
+        }
+
+        // Make the request to College Board API
+        const response = await fetch(apiUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+            // Add any required authentication headers here if needed
+            // 'Authorization': `Bearer ${process.env.COLLEGEBOARD_API_KEY}`,
+            ...(isProtectedEndpoint
+              ? {
+                  "x-cb-catapult-authorization-token":
+                    CB_AUTHORIZATION_TOKEN || "",
+                  "x-cb-catapult-authentication-token":
+                    process.env.AUTHENTICATION_CB_MYPRACTICE || "",
+                }
+              : {}),
+          },
+          body: JSON.stringify({
+            asmtEventId: assessmentData.id,
+            test: 2,
+            domain: DomainItemsArray.join(","), // Assuming you want to fetch all domains
+          }),
+          next: { revalidate: 86400 },
+          cache: "force-cache",
+          // Add timeout to prevent hanging requests
+          signal: AbortSignal.timeout(30000), // 30 second timeout
+        });
+
+        // console.log("CB_AUTHORIZATION_TOKEN", CB_AUTHORIZATION_TOKEN);
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error("College Board API error:", response.status, errorText);
+
+          return NextResponse.json(
+            {
+              success: false,
+              error: `College Board API error: ${response.status} ${response.statusText}`,
+              details: errorText,
+            },
+            { status: response.status },
+          );
+        }
+
+        const data: API_Response_Question_List | undefined =
+          await response.json();
+        // console.log(" Collegeboard Data ", data);
+
+        questionsData = [...questionsData, ...(data || [])];
       }
 
-      const data: API_Response_Question_List | undefined =
-        await response.json();
-      // console.log("data:", data);
+      console.log(
+        `Total questions fetched for ${assessmentData.text}:`,
+        questionsData.length,
+      );
+      // console.log("questionsData", questionsData);
 
-      const questionsData = data || [];
       const questionData = questionsData.find(
         (q) => q.questionId === questionId,
       );
-      // console.log(
-      //   questionData
-      //     ? "Question found in domain data"
-      //     : "Question not found in domain data",
-      // );
       console.log(questionData);
-
-      // console.log(
-      //   `Fetched  ${questionsData.length} questions for assessment: ${
-      //     assessmentData.text
-      //   } {questionData: ${
-      //     questionData ? "found" : "not found"
-      //   }} ${JSON.stringify(questionData)}`
-      // );
 
       if (questionData) {
         // Use shared question fetching function
@@ -89,11 +123,6 @@ export async function GET(
         const questionResult = await fetchQuestionData(questionId);
 
         if (questionResult.success && questionResult.data) {
-          // console.log(
-          //   "Question problem data:",
-          //   JSON.stringify(questionResult.data, null, 2)
-          // );
-
           return NextResponse.json(
             {
               success: true,
