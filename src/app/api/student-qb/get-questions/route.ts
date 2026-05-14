@@ -1,11 +1,56 @@
+import { unstable_cache } from "next/cache";
+import { sql, REVALIDATE_MEDIUM } from "@/lib/db";
 import { Assessments } from "@/static-data/assessment";
 import { DomainItemsArray, SkillCd_Variants } from "@/types/lookup";
-import { API_Response_Question_List } from "@/types/question";
+import {
+  API_Response_Question_List,
+  PlainQuestionType,
+} from "@/types/question";
 import { NextRequest, NextResponse } from "next/server";
 import { skillCds as Skills } from "@/static-data/domains";
-import { fetchQuestionData, QuestionFetchResult } from "@/lib/questionFetcher";
-import { fetchCbJwtTokenInternal } from "@/lib/fetchCbJwtTokenInternal";
-import { fetchCbJwtToken } from "@/lib/fetchCbJwtToken";
+
+type DbQuestionRow = {
+  questionid: string;
+  updatedate: number | null;
+  ppcc: string | null;
+  skill_cd: string;
+  score_band_range_cd: number;
+  uid: string;
+  skill_desc: string;
+  createdate: number | null;
+  program: string;
+  primary_class_cd_desc: string;
+  ibn: string | null;
+  external_id: string | null;
+  primary_class_cd: string;
+  difficulty: string;
+};
+
+const parseCsvParam = (value: string | null): string[] => {
+  if (!value) return [];
+  return value
+    .split(",")
+    .map((v) => v.trim())
+    .filter(Boolean);
+};
+
+const toPlainQuestion = (row: DbQuestionRow): PlainQuestionType => ({
+  questionId: row.questionid,
+  updateDate: row.updatedate ?? 0,
+  pPcc: row.ppcc ?? "",
+  skill_cd: row.skill_cd as SkillCd_Variants,
+  score_band_range_cd: row.score_band_range_cd,
+  uId: row.uid,
+  skill_desc: row.skill_desc,
+  createDate: row.createdate ?? 0,
+  program: row.program,
+  primary_class_cd_desc: row.primary_class_cd_desc,
+  ibn: row.ibn,
+  external_id: row.external_id,
+  primary_class_cd:
+    row.primary_class_cd as PlainQuestionType["primary_class_cd"],
+  difficulty: row.difficulty as PlainQuestionType["difficulty"],
+});
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -16,24 +61,9 @@ export async function GET(request: NextRequest) {
   const skillCdsParam = searchParams.get("skills");
   const random = searchParams.get("random");
 
-  const uniqueIdsParam = searchParams.get("uniqueIds"); // externalIds or Ibn
+  const uniqueIds = parseCsvParam(searchParams.get("uniqueIds")); // external_id or ibn
+  const skillCds = parseCsvParam(skillCdsParam);
 
-  if (uniqueIdsParam) {
-    const uniqueIds = uniqueIdsParam.split(",").map((id) => id.trim());
-    const questions: QuestionFetchResult[] = [];
-
-    uniqueIds.forEach(async (id) => {
-      const result = await fetchQuestionData(id);
-      questions.push(result);
-    });
-
-    return NextResponse.json({ success: true, data: questions });
-  }
-
-  let skillCds: string[] = [];
-  if (skillCdsParam) {
-    skillCds = skillCdsParam.split(",").map((cd) => cd.trim());
-  }
   if (
     skillCds.length > 0 &&
     !skillCds.every((cd) => Skills.includes(cd as SkillCd_Variants))
@@ -47,12 +77,12 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  let difficulties: string[] = [];
-  if (difficultiesParam) {
-    difficulties = difficultiesParam.split(",").map((id) => id.trim());
-  }
+  const difficulties = parseCsvParam(difficultiesParam);
 
-  if (difficulties.length > 0 && !["E", "M", "H"].includes(difficulties[0])) {
+  if (
+    difficulties.length > 0 &&
+    !difficulties.every((d) => ["E", "M", "H"].includes(d))
+  ) {
     return NextResponse.json(
       {
         success: false,
@@ -62,20 +92,7 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  let excludeQuestionIds: string[] = [];
-  if (excludeQuestionIdsParam) {
-    excludeQuestionIds = excludeQuestionIdsParam
-      .split(",")
-      .map((id) => id.trim());
-  }
-
-  // console.log("domains", domainsParam);
-  // console.log("assessment", assessment);
-  // console.log("random", random);
-  // console.log("excludeQuestionIds", excludeQuestionIds);
-
-  if (random == "true") {
-  }
+  const excludeQuestionIds = parseCsvParam(excludeQuestionIdsParam);
 
   let asmtEventId = 99;
 
@@ -83,7 +100,10 @@ export async function GET(request: NextRequest) {
     asmtEventId = Assessments[assessment as keyof typeof Assessments].id;
   }
 
-  if (domainsParam === null || domainsParam === "") {
+  if (
+    (domainsParam === null || domainsParam === "") &&
+    uniqueIds.length === 0
+  ) {
     return NextResponse.json(
       {
         success: false,
@@ -93,11 +113,11 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  if (domainsParam && !DomainItemsArray.includes(domainsParam)) {
-    // Validate domains parameter
-    const domainList = domainsParam.split(",");
-    const invalidDomains = domainList.filter(
-      (domain) => !DomainItemsArray.includes(domain.trim()),
+  const domains = parseCsvParam(domainsParam);
+  if (domains.length > 0) {
+    const invalidDomains = domains.filter(
+      (domain) =>
+        !DomainItemsArray.includes(domain as (typeof DomainItemsArray)[number]),
     );
 
     if (invalidDomains.length > 0) {
@@ -111,119 +131,156 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // Prepare the request to College Board API
-  const apiUrls = [
-    "https://digitalpractice-api.collegeboard.org/mspractice-studentquestionbank-prod/get-questions",
-  ];
-
-  let questions: API_Response_Question_List = [];
-  const responseStatus = [];
-
-  try {
-    for (const apiUrl of apiUrls) {
-      const isProtectedEndpoint = apiUrl.includes("digitalpractice-api");
-
-      let CB_AUTHORIZATION_TOKEN = "";
-
-      if (isProtectedEndpoint) {
-        const { cbJwtToken, status, error } = await fetchCbJwtTokenInternal();
-
-        if (typeof cbJwtToken === "string") CB_AUTHORIZATION_TOKEN = cbJwtToken;
-
-        if (status !== 200) {
-          continue; // if failed then do not use it lol
-        }
-        if (!cbJwtToken) {
-          continue; //  if failed then do not use it lol
-        }
-      }
-
-      // Make the request to College Board API
-      const response = await fetch(apiUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-          // Add any required authentication headers here if needed
-          // 'Authorization': `Bearer ${process.env.COLLEGEBOARD_API_KEY}`,
-          ...(isProtectedEndpoint
-            ? {
-                "x-cb-catapult-authorization-token":
-                  CB_AUTHORIZATION_TOKEN || "",
-                "x-cb-catapult-authentication-token":
-                  process.env.AUTHENTICATION_CB_MYPRACTICE || "",
-              }
-            : {}),
-        },
-        body: JSON.stringify({
-          asmtEventId: asmtEventId,
-          test: 2,
-          domain: domainsParam,
-        }),
-        next: { revalidate: 86400 },
-        cache: "force-cache",
-        // Add timeout to prevent hanging requests
-        signal: AbortSignal.timeout(30000), // 30 second timeout
-      });
-
-      // console.log("CB_AUTHORIZATION_TOKEN", CB_AUTHORIZATION_TOKEN);
-      responseStatus.push({
-        url: apiUrl,
-        status: response.status,
-        errorText: response.status !== 200 && (await response.text()),
-        statusText: response.statusText,
-      });
-
-      const data: API_Response_Question_List | undefined =
-        await response.json();
-      // console.log(" Collegeboard Data ", data);
-
-      questions = [...questions, ...(data || [])];
-    }
-  } catch (error) {
-    console.log(responseStatus);
-    if (responseStatus[0].status !== 200) {
-      let response = responseStatus[0];
-      console.error("Error fetching questions:", error);
-      const errorText = response.errorText || "No error text available";
-      console.error("College Board API error:", response.status, errorText);
-
-      return NextResponse.json(
-        {
-          success: false,
-          error: `College Board API error: ${response.status} ${response.statusText}`,
-          details: errorText,
-        },
-        { status: response.status },
-      );
-    } else if (responseStatus[1] && responseStatus[1].status !== 200) {
-      let response = responseStatus[1];
-      console.error("Error fetching questions on mypractice api:", error);
-      const errorText = response.errorText || "No error text available";
-      console.error("College Board API error:", response.status, errorText);
-    }
+  if (!sql) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "DATABASE_URL (or NEON_DATABASE_URL) is not configured",
+      },
+      { status: 500 },
+    );
   }
 
+  const getQuestionsCached = unstable_cache(
+    async (opts: {
+      domains: string[];
+      uniqueIds: string[];
+      excludeQuestionIds: string[];
+      skillCds: string[];
+      difficulties: string[];
+      random: boolean;
+      assessment: string | null;
+      asmtEventId: number;
+    }) => {
+      const {
+        domains,
+        uniqueIds,
+        excludeQuestionIds,
+        skillCds,
+        difficulties,
+        random,
+      } = opts;
+
+      const whereClauses: string[] = [];
+      const values: Array<string[] | string> = [];
+
+      if (uniqueIds.length > 0) {
+        values.push(uniqueIds);
+        whereClauses.push(
+          `(external_id = ANY($${values.length}::text[]) OR ibn = ANY($${values.length}::text[]) OR questionid = ANY($${values.length}::text[]))`,
+        );
+      } else if (domains.length > 0) {
+        values.push(domains);
+        whereClauses.push(`primary_class_cd = ANY($${values.length}::text[])`);
+      }
+
+      if (excludeQuestionIds.length > 0) {
+        values.push(excludeQuestionIds);
+        whereClauses.push(`NOT (questionid = ANY($${values.length}::text[]))`);
+      }
+
+      if (skillCds.length > 0) {
+        values.push(skillCds);
+        whereClauses.push(`skill_cd = ANY($${values.length}::text[])`);
+      }
+
+      if (difficulties.length > 0) {
+        values.push(difficulties);
+        whereClauses.push(`difficulty = ANY($${values.length}::text[])`);
+      }
+
+      const query = `
+      SELECT
+        questionid,
+        updatedate,
+        ppcc,
+        skill_cd,
+        score_band_range_cd,
+        uid,
+        skill_desc,
+        createdate,
+        program,
+        primary_class_cd_desc,
+        ibn,
+        external_id,
+        primary_class_cd,
+        difficulty
+      FROM questions
+      ${whereClauses.length > 0 ? `WHERE ${whereClauses.join(" AND ")}` : ""}
+      ORDER BY ${random ? "RANDOM()" : "createdate DESC"}
+    `;
+
+      const client = sql;
+      if (!client) {
+        throw new Error(
+          "DATABASE_URL (or NEON_DATABASE_URL) is not configured",
+        );
+      }
+
+      const rows = (await client.query(query, values)) as DbQuestionRow[];
+      return rows;
+    },
+    ["student-qb-questions-list"],
+    {
+      revalidate: REVALIDATE_MEDIUM,
+      tags: ["student-qb-question", "questions"],
+    },
+  );
+
   try {
-    if (excludeQuestionIds.length > 0) {
-      questions = questions.filter(
-        (question) => !excludeQuestionIds.includes(question.questionId),
+    const whereClauses: string[] = [];
+    const values: Array<string[] | string> = [];
+
+    if (uniqueIds.length > 0) {
+      values.push(uniqueIds);
+      const idx = values.length;
+      whereClauses.push(
+        `(external_id = ANY($${idx}::text[]) OR ibn = ANY($${idx}::text[]) OR questionid = ANY($${idx}::text[]))`,
       );
+    } else if (domains.length > 0) {
+      values.push(domains);
+      whereClauses.push(`primary_class_cd = ANY($${values.length}::text[])`);
+    }
+
+    if (excludeQuestionIds.length > 0) {
+      values.push(excludeQuestionIds);
+      whereClauses.push(`NOT (questionid = ANY($${values.length}::text[]))`);
     }
 
     if (skillCds.length > 0) {
-      questions = questions.filter((question) => {
-        return skillCds.includes(question.skill_cd as SkillCd_Variants);
-      });
+      values.push(skillCds);
+      whereClauses.push(`skill_cd = ANY($${values.length}::text[])`);
     }
 
     if (difficulties.length > 0) {
-      questions = questions.filter((question) =>
-        difficulties.includes(question.difficulty),
-      );
+      values.push(difficulties);
+      whereClauses.push(`difficulty = ANY($${values.length}::text[])`);
     }
 
-    // console.log(questions.length, "questions fetched");
+    // Keep assessment handling for backward compatibility even though table rows are already SAT scoped.
+    if (
+      assessment !== null &&
+      assessment !== "" &&
+      assessment in Assessments &&
+      asmtEventId !== 99
+    ) {
+      // no-op; preserved to avoid changing existing assessment query contracts abruptly
+    }
+
+    const rows = await getQuestionsCached({
+      domains,
+      uniqueIds,
+      excludeQuestionIds,
+      skillCds,
+      difficulties,
+      random: random === "true",
+      assessment,
+      asmtEventId,
+    });
+
+    const questions: API_Response_Question_List = (rows as DbQuestionRow[]).map(
+      toPlainQuestion,
+    );
 
     return NextResponse.json(
       {
@@ -241,11 +298,12 @@ export async function GET(request: NextRequest) {
       },
     );
   } catch (error) {
-    console.error("Error processing questions:", error);
+    console.error("Error fetching questions from Neon:", error);
     return NextResponse.json(
       {
         success: false,
-        error: "Failed to process questions",
+        error: "Failed to fetch questions from database",
+        details: error instanceof Error ? error.message : "Unknown error",
       },
       { status: 500 },
     );
