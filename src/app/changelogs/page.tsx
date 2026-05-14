@@ -3,6 +3,29 @@ import React from "react";
 import { SiteHeader } from "../navbar";
 import type { Metadata } from "next";
 import FooterSection from "@/components/footer";
+import { members, type GitHubUser } from "@/lib/contributors";
+
+async function fetchGitHubUser(username: string): Promise<GitHubUser | null> {
+  try {
+    const response = await fetch(`https://api.github.com/users/${username}`, {
+      headers: {
+        Accept: "application/vnd.github+json",
+        "User-Agent": "MySATPrep",
+      },
+      cache: "force-cache",
+      next: { revalidate: 86400 },
+      signal: AbortSignal.timeout(30000),
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    return response.json();
+  } catch {
+    return null;
+  }
+}
 
 export const metadata: Metadata = {
   title: "MySATPrep Changelog - Latest Updates, Fixes & Release Notes",
@@ -51,11 +74,33 @@ export const metadata: Metadata = {
   },
 };
 
-export default function Page() {
+export default async function Page() {
+  const contributors = await Promise.all(
+    members.map(async (member) => {
+      const githubUser = await fetchGitHubUser(member.username);
+      return {
+        username: member.username,
+        name: githubUser?.name ?? githubUser?.login ?? member.username,
+        designation: member.role,
+        image:
+          githubUser?.avatar_url ??
+          `https://github.com/${member.username}.png?size=460`,
+      };
+    }),
+  );
+
+  const githubUsersMap = contributors.reduce(
+    (acc, contributor) => {
+      acc[contributor.username] = contributor;
+      return acc;
+    },
+    {} as Record<string, (typeof contributors)[0]>,
+  );
+
   return (
     <React.Fragment>
       <SiteHeader disableBlur disableScroll />
-      <ChangelogPage />
+      <ChangelogPage githubUsersMap={githubUsersMap} />
       <FooterSection />
     </React.Fragment>
   );
