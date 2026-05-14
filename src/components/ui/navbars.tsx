@@ -30,7 +30,7 @@ export default function Navbardemo() {
         </SheetContent>
       </Sheet>
       <ResizablePanelGroup
-        direction="horizontal"
+        // direction="horizontal"
         className="min-h-[200px] max-w-md rounded-lg border md:min-w-[450px]"
       >
         <ResizablePanel defaultSize={70}>
