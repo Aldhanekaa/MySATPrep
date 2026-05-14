@@ -1,5 +1,5 @@
 import { unstable_cache } from "next/cache";
-import { sql, REVALIDATE_MEDIUM } from "@/lib/db";
+import { config } from "@/lib/db";
 import { Assessments } from "@/static-data/assessment";
 import { DomainItemsArray, SkillCd_Variants } from "@/types/lookup";
 import {
@@ -137,7 +137,7 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  if (!sql) {
+  if (!config.sql) {
     return NextResponse.json(
       {
         success: false,
@@ -254,7 +254,7 @@ export async function GET(request: NextRequest) {
       ORDER BY ${random ? "RANDOM()" : "createdate DESC"}
     `;
 
-      const client = sql;
+      const client = config.sql;
       if (!client) {
         throw new Error(
           "DATABASE_URL (or NEON_DATABASE_URL) is not configured",
@@ -266,7 +266,7 @@ export async function GET(request: NextRequest) {
     },
     ["student-qb-questions-list"],
     {
-      revalidate: REVALIDATE_MEDIUM,
+      revalidate: config.REVALIDATE_MEDIUM,
       tags: ["student-qb-question", "questions"],
     },
   );

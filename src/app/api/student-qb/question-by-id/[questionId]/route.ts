@@ -1,5 +1,5 @@
 import { unstable_cache } from "next/cache";
-import { sql, REVALIDATE_LONG } from "@/lib/db";
+import { config } from "@/lib/db";
 import { SkillCd_Variants } from "@/types/lookup";
 import {
   API_Response_Question,
@@ -8,7 +8,7 @@ import {
 } from "@/types/question";
 import { NextRequest, NextResponse } from "next/server";
 
-export const revalidate = REVALIDATE_LONG;
+export const revalidate = config.REVALIDATE_LONG;
 
 type DbQuestionRow = {
   questionid: string;
@@ -97,11 +97,11 @@ const toPlainQuestion = (row: DbQuestionRow): PlainQuestionType => ({
 
 const getQuestionByIdCached = unstable_cache(
   async (questionId: string): Promise<DbQuestionRow | null> => {
-    if (!sql) {
+    if (!config.sql) {
       throw new Error("DATABASE_URL (or NEON_DATABASE_URL) is not configured");
     }
 
-    const rows = (await sql.query(
+    const rows = (await config.sql.query(
       `
         SELECT
           questionid,
@@ -129,18 +129,18 @@ const getQuestionByIdCached = unstable_cache(
   },
   ["student-qb-question-row-by-id"],
   {
-    revalidate,
+    revalidate: config.REVALIDATE_LONG,
     tags: ["student-qb-question", "questions"],
   },
 );
 
 const getQuestionByExternalIdCached = unstable_cache(
   async (externalId: string): Promise<API_Response_Question | null> => {
-    if (!sql) {
+    if (!config.sql) {
       throw new Error("DATABASE_URL (or NEON_DATABASE_URL) is not configured");
     }
 
-    const rows = (await sql.query(
+    const rows = (await config.sql.query(
       `
         SELECT
           externalid,
@@ -174,7 +174,7 @@ const getQuestionByExternalIdCached = unstable_cache(
   },
   ["student-qb-problem-row-by-externalid"],
   {
-    revalidate,
+    revalidate: config.REVALIDATE_LONG,
     tags: ["student-qb-question", "questions_by_external"],
   },
 );
@@ -196,7 +196,7 @@ export async function GET(
     );
   }
 
-  if (!sql) {
+  if (!config.sql) {
     return NextResponse.json(
       {
         success: false,
