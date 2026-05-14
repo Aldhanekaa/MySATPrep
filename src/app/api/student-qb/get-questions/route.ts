@@ -1,5 +1,5 @@
 import { unstable_cache } from "next/cache";
-import { config, REVALIDATE_MEDIUM } from "@/lib/db";
+import { config } from "@/lib/db";
 import { Assessments } from "@/static-data/assessment";
 import { DomainItemsArray, SkillCd_Variants } from "@/types/lookup";
 import {

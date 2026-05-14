@@ -1,5 +1,5 @@
 import { unstable_cache } from "next/cache";
-import { config, REVALIDATE_LONG } from "@/lib/db";
+import { config } from "@/lib/db";
 import { SkillCd_Variants } from "@/types/lookup";
 import {
   API_Response_Question,
@@ -8,7 +8,7 @@ import {
 } from "@/types/question";
 import { NextRequest, NextResponse } from "next/server";
 
-export const revalidate = REVALIDATE_LONG;
+export const revalidate = 3600;
 
 type DbQuestionRow = {
   questionid: string;
