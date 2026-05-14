@@ -132,6 +132,7 @@ function findCorrectChoiceOrAnswerOnIBNQuestion(
  */
 export async function fetchQuestionData(
   questionId: string,
+  isMyPractice: boolean = false,
 ): Promise<QuestionFetchResult> {
   if (!questionId || questionId === "") {
     return {
@@ -236,10 +237,16 @@ export async function fetchQuestionData(
   }
 
   // Handle regular questions
-  const apiUrls = [
+  let apiUrls = [
     "https://qbank-api.collegeboard.org/msreportingquestionbank-prod/questionbank/digital/get-question",
     "https://digitalpractice-api.collegeboard.org/mspractice-studentquestionbank-prod/get-question",
   ];
+
+  if (isMyPractice) {
+    apiUrls = [
+      "https://digitalpractice-api.collegeboard.org/mspractice-studentquestionbank-prod/get-question",
+    ];
+  }
 
   let lastErrorStatus = 404;
 
