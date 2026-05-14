@@ -45,6 +45,7 @@ export async function GET(): Promise<NextResponse> {
       },
     );
   } catch (error) {
+    console.log("Error fetching credentials:", error);
     console.error("Error fetching credentials:", error);
     return NextResponse.json<StatsAPIErrorResponse>(
       {

@@ -4,6 +4,7 @@ export async function fetchCbJwtToken(): Promise<{
   error?: string;
 }> {
   const apiUrl = `https://sucred.catapult-prod.collegeboard.org/rel/temp-user-aws-creds?cbEnv=pine&cbAWSDomains=digitalpractice,catapult&cacheNonce=-${process.env.CB_MYPRACTICE_SESSION_ID}`;
+  console.log("Fetching cbJwtToken from:", apiUrl);
   const response = await fetch(apiUrl, {
     method: "GET",
     headers: {
@@ -19,6 +20,10 @@ export async function fetchCbJwtToken(): Promise<{
     signal: AbortSignal.timeout(30000), // 30 second timeout
   });
 
+  console.log(
+    "Received response for cbJwtToken fetch with status:",
+    response.status,
+  );
   if (!response.ok) {
     return {
       cbJwtToken: null,
