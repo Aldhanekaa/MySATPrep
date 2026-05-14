@@ -18,6 +18,7 @@ const nextConfig: NextConfig = {
 
   images: {
     remotePatterns: [
+      new URL("https://avatars.githubusercontent.com/u/**?v=4"),
       new URL("https://originui.com/**"),
       new URL("https://upload.wikimedia.org/**"),
       new URL("https://vectorseek.com/**"),
