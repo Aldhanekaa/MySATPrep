@@ -4,6 +4,7 @@ import {
   MultipleChoiceDisclosedQuestion,
   SPRDisclosedQuestion,
 } from "@/types/question";
+import getInternalAPITargetURL from "./getInternalAPITargetURL";
 
 export interface QuestionFetchResult {
   success: boolean;
@@ -122,14 +123,9 @@ function findCorrectChoiceOrAnswerOnIBNQuestion(
   return [];
 }
 
-/**
- * Fetches question data from College Board APIs
- * Handles both disclosed questions (-DC suffix) and regular questions
- * @param questionId - The question ID to fetch
- * @returns Promise<QuestionFetchResult>
- */
 export async function fetchQuestionData(
   questionId: string,
+  isMyPractice: boolean = false,
 ): Promise<QuestionFetchResult> {
   if (!questionId || questionId === "") {
     return {
@@ -172,16 +168,8 @@ export async function fetchQuestionData(
           | SPRDisclosedQuestion
           | MultipleChoiceDisclosedQuestion = data[0];
 
-        // console.log("Fetched IBN Question Data:", questionData);
-        // console.log("Fetched IBN Question Data (answer):", questionData.answer);
-
         const correctAnswer =
           findCorrectChoiceOrAnswerOnIBNQuestion(questionData);
-        // console.log("Correct answer found:", correctAnswer);
-        // console.log(
-        //   "Fetched IBN Question Data (answer.correct_choice):",
-        //   questionData.answer,
-        // );
 
         if (questionData.answer.style === "Multiple Choice") {
           return {
@@ -233,9 +221,43 @@ export async function fetchQuestionData(
     }
   }
 
-  // Handle regular questions
+  // Handle regular questions - try internal API first, then fall back to qbank-api
+  const internalApiUrl = getInternalAPITargetURL();
+
+  // Try internal API (Neon database) first
+  try {
+    const internalResponse = await fetch(
+      `${internalApiUrl}/api/student-qb/question/${questionId}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+      },
+    );
+
+    if (internalResponse.ok) {
+      const internalData = await internalResponse.json();
+      if (internalData.success && internalData.data) {
+        return {
+          success: true,
+          data: internalData.data,
+        };
+      }
+    }
+  } catch (internalError) {
+    console.warn(
+      "Internal API call failed, falling back to qbank-api:",
+      internalError,
+    );
+  }
+
+  // Fall back to qbank-api
   const apiUrl =
     "https://qbank-api.collegeboard.org/msreportingquestionbank-prod/questionbank/digital/get-question";
+
+  let lastErrorStatus = 404;
 
   try {
     const response = await fetch(apiUrl, {
@@ -250,24 +272,21 @@ export async function fetchQuestionData(
       signal: AbortSignal.timeout(30000),
     });
 
+    lastErrorStatus = response.status;
+
     if (!response.ok) {
       const errorText = await response.text();
       console.error("College Board API error:", response.status, errorText);
       return {
         success: false,
-        error: `College Board API error: ${response.status} ${response.statusText}`,
+        error: `Question Not Found: ${response.status} ${response.statusText}`,
         status: response.status,
       };
     }
 
-    const data: ExternalID_ResponseQuestion = await response.json();
+    const questionData: ExternalID_ResponseQuestion = await response.json();
 
-    console.log(
-      `Question of ${questionId} fetched from College Board API:`,
-      data,
-    );
-
-    if (!data || !data.externalid) {
+    if (!questionData || !questionData.externalid) {
       return {
         success: false,
         error: "Given Question Id Not Found",
@@ -275,19 +294,14 @@ export async function fetchQuestionData(
       };
     }
 
-    // console.log("Fetched question data:", data);
-
-    if (data.type === "mcq") {
+    if (questionData.type === "mcq") {
       return {
         success: true,
         data: {
-          answerOptions: data.answerOptions.reduce(
+          answerOptions: questionData.answerOptions.reduce(
             (acc, option, idx) => {
               const key = ["a", "b", "c", "d"][idx];
               if (key) {
-                // console.log(
-                //   `data.answerOptions.reduce Mapping option key.toUpperCase() key:${key} to content: ${option.content}`,
-                // );
                 acc[key.toUpperCase() as "A" | "B" | "C" | "D"] =
                   option.content;
               }
@@ -296,38 +310,35 @@ export async function fetchQuestionData(
             },
             {} as { [key in "A" | "B" | "C" | "D"]: string },
           ),
-          correct_answer: data.correct_answer.map((e) => {
-            // console.log(
-            //   `data.correct_answer.map Mapping correct answer ${e} to e.toUpperCase()`,
-            // );
+          correct_answer: questionData.correct_answer.map((e) => {
             return e.toUpperCase();
           }),
-          rationale: data.rationale,
-          stem: data.stem,
-          stimulus: data.stimulus,
+          rationale: questionData.rationale,
+          stem: questionData.stem,
+          stimulus: questionData.stimulus,
           type: "mcq",
-          externalid: data.externalid,
+          externalid: questionData.externalid,
         },
       };
-    } else if (data.type === "spr") {
+    } else if (questionData.type === "spr") {
       return {
         success: true,
         data: {
           answerOptions: undefined,
-          correct_answer: data.correct_answer,
-          rationale: data.rationale,
-          stem: data.stem,
+          correct_answer: questionData.correct_answer,
+          rationale: questionData.rationale,
+          stem: questionData.stem,
           type: "spr",
-          externalid: data.externalid,
-          stimulus: data.stimulus,
+          externalid: questionData.externalid,
+          stimulus: questionData.stimulus,
         },
       };
     }
 
     return {
       success: false,
-      error: "Unknown question type",
-      status: 400,
+      error: "Given Question Id Not Found",
+      status: lastErrorStatus,
     };
   } catch (error) {
     console.error("Error in fetching question:", error);

@@ -3,7 +3,7 @@ import { DomainItemsArray, SkillCd_Variants } from "@/types/lookup";
 import { API_Response_Question_List } from "@/types/question";
 import { NextRequest, NextResponse } from "next/server";
 import { skillCds as Skills } from "@/static-data/domains";
-import { fetchQuestionData, QuestionFetchResult } from "@/lib/questionFetcher";
+import getInternalAPITargetURL from "@/lib/getInternalAPITargetURL";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -15,18 +15,6 @@ export async function GET(request: NextRequest) {
   const random = searchParams.get("random");
 
   const uniqueIdsParam = searchParams.get("uniqueIds"); // externalIds or Ibn
-
-  if (uniqueIdsParam) {
-    const uniqueIds = uniqueIdsParam.split(",").map((id) => id.trim());
-    const questions: QuestionFetchResult[] = [];
-
-    uniqueIds.forEach(async (id) => {
-      const result = await fetchQuestionData(id);
-      questions.push(result);
-    });
-
-    return NextResponse.json({ success: true, data: questions });
-  }
 
   let skillCds: string[] = [];
   if (skillCdsParam) {
@@ -41,7 +29,7 @@ export async function GET(request: NextRequest) {
         success: false,
         error: `Invalid skill codes provided: ${skillCds.join(", ")}`,
       },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -56,7 +44,7 @@ export async function GET(request: NextRequest) {
         success: false,
         error: `Invalid difficulties provided: ${difficulties.join(", ")}`,
       },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -87,7 +75,7 @@ export async function GET(request: NextRequest) {
         success: false,
         error: "Domains parameter is required",
       },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -95,7 +83,7 @@ export async function GET(request: NextRequest) {
     // Validate domains parameter
     const domainList = domainsParam.split(",");
     const invalidDomains = domainList.filter(
-      (domain) => !DomainItemsArray.includes(domain.trim())
+      (domain) => !DomainItemsArray.includes(domain.trim()),
     );
 
     if (invalidDomains.length > 0) {
@@ -104,7 +92,7 @@ export async function GET(request: NextRequest) {
           success: false,
           error: `Invalid domains provided: ${invalidDomains.join(", ")}`,
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
   }
@@ -113,6 +101,8 @@ export async function GET(request: NextRequest) {
   const apiUrl =
     "https://qbank-api.collegeboard.org/msreportingquestionbank-prod/questionbank/digital/get-questions";
 
+  let questions: API_Response_Question_List = [];
+
   try {
     // Make the request to College Board API
     const response = await fetch(apiUrl, {
@@ -120,8 +110,6 @@ export async function GET(request: NextRequest) {
       headers: {
         "Content-Type": "application/json",
         Accept: "application/json",
-        // Add any required authentication headers here if needed
-        // 'Authorization': `Bearer ${process.env.COLLEGEBOARD_API_KEY}`,
       },
       body: JSON.stringify({
         asmtEventId: asmtEventId,
@@ -134,7 +122,7 @@ export async function GET(request: NextRequest) {
       signal: AbortSignal.timeout(30000), // 30 second timeout
     });
 
-    if (!response.ok) {
+    if (response.status !== 200) {
       const errorText = await response.text();
       console.error("College Board API error:", response.status, errorText);
 
@@ -144,18 +132,67 @@ export async function GET(request: NextRequest) {
           error: `College Board API error: ${response.status} ${response.statusText}`,
           details: errorText,
         },
-        { status: response.status }
+        { status: response.status },
       );
     }
 
     const data: API_Response_Question_List | undefined = await response.json();
-    // console.log(" Collegeboard Data ", data);
 
-    let questions = data || [];
+    questions = [...questions, ...(data || [])];
 
+    // Also call the internal student-qb API
+    try {
+      const internalApiUrl = getInternalAPITargetURL();
+      const queryParams = new URLSearchParams();
+
+      if (domainsParam) queryParams.append("domains", domainsParam);
+      if (assessment) queryParams.append("assessment", assessment);
+      if (excludeQuestionIdsParam)
+        queryParams.append("excludeIds", excludeQuestionIdsParam);
+      if (difficultiesParam)
+        queryParams.append("difficulties", difficultiesParam);
+      if (skillCdsParam) queryParams.append("skills", skillCdsParam);
+      if (random) queryParams.append("random", random);
+
+      const internalResponse = await fetch(
+        `${internalApiUrl}/api/student-qb/get-questions?${queryParams.toString()}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+        },
+      );
+
+      if (internalResponse.ok) {
+        const internalData = await internalResponse.json();
+        if (internalData.success && internalData.data) {
+          questions = [...questions, ...(internalData.data || [])];
+        }
+      }
+    } catch (internalError) {
+      console.warn(
+        "Internal API call failed, continuing with CB data:",
+        internalError,
+      );
+    }
+  } catch (error) {
+    console.error("Error fetching questions:", error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Failed to fetch questions from College Board API",
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
+  }
+
+  try {
     if (excludeQuestionIds.length > 0) {
       questions = questions.filter(
-        (question) => !excludeQuestionIds.includes(question.questionId)
+        (question) => !excludeQuestionIds.includes(question.questionId),
       );
     }
 
@@ -167,7 +204,7 @@ export async function GET(request: NextRequest) {
 
     if (difficulties.length > 0) {
       questions = questions.filter((question) =>
-        difficulties.includes(question.difficulty)
+        difficulties.includes(question.difficulty),
       );
     }
 
@@ -182,20 +219,20 @@ export async function GET(request: NextRequest) {
       {
         status: 200,
         headers: {
-          "Cache-Control": "public, s-maxage=3600",
+          "Cache-Control": "public, s-maxage=3600", // one hour
           "CDN-Cache-Control": "public, s-maxage=60",
           "Vercel-CDN-Cache-Control": "public, s-maxage=3600",
         },
-      }
+      },
     );
   } catch (error) {
-    console.error("Error fetching questions:", error);
+    console.error("Error processing questions:", error);
     return NextResponse.json(
       {
         success: false,
-        error: "Failed to fetch questions",
+        error: "Failed to process questions",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
