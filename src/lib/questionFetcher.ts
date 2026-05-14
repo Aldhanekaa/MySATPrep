@@ -13,13 +13,123 @@ export interface QuestionFetchResult {
 }
 
 /**
+ * Translates written fractions (e.g., "three halves", "one quarter") to numeric fractions (e.g., "3/2", "1/4")
+ * @param fractionWord - The written fraction
+ * @returns The numeric fraction as a string (e.g., "3/2") or the original input if not recognized
+ */
+function translateFractionWordsToAnswer(fractionWord: string): string {
+  // console.log("translateFractionWordsToAnswer");
+  // console.log("fractionWord", fractionWord);
+  if (!fractionWord) return "";
+
+  const normalized = fractionWord.toLowerCase().trim();
+  console.log("normalized", normalized);
+
+  // Numerator words
+  const numerators: { [key: string]: number } = {
+    one: 1,
+    two: 2,
+    three: 3,
+    four: 4,
+    five: 5,
+    six: 6,
+    seven: 7,
+    eight: 8,
+    nine: 9,
+    ten: 10,
+  };
+
+  // Denominator words
+  const denominators: { [key: string]: number } = {
+    half: 2,
+    halves: 2,
+    third: 3,
+    thirds: 3,
+    quarter: 4,
+    quarters: 4,
+    fifth: 5,
+    fifths: 5,
+    sixth: 6,
+    sixths: 6,
+    seventh: 7,
+    sevenths: 7,
+    eighth: 8,
+    eighths: 8,
+    ninth: 9,
+    ninths: 9,
+    tenth: 10,
+    tenths: 10,
+  };
+
+  // Try to match patterns like "three halves", "one quarter", etc.
+  const fractionPattern = /^(\w+)\s+(\w+)?$/i;
+  const match = normalized.match(fractionPattern);
+  // console.log("match", match);
+
+  if (match) {
+    const numeratorWord = match[1];
+    const denominatorWord = match[2]; // Already has the correct form from regex
+
+    const numerator = numerators[numeratorWord];
+    const denominator = denominators[denominatorWord];
+
+    if (numerator !== undefined && denominator !== undefined) {
+      return `${numerator}/${denominator}`;
+    }
+  }
+
+  // If no pattern matched, return the original
+  return fractionWord;
+}
+
+function findCorrectChoiceOrAnswerOnIBNQuestion(
+  data: SPRDisclosedQuestion | MultipleChoiceDisclosedQuestion,
+): Array<string> {
+  if (
+    data.answer.style == "Multiple Choice" &&
+    "correct_choice" in data.answer
+  ) {
+    return [data.answer.correct_choice.toUpperCase()];
+  } else {
+    const rationale = data.answer.rationale;
+
+    // try to find the correct choice in the rationale by looking for patterns like:
+    // "The correct answer is {answer}." or "Choice {answer} is correct."
+    // Also handles math expressions like: "The correct answer is <span class="math-container"><img ... alt="three halves"></span>."
+    const correctChoiceMatch = rationale.match(
+      /The correct answer is ([A-D])\.|Choice ([A-D]) is correct\.|alt="([^"]*)"/i,
+    );
+
+    // console.log("correctChoiceMatch", correctChoiceMatch);
+
+    if (correctChoiceMatch) {
+      const correctChoice =
+        correctChoiceMatch[1] || correctChoiceMatch[2] || correctChoiceMatch[3];
+
+      console.log("correctChoiceMatch[3]", correctChoiceMatch[3]);
+      // If it's a written fraction (from alt text), translate it to numeric form
+      if (correctChoiceMatch[3]) {
+        const translatedFraction = translateFractionWordsToAnswer(
+          correctChoiceMatch[3],
+        );
+        return [translatedFraction.toUpperCase()];
+      }
+
+      return [correctChoice.toUpperCase()];
+    }
+  }
+
+  return [];
+}
+
+/**
  * Fetches question data from College Board APIs
  * Handles both disclosed questions (-DC suffix) and regular questions
  * @param questionId - The question ID to fetch
  * @returns Promise<QuestionFetchResult>
  */
 export async function fetchQuestionData(
-  questionId: string
+  questionId: string,
 ): Promise<QuestionFetchResult> {
   if (!questionId || questionId === "") {
     return {
@@ -62,6 +172,17 @@ export async function fetchQuestionData(
           | SPRDisclosedQuestion
           | MultipleChoiceDisclosedQuestion = data[0];
 
+        // console.log("Fetched IBN Question Data:", questionData);
+        // console.log("Fetched IBN Question Data (answer):", questionData.answer);
+
+        const correctAnswer =
+          findCorrectChoiceOrAnswerOnIBNQuestion(questionData);
+        // console.log("Correct answer found:", correctAnswer);
+        // console.log(
+        //   "Fetched IBN Question Data (answer.correct_choice):",
+        //   questionData.answer,
+        // );
+
         if (questionData.answer.style === "Multiple Choice") {
           return {
             success: true,
@@ -72,9 +193,7 @@ export async function fetchQuestionData(
                 C: questionData.answer.choices.c.body,
                 D: questionData.answer.choices.d.body,
               },
-              correct_answer: [
-                questionData.answer.correct_choice.toUpperCase(),
-              ],
+              correct_answer: correctAnswer,
               rationale: questionData.answer.rationale,
               stem: questionData.prompt,
               type: "mcq",
@@ -87,7 +206,7 @@ export async function fetchQuestionData(
             success: true,
             data: {
               answerOptions: undefined,
-              correct_answer: [],
+              correct_answer: correctAnswer,
               rationale: questionData.answer.rationale,
               stem: questionData.prompt,
               type: "spr",
@@ -143,6 +262,11 @@ export async function fetchQuestionData(
 
     const data: ExternalID_ResponseQuestion = await response.json();
 
+    console.log(
+      `Question of ${questionId} fetched from College Board API:`,
+      data,
+    );
+
     if (!data || !data.externalid) {
       return {
         success: false,
@@ -157,13 +281,27 @@ export async function fetchQuestionData(
       return {
         success: true,
         data: {
-          answerOptions: data.answerOptions.reduce((acc, option, idx) => {
-            const key = ["a", "b", "c", "d"][idx];
-            if (key)
-              acc[key.toUpperCase() as "A" | "B" | "C" | "D"] = option.content;
-            return acc;
-          }, {} as { [key in "A" | "B" | "C" | "D"]: string }),
-          correct_answer: data.correct_answer.map((e) => e.toUpperCase()),
+          answerOptions: data.answerOptions.reduce(
+            (acc, option, idx) => {
+              const key = ["a", "b", "c", "d"][idx];
+              if (key) {
+                // console.log(
+                //   `data.answerOptions.reduce Mapping option key.toUpperCase() key:${key} to content: ${option.content}`,
+                // );
+                acc[key.toUpperCase() as "A" | "B" | "C" | "D"] =
+                  option.content;
+              }
+
+              return acc;
+            },
+            {} as { [key in "A" | "B" | "C" | "D"]: string },
+          ),
+          correct_answer: data.correct_answer.map((e) => {
+            // console.log(
+            //   `data.correct_answer.map Mapping correct answer ${e} to e.toUpperCase()`,
+            // );
+            return e.toUpperCase();
+          }),
           rationale: data.rationale,
           stem: data.stem,
           stimulus: data.stimulus,

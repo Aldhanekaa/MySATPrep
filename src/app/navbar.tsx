@@ -12,6 +12,7 @@ const menuItems = [
   { name: "Questionbank", href: "/questionbank" },
 
   { name: "Resources", href: "/resources" },
+  { name: "Contributors", href: "/contributors" },
 
   // { name: "Feedback", href: "/feedback" },
 ];
@@ -38,7 +39,7 @@ export const SiteHeader = () => {
           className={cn(
             "mx-auto mt-2 max-w-7xl px-6 transition-all duration-300 lg:px-12",
             isScrolled &&
-              "bg-background/50 max-w-5xl rounded-2xl border backdrop-blur-lg lg:px-5"
+              "bg-background/50 max-w-5xl rounded-2xl border backdrop-blur-lg lg:px-5",
           )}
         >
           <div className="relative flex flex-wrap items-center justify-between gap-6 py-3 lg:gap-0 lg:py-4">
@@ -118,7 +119,7 @@ export const SiteHeader = () => {
                   className={cn(
                     ` bg-blue-500 hover:bg-blue-700 ${
                       isScrolled ? "lg:inline-flex" : "inline-flex"
-                    }`
+                    }`,
                   )}
                 >
                   <Link href="/practice">
@@ -132,7 +133,7 @@ export const SiteHeader = () => {
                   className={cn(
                     `border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-white ${
                       isScrolled ? "lg:inline-flex" : "inline-flex"
-                    }`
+                    }`,
                   )}
                 >
                   <Link href="/question">
