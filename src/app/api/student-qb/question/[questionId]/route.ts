@@ -1,9 +1,9 @@
 import { unstable_cache } from "next/cache";
-import { config } from "@/lib/db";
+import { config, REVALIDATE_LONG } from "@/lib/db";
 import { API_Response_Question } from "@/types/question";
 import { NextRequest, NextResponse } from "next/server";
 
-export const revalidate = config.REVALIDATE_LONG;
+export const revalidate = REVALIDATE_LONG;
 
 type QuestionByExternalRow = {
   externalid: string;
