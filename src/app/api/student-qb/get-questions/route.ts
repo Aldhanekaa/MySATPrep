@@ -8,6 +8,7 @@ import {
 } from "@/types/question";
 import { NextRequest, NextResponse } from "next/server";
 import { skillCds as Skills } from "@/static-data/domains";
+import { AsmEventId_to_Program } from "../asmEventId";
 
 type DbQuestionRow = {
   questionid: string;
@@ -100,6 +101,10 @@ export async function GET(request: NextRequest) {
     asmtEventId = Assessments[assessment as keyof typeof Assessments].id;
   }
 
+  let Program =
+    AsmEventId_to_Program[asmtEventId as keyof typeof AsmEventId_to_Program];
+  console.log("Program", Program);
+
   if (
     (domainsParam === null || domainsParam === "") &&
     uniqueIds.length === 0
@@ -114,6 +119,7 @@ export async function GET(request: NextRequest) {
   }
 
   const domains = parseCsvParam(domainsParam);
+  console.log("domains", domains);
   if (domains.length > 0) {
     const invalidDomains = domains.filter(
       (domain) =>
@@ -151,6 +157,7 @@ export async function GET(request: NextRequest) {
       random: boolean;
       assessment: string | null;
       asmtEventId: number;
+      program: string | undefined;
     }) => {
       const {
         domains,
@@ -159,34 +166,71 @@ export async function GET(request: NextRequest) {
         skillCds,
         difficulties,
         random,
+        program,
       } = opts;
 
       const whereClauses: string[] = [];
       const values: Array<string[] | string> = [];
 
       if (uniqueIds.length > 0) {
-        values.push(uniqueIds);
-        whereClauses.push(
-          `(external_id = ANY($${values.length}::text[]) OR ibn = ANY($${values.length}::text[]) OR questionid = ANY($${values.length}::text[]))`,
-        );
+        if (uniqueIds.length === 1) {
+          values.push(uniqueIds[0]);
+          whereClauses.push(
+            `(external_id = $${values.length} OR ibn = $${values.length} OR questionid = $${values.length})`,
+          );
+        } else {
+          values.push(uniqueIds);
+          whereClauses.push(
+            `(external_id = ANY($${values.length}::text[]) OR ibn = ANY($${values.length}::text[]) OR questionid = ANY($${values.length}::text[]))`,
+          );
+        }
       } else if (domains.length > 0) {
-        values.push(domains);
-        whereClauses.push(`primary_class_cd = ANY($${values.length}::text[])`);
+        if (domains.length === 1) {
+          values.push(domains[0]);
+          whereClauses.push(`primary_class_cd = $${values.length}`);
+        } else {
+          values.push(domains);
+          whereClauses.push(
+            `primary_class_cd = ANY($${values.length}::text[])`,
+          );
+        }
       }
 
       if (excludeQuestionIds.length > 0) {
-        values.push(excludeQuestionIds);
-        whereClauses.push(`NOT (questionid = ANY($${values.length}::text[]))`);
+        if (excludeQuestionIds.length === 1) {
+          values.push(excludeQuestionIds[0]);
+          whereClauses.push(`NOT (questionid = $${values.length})`);
+        } else {
+          values.push(excludeQuestionIds);
+          whereClauses.push(
+            `NOT (questionid = ANY($${values.length}::text[]))`,
+          );
+        }
       }
 
       if (skillCds.length > 0) {
-        values.push(skillCds);
-        whereClauses.push(`skill_cd = ANY($${values.length}::text[])`);
+        if (skillCds.length === 1) {
+          values.push(skillCds[0]);
+          whereClauses.push(`skill_cd = $${values.length}`);
+        } else {
+          values.push(skillCds);
+          whereClauses.push(`skill_cd = ANY($${values.length}::text[])`);
+        }
       }
 
       if (difficulties.length > 0) {
-        values.push(difficulties);
-        whereClauses.push(`difficulty = ANY($${values.length}::text[])`);
+        if (difficulties.length === 1) {
+          values.push(difficulties[0]);
+          whereClauses.push(`difficulty = $${values.length}`);
+        } else {
+          values.push(difficulties);
+          whereClauses.push(`difficulty = ANY($${values.length}::text[])`);
+        }
+      }
+
+      if (program) {
+        values.push(program);
+        whereClauses.push(`program = $${values.length}`);
       }
 
       const query = `
@@ -276,6 +320,7 @@ export async function GET(request: NextRequest) {
       random: random === "true",
       assessment,
       asmtEventId,
+      program: Program,
     });
 
     const questions: API_Response_Question_List = (rows as DbQuestionRow[]).map(

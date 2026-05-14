@@ -52,7 +52,7 @@ def create_table_if_not_exists(conn, table_name: str):
             program TEXT,
             primary_class_cd_desc TEXT,
             ibn TEXT,
-            external_id TEXT UNIQUE,
+            external_id TEXT,
             primary_class_cd TEXT,
             difficulty TEXT
         )
@@ -109,15 +109,7 @@ def create_table_if_not_exists(conn, table_name: str):
                 )
             )
 
-        cur.execute(
-            sql.SQL(
-                "CREATE UNIQUE INDEX IF NOT EXISTS {index_name} ON {table} ({column})"
-            ).format(
-                index_name=sql.Identifier(f"{table_name}_external_id_unique"),
-                table=sql.Identifier(table_name),
-                column=sql.Identifier("external_id"),
-            )
-        )
+        # Do not create a unique index on external_id; allow duplicates for external identifiers.
     conn.commit()
 
 
@@ -181,21 +173,20 @@ def upsert_records(conn, table_name: str, records):
         """
         INSERT INTO {table} ({columns})
         VALUES %s
-        ON CONFLICT (external_id) DO UPDATE SET
-                    questionid = EXCLUDED.questionid,
+        ON CONFLICT (questionid) DO UPDATE SET
                     updatedate = EXCLUDED.updatedate,
                     ppcc = EXCLUDED.ppcc,
-          skill_cd = EXCLUDED.skill_cd,
-          score_band_range_cd = EXCLUDED.score_band_range_cd,
+                    skill_cd = EXCLUDED.skill_cd,
+                    score_band_range_cd = EXCLUDED.score_band_range_cd,
                     uid = EXCLUDED.uid,
-          skill_desc = EXCLUDED.skill_desc,
+                    skill_desc = EXCLUDED.skill_desc,
                     createdate = EXCLUDED.createdate,
-          program = EXCLUDED.program,
-          primary_class_cd_desc = EXCLUDED.primary_class_cd_desc,
-          ibn = EXCLUDED.ibn,
-          external_id = EXCLUDED.external_id,
-          primary_class_cd = EXCLUDED.primary_class_cd,
-          difficulty = EXCLUDED.difficulty
+                    program = EXCLUDED.program,
+                    primary_class_cd_desc = EXCLUDED.primary_class_cd_desc,
+                    ibn = EXCLUDED.ibn,
+                    external_id = EXCLUDED.external_id,
+                    primary_class_cd = EXCLUDED.primary_class_cd,
+                    difficulty = EXCLUDED.difficulty
         """
     ).format(
         table=sql.Identifier(table_name),
