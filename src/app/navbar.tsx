@@ -49,9 +49,9 @@ const CommunityListItem = React.forwardRef<
 CommunityListItem.displayName = "CommunityListItem";
 
 export const SiteHeader = ({
-  IsScrolled,
-  disableBlur,
-  disableScroll,
+  IsScrolled = false,
+  disableBlur = false,
+  disableScroll = false,
 }: {
   IsScrolled?: boolean;
   disableBlur?: boolean;
@@ -62,6 +62,7 @@ export const SiteHeader = ({
 
   React.useEffect(() => {
     if (disableScroll) return;
+
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 50);
     };
@@ -77,10 +78,11 @@ export const SiteHeader = ({
       >
         <div
           className={cn(
-            "mx-auto mt-2 max-w-7xl px-6 transition-all duration-300 lg:px-12",
-            isScrolled && !disableBlur
-              ? "bg-background/50 max-w-5xl rounded-2xl border backdrop-blur-lg lg:px-5"
-              : "bg-white/80 max-w-5xl rounded-2xl border backdrop-blur-xl ",
+            `mx-auto mt-2 max-w-7xl px-6 transition-all duration-300 lg:px-12 ${disableBlur && "bg-white/80  rounded-2xl border backdrop-blur-lg lg:px-5"}`,
+            isScrolled &&
+              (disableBlur == false
+                ? "bg-background/50 max-w-5xl rounded-2xl border backdrop-blur-lg lg:px-5"
+                : "bg-white/80 max-w-5xl rounded-2xl border backdrop-blur-lg lg:px-5"),
           )}
         >
           <div className="relative flex flex-wrap items-center justify-between gap-6 py-3 lg:gap-0 lg:py-4">

@@ -1,57 +1,49 @@
 import { Component as ChangelogPage } from "@/components/ui/interactive-changelog-with-dialog";
-
-import ResourceSection from "@/components/resources";
 import React from "react";
 import { SiteHeader } from "../navbar";
 import type { Metadata } from "next";
 import FooterSection from "@/components/footer";
 
 export const metadata: Metadata = {
-  title: "SAT Study Resources & Reference Materials",
+  title: "MySATPrep Changelog - Latest Updates, Fixes & Release Notes",
   description:
-    "Access comprehensive SAT study resources including reference sheets, formula guides, test-taking strategies, and essential materials to excel on the SAT exam. We use official SAT Suite Question Bank Questions. Free downloadable resources for math, reading, and writing sections.",
+    "Read the latest MySATPrep changelog for product updates, new features, bug fixes, and release notes across SAT practice, question bank, vocab, and study tools.",
   keywords: [
-    "SAT study resources",
-    "SAT reference sheet",
-    "SAT math formulas",
-    "SAT study guide",
-    "SAT test strategies",
-    "SAT preparation materials",
-    "College Board resources",
-    "SAT Suite Question Bank",
-    "SAT Question Bank",
-    "official SAT Suite resources",
-    "SAT math reference",
-    "SAT study tips",
-    "free SAT resources",
-    "SAT formula sheet",
-    "standardized test resources",
-    "SAT exam preparation",
+    "MySATPrep changelog",
+    "release notes",
+    "product updates",
+    "feature updates",
+    "bug fixes",
+    "platform news",
+    "SAT prep updates",
+    "question bank improvements",
+    "study tool updates",
+    "site changelog",
   ],
   openGraph: {
-    title: "SAT Study Resources & Reference Materials - MySATPrep",
+    title: "MySATPrep Changelog - Latest Updates, Fixes & Release Notes",
     description:
-      "Access comprehensive SAT study resources including reference sheets, formula guides, and test-taking strategies. Free downloadable materials for all SAT sections.",
+      "See the latest MySATPrep product updates, feature releases, and bug fixes for SAT practice, vocab, and study tools.",
     type: "website",
-    url: "/resources",
+    url: "/changelogs",
     images: [
       {
-        url: "/og-resources.png",
+        url: "/seo/dashboard-layout.png",
         width: 1200,
         height: 630,
-        alt: "SAT Study Resources and Reference Materials - MySATPrep",
+        alt: "MySATPrep changelog and product updates",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "SAT Study Resources & Reference Materials - MySATPrep",
+    title: "MySATPrep Changelog - Latest Updates, Fixes & Release Notes",
     description:
-      "Access comprehensive SAT study resources including reference sheets, formula guides, and test-taking strategies. Free downloadable materials.",
-    images: ["/og-resources.png"],
+      "Read the latest MySATPrep updates, feature releases, and bug fixes.",
+    images: ["/seo/dashboard-layout.png"],
   },
   alternates: {
-    canonical: "/resources",
+    canonical: "/changelogs",
   },
   robots: {
     index: true,
@@ -62,7 +54,7 @@ export const metadata: Metadata = {
 export default function Page() {
   return (
     <React.Fragment>
-      <SiteHeader IsScrolled disableBlur disableScroll />
+      <SiteHeader disableBlur disableScroll />
       <ChangelogPage />
       <FooterSection />
     </React.Fragment>
