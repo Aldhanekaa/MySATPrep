@@ -1,25 +1,4 @@
-type Contributor = {
-  username: string;
-  role: string;
-};
-
-type GitHubUser = {
-  login: string;
-  name: string | null;
-  avatar_url: string;
-  html_url: string;
-};
-
-const members: Contributor[] = [
-  {
-    username: "aldhanekaa",
-    role: "Creator",
-  },
-  {
-    username: "cjspd-oly",
-    role: "Community Helper & Bug Reporter",
-  },
-];
+import { Contributor, GitHubUser, members } from "@/lib/contributors";
 
 async function fetchGitHubUser(username: string): Promise<GitHubUser | null> {
   try {

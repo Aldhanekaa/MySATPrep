@@ -1,3 +1,4 @@
+import "./globals.css";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/next";
 
@@ -5,13 +6,13 @@ import { GoogleAnalytics, GoogleTagManager } from "@next/third-parties/google";
 
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
 import FooterSection from "@/components/footer";
 import { MathJaxContext } from "better-react-mathjax";
 
 import { Toaster } from "sonner";
 import { Banner } from "@/components/ui/banner";
 import { AssessmentProvider } from "@/contexts/assessment-context";
+import Dialog02 from "@/components/ui/popup-tour";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -51,7 +52,7 @@ export const metadata: Metadata = {
     telephone: false,
   },
   metadataBase: new URL(
-    process.env.NEXT_PUBLIC_BASE_URL || "https://mysatprep.vercel.app"
+    process.env.NEXT_PUBLIC_BASE_URL || "https://mysatprep.vercel.app",
   ),
   alternates: {
     canonical: "/",
@@ -188,6 +189,8 @@ export default function RootLayout({
             {children}
           </MathJaxContext>
         </AssessmentProvider>
+
+        <Dialog02 />
 
         <GoogleAnalytics gaId={process.env.GA_KEY || ""} />
         <GoogleTagManager gtmId={process.env.GT_KEY || ""} />
