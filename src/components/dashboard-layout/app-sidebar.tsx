@@ -101,11 +101,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         icon: Home,
         isActive: true,
       },
-      {
-        title: "Export Import Data",
-        url: "/dashboard/export-import",
-        icon: ArrowDownUpIcon,
-      },
+
       {
         title: "SAT Vocabs",
         url: "/dashboard/vocabs",
@@ -132,6 +128,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         title: "Practice Sessions",
         url: "/dashboard/sessions",
         icon: ClockIcon,
+      },
+      {
+        title: "Export Import Data",
+        url: "/dashboard/export-import",
+        icon: ArrowDownUpIcon,
       },
     ],
 
