@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import {
+  ArrowDownUpIcon,
   AudioWaveformIcon,
   BookAIcon,
   BookCopyIcon,
@@ -62,13 +63,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   // Load saved questions to calculate badge count
   const [savedQuestions] = useLocalStorage<SavedQuestions>(
     "savedQuestions",
-    {}
+    {},
   );
 
   // Load practice statistics to calculate answered questions badge count
   const [practiceStatistics] = useLocalStorage<PracticeStatistics>(
     "practiceStatistics",
-    {}
+    {},
   );
 
   // Calculate saved questions count for current assessment
@@ -99,6 +100,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         url: "/dashboard",
         icon: Home,
         isActive: true,
+      },
+      {
+        title: "Export Import Data",
+        url: "/dashboard/export-import",
+        icon: ArrowDownUpIcon,
       },
       {
         title: "SAT Vocabs",
