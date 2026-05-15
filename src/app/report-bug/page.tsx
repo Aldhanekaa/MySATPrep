@@ -61,6 +61,26 @@ export default function Page() {
                 Let us know about broken pages, unexpected behavior, or other
                 issues you run into while using MySATPrep.
               </p>
+              <p className="text-muted-foreground text-sm lg:px-36 mt-4">
+                Alternatively, you can also report bugs and share feedback by
+                creating an issue on our{" "}
+                <a
+                  href="https://github.com/aldhanekaa/MySATPrep/"
+                  className="text-blue-500 hover:underline"
+                >
+                  open source GitHub repository.
+                </a>{" "}
+                Then, if the issue is valid and actionable, I would add you to
+                our{" "}
+                <a
+                  href="/contributors"
+                  className="text-blue-500 hover:underline"
+                >
+                  contributors list page
+                </a>{" "}
+                and feature you on the website as a thank you for your
+                contribution!
+              </p>
             </div>
             <iframe
               className="airtable-embed rounded-xl mt-14"
