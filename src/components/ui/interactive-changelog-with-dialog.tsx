@@ -209,6 +209,10 @@ const baseReleases: ReleaseItem[] = [
         username: "aldhanekaa",
         designation: "Creator",
       },
+      {
+        username: "cjspd-oly",
+        designation: "Feature Suggester",
+      },
     ],
     slides: [
       {
@@ -493,6 +497,22 @@ export const Component = ({ githubUsersMap }: ChangelogComponentProps) => {
             typeof contributor === "string"
               ? contributor
               : contributor.username;
+
+          if (
+            typeof contributor !== "string" &&
+            githubUsersMap &&
+            username &&
+            githubUsersMap[username]
+          ) {
+            const githubData = githubUsersMap[username];
+            return {
+              username: githubData.username,
+              name: githubData.name,
+              designation: contributor.designation,
+              image: githubData.image,
+            };
+          }
+
           if (githubUsersMap && username && githubUsersMap[username]) {
             const githubData = githubUsersMap[username];
             return {
