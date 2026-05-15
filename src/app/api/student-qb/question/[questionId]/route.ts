@@ -3,7 +3,7 @@ import { config } from "@/lib/db";
 import { API_Response_Question } from "@/types/question";
 import { NextRequest, NextResponse } from "next/server";
 
-export const revalidate = 3600;
+export const revalidate = 86400;
 
 type QuestionByExternalRow = {
   externalid: string;
@@ -142,11 +142,11 @@ export async function GET(
           status: 404,
           headers: {
             "Cache-Control":
-              "public, max-age=0, s-maxage=60, stale-while-revalidate=600",
+              "public, max-age=0, s-maxage=86400, stale-while-revalidate=86400",
             "CDN-Cache-Control":
-              "public, s-maxage=60, stale-while-revalidate=600",
+              "public, s-maxage=86400, stale-while-revalidate=86400",
             "Vercel-CDN-Cache-Control":
-              "public, s-maxage=60, stale-while-revalidate=600",
+              "public, s-maxage=86400, stale-while-revalidate=86400",
           },
         },
       );
@@ -162,11 +162,11 @@ export async function GET(
         status: 200,
         headers: {
           "Cache-Control":
-            "public, max-age=0, s-maxage=3600, stale-while-revalidate=86400",
+            "public, max-age=0, s-maxage=86400, stale-while-revalidate=86400",
           "CDN-Cache-Control":
-            "public, s-maxage=3600, stale-while-revalidate=86400",
+            "public, s-maxage=86400, stale-while-revalidate=86400",
           "Vercel-CDN-Cache-Control":
-            "public, s-maxage=3600, stale-while-revalidate=86400",
+            "public, s-maxage=86400, stale-while-revalidate=86400",
         },
       },
     );
