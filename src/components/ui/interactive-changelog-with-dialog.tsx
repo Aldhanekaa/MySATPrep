@@ -131,6 +131,122 @@ const defaultReleaseContributors: RawContributor[] = [
 
 const baseReleases: ReleaseItem[] = [
   {
+    title: "v2.1.1: Fix Errors On Individual Question Page",
+    date: "May 15, 2026",
+    image: createPlaceholderImage({
+      title: "Question Page Fixes",
+      startColor: "#F0F7FF",
+      endColor: "#DCEEFF",
+      accentColor: "#0B2A4A",
+    }),
+    excerpt:
+      "Fixed rendering and data issues on individual question pages, improved validation and sanitization.",
+    contributors: [
+      {
+        username: "aldhanekaa",
+        designation: "Creator",
+      },
+      {
+        username: "cjspd-oly",
+        designation: "Bug Issuer",
+      },
+    ],
+    slides: [
+      {
+        title: "Fix Errors On Individual Question Page",
+        description:
+          "Resolved rendering and data issues on single question pages.",
+        image: createPlaceholderImage({
+          title: "Question Page Fixes",
+          startColor: "#F0F7FF",
+          endColor: "#DCEEFF",
+          accentColor: "#0B2A4A",
+        }),
+        content: (
+          <div className="prose dark:prose-invert">
+            <h3>v2.1.1 - Fix Errors On Individual Question Page</h3>
+            <ul>
+              <li>Fixed incorrect answer rendering on some questions</li>
+              <li>
+                Added defensive checks for missing or malformed question data
+              </li>
+              <li>Improved HTML sanitization to prevent layout breakage</li>
+              <li>
+                Restored missing metadata (source, difficulty) where available
+              </li>
+            </ul>
+          </div>
+        ),
+      },
+    ],
+    content: (
+      <div className="prose dark:prose-invert">
+        <h3>v2.1.1 - Fix Errors On Individual Question Page</h3>
+        <ul>
+          <li>Fixed incorrect answer rendering on some questions</li>
+          <li>Added defensive checks for missing or malformed question data</li>
+          <li>Improved HTML sanitization to prevent layout breakage</li>
+          <li>
+            Restored missing metadata (source, difficulty) where available
+          </li>
+        </ul>
+      </div>
+    ),
+  },
+  {
+    title: "v2.1.0: Integrate student question bank (MyPractice) Latest",
+    date: "May 15, 2026",
+    image: createPlaceholderImage({
+      title: "MyPractice",
+      startColor: "#E8FFF6",
+      endColor: "#CFFEF0",
+      accentColor: "#004B2D",
+    }),
+    excerpt:
+      "Integrated student question bank (MyPractice) — added 3k+ SAT questions and combined 3k+ PSAT/NMSQT + PSAT questions.",
+    contributors: [
+      {
+        username: "aldhanekaa",
+        designation: "Creator",
+      },
+    ],
+    slides: [
+      {
+        title: "Integrate student question bank (MyPractice) Latest",
+        description:
+          "Added thousands of new questions to the SAT and PSAT/NMSQT question banks.",
+        image: createPlaceholderImage({
+          title: "MyPractice",
+          startColor: "#E8FFF6",
+          endColor: "#CFFEF0",
+          accentColor: "#004B2D",
+        }),
+        content: (
+          <div className="prose dark:prose-invert">
+            <h3>v2.1.0 - Integrate student question bank (MyPractice)</h3>
+            <ul>
+              <li>3k+ SAT questions added to the SAT question bank</li>
+              <li>3k+ combined questions added for PSAT/NMSQT + PSAT</li>
+              <li>Integrated MyPractice import and syncing workflow</li>
+              <li>Performance tuning for large question datasets</li>
+            </ul>
+          </div>
+        ),
+      },
+    ],
+    content: (
+      <div className="prose dark:prose-invert">
+        <h3>v2.1.0 - Integrate student question bank (MyPractice)</h3>
+        <ul>
+          <li>3k+ SAT questions added to the SAT question bank</li>
+          <li>3k+ combined questions added for PSAT/NMSQT + PSAT</li>
+          <li>Integrated MyPractice import and syncing workflow</li>
+          <li>Performance tuning for large question datasets</li>
+        </ul>
+      </div>
+    ),
+  },
+  {
     title: "v2.0.2: Contributors Page",
     date: "May 14, 2026",
     image: createPlaceholderImage({
