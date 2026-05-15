@@ -43,9 +43,25 @@ export default async function ContributorsSection() {
   return (
     <section className="py-32">
       <div className="mx-auto max-w-5xl px-6">
-        <h2 className="mb-8 text-4xl font-bold md:mb-16 lg:text-5xl">
-          Contributors
-        </h2>
+        <div className="mb-8  md:mb-16 pr-32">
+          <h2 className=" text-4xl font-bold lg:text-5xl mb-4 ">
+            Contributors
+          </h2>
+          <p>
+            Want to be featured? Visit our{" "}
+            <a
+              href="https://github.com/MySATPrep/"
+              className="text-blue-500 hover:underline"
+            >
+              open source GitHub repository
+            </a>{" "}
+            and make contributinos by reporting issues on the GitHub or making
+            pull requests. <br />
+            <br />
+            We welcome all contributions, big or small, and are grateful for the
+            support of our community!
+          </p>
+        </div>
 
         <div>
           <div className="grid grid-cols-2 gap-4 border-t py-6 md:grid-cols-3">
