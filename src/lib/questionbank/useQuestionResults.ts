@@ -18,7 +18,8 @@ import {
 export const useQuestionResults = (
   questions: PlainQuestionType[],
   selectedSubject: string,
-  bluebookExternalIds?: { mathLiveItems: string[]; readingLiveItems: string[] }
+  bluebookExternalIds?: { mathLiveItems: string[]; readingLiveItems: string[] },
+  studentQBQuestionIds: string[] = [],
 ) => {
   const observerRef = useRef<IntersectionObserver | null>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
@@ -35,6 +36,7 @@ export const useQuestionResults = (
     selectedSkills: [],
     excludeBluebookQuestions: false,
     onlyBluebookQuestions: false,
+    onlyStudentQBQuestions: false,
     sortOrder: "default",
     dateRange: null,
     answerStatus: "all",
@@ -72,31 +74,34 @@ export const useQuestionResults = (
       state.selectedSkills,
       state.excludeBluebookQuestions,
       state.onlyBluebookQuestions,
+      state.onlyStudentQBQuestions,
       state.sortOrder,
       state.dateRange,
       bluebookExternalIds,
-      selectedSubject
+      selectedSubject,
+      studentQBQuestionIds,
     );
 
     // Debug logging
     if (
-      (state.excludeBluebookQuestions || state.onlyBluebookQuestions) &&
+      (state.excludeBluebookQuestions ||
+        state.onlyBluebookQuestions ||
+        state.onlyStudentQBQuestions) &&
       bluebookExternalIds &&
       selectedSubject
     ) {
-      const relevantExternalIds =
-        selectedSubject === "Math"
-          ? bluebookExternalIds.mathLiveItems
-          : bluebookExternalIds.readingLiveItems;
-
       const filteredCount = filtered.length;
       const totalCount = state.questionsWithData.length;
 
-      console.log(`Bluebook filtering active for ${selectedSubject}:`, {
-        mode: state.excludeBluebookQuestions ? "exclude" : "only",
+      console.log(`Special filtering active for ${selectedSubject}:`, {
+        mode: state.onlyStudentQBQuestions
+          ? "studentqb"
+          : state.excludeBluebookQuestions
+            ? "exclude"
+            : "only",
         totalQuestions: totalCount,
         filteredQuestions: filteredCount,
-        relevantExternalIds: relevantExternalIds.length,
+        studentQBIds: studentQBQuestionIds.length,
       });
     }
 
@@ -107,10 +112,12 @@ export const useQuestionResults = (
     state.selectedSkills,
     state.excludeBluebookQuestions,
     state.onlyBluebookQuestions,
+    state.onlyStudentQBQuestions,
     state.sortOrder,
     state.dateRange,
     bluebookExternalIds,
     selectedSubject,
+    studentQBQuestionIds,
   ]);
 
   // Memoized retry handler to prevent recreation on every render
@@ -118,7 +125,7 @@ export const useQuestionResults = (
     (index: number, questionId: string) => {
       // Find the actual index in questionsWithData array
       const actualIndex = state.questionsWithData.findIndex(
-        (q) => q.questionId === questionId
+        (q) => q.questionId === questionId,
       );
       if (actualIndex !== -1) {
         dispatch({ type: "REMOVE_FETCHED_ID", payload: questionId });
@@ -128,7 +135,7 @@ export const useQuestionResults = (
         });
       }
     },
-    [state.questionsWithData]
+    [state.questionsWithData],
   );
 
   // Initialize questions when questions prop changes
@@ -179,7 +186,7 @@ export const useQuestionResults = (
       {
         threshold: OBSERVER_THRESHOLD,
         rootMargin: OBSERVER_ROOT_MARGIN, // Start loading when user is 100px away from the trigger
-      }
+      },
     );
 
     observerRef.current = observer;
@@ -203,7 +210,7 @@ export const useQuestionResults = (
         // Only fetch data for visible questions from filtered set
         const visibleQuestions = actualFilteredQuestions.slice(
           0,
-          state.visibleCount
+          state.visibleCount,
         );
 
         // Find questions that need to be fetched (only visible ones)
@@ -211,7 +218,7 @@ export const useQuestionResults = (
           .map((question) => {
             // Find the actual index in questionsWithData array
             const actualIndex = state.questionsWithData.findIndex(
-              (q) => q.questionId === question.questionId
+              (q) => q.questionId === question.questionId,
             );
             return { question, index: actualIndex };
           })
@@ -221,7 +228,7 @@ export const useQuestionResults = (
               question.isLoading &&
               !question.questionData &&
               !question.hasError &&
-              !state.fetchedQuestionIds.has(question.questionId)
+              !state.fetchedQuestionIds.has(question.questionId),
           );
 
         if (questionsToFetch.length === 0) return;
@@ -262,7 +269,7 @@ export const useQuestionResults = (
           // Add delay between batches to be respectful to the API
           if (i + API_BATCH_SIZE < questionsToFetch.length) {
             await new Promise((resolve) =>
-              setTimeout(resolve, API_BATCH_DELAY)
+              setTimeout(resolve, API_BATCH_DELAY),
             );
           }
         }

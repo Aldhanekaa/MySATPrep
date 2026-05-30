@@ -15,8 +15,7 @@ export interface BaseQuestionWithData {
 }
 
 export interface QuestionWithData
-  extends PlainQuestionType,
-    BaseQuestionWithData {
+  extends PlainQuestionType, BaseQuestionWithData {
   timestamp: string;
   questionData?: QuestionById_Data;
   isLoading?: boolean;
@@ -35,6 +34,7 @@ export interface QuestionResultsState {
   selectedSkills: string[];
   excludeBluebookQuestions: boolean;
   onlyBluebookQuestions: boolean;
+  onlyStudentQBQuestions: boolean;
   sortOrder: "default" | "newest" | "oldest";
   dateRange: RangeValue | null;
   answerStatus: "all" | "answered" | "not-answered";
@@ -65,6 +65,7 @@ export type QuestionResultsAction =
   | { type: "RESET_SKILL_FILTER" }
   | { type: "TOGGLE_EXCLUDE_BLUEBOOK"; payload: boolean }
   | { type: "TOGGLE_ONLY_BLUEBOOK"; payload: boolean }
+  | { type: "TOGGLE_ONLY_STUDENT_QB"; payload: boolean }
   | { type: "SET_SORT_ORDER"; payload: "default" | "newest" | "oldest" }
   | { type: "SET_DATE_RANGE"; payload: RangeValue | null }
   | { type: "SET_ANSWER_STATUS"; payload: "all" | "answered" | "not-answered" };

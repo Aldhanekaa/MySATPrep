@@ -124,6 +124,10 @@ export function QuestionResults({
   const answeredQuestions =
     practiceStatistics[assessmentName]?.answeredQuestions || [];
 
+  const [studentQBQuestionIds, setStudentQBQuestionIds] = useState<string[]>(
+    [],
+  );
+
   // Combined state for view and answer visibility
   interface CombinedState {
     selectedValue: string;
@@ -136,7 +140,7 @@ export function QuestionResults({
 
   const combinedReducer = (
     state: CombinedState,
-    action: CombinedAction
+    action: CombinedAction,
   ): CombinedState => {
     switch (action.type) {
       case "SET_SELECTED_VALUE":
@@ -165,6 +169,35 @@ export function QuestionResults({
     const tourKey = "questionbank-onboarding";
     const hasCompletedTour = localStorage.getItem(tourKey) === "true";
     tourDispatch({ type: "SET_SHOW_TOUR_DIALOG", payload: !hasCompletedTour });
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadStudentQBIds = async () => {
+      try {
+        const response = await fetch("/api/student-qb-ids");
+        if (!response.ok) {
+          throw new Error(`Failed to load StudentQB IDs (${response.status})`);
+        }
+
+        const ids = (await response.json()) as string[];
+        if (isMounted && Array.isArray(ids)) {
+          setStudentQBQuestionIds(ids.filter((id) => typeof id === "string"));
+        }
+      } catch (error) {
+        console.error("Unable to load StudentQB question IDs:", error);
+        if (isMounted) {
+          setStudentQBQuestionIds([]);
+        }
+      }
+    };
+
+    loadStudentQBIds();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   // Auto-apply skills filter from URL parameters
@@ -251,7 +284,7 @@ export function QuestionResults({
   };
 
   const completedCount = steps.filter((step) =>
-    tourState.completedSteps.has(step.id)
+    tourState.completedSteps.has(step.id),
   ).length;
   const isOnboardingComplete = completedCount === steps.length;
 
@@ -270,6 +303,7 @@ export function QuestionResults({
     selectedSkills: [],
     excludeBluebookQuestions: false,
     onlyBluebookQuestions: false,
+    onlyStudentQBQuestions: false,
     sortOrder: "default",
     dateRange: null,
     answerStatus: "all",
@@ -284,33 +318,36 @@ export function QuestionResults({
       state.selectedSkills,
       state.excludeBluebookQuestions,
       state.onlyBluebookQuestions,
+      state.onlyStudentQBQuestions,
       state.sortOrder,
       state.dateRange,
       bluebookExternalIds,
       selectedSubject,
+      studentQBQuestionIds,
       state.answerStatus,
-      answeredQuestions
+      answeredQuestions,
     );
 
     // Debug logging
     if (
-      (state.excludeBluebookQuestions || state.onlyBluebookQuestions) &&
+      (state.excludeBluebookQuestions ||
+        state.onlyBluebookQuestions ||
+        state.onlyStudentQBQuestions) &&
       bluebookExternalIds &&
       selectedSubject
     ) {
-      const relevantExternalIds =
-        selectedSubject === "Math"
-          ? bluebookExternalIds.mathLiveItems
-          : bluebookExternalIds.readingLiveItems;
-
       const filteredCount = filtered.length;
       const totalCount = state.questionsWithData.length;
 
-      console.log(`Bluebook filtering active for ${selectedSubject}:`, {
-        mode: state.excludeBluebookQuestions ? "exclude" : "only",
+      console.log(`Special filtering active for ${selectedSubject}:`, {
+        mode: state.onlyStudentQBQuestions
+          ? "studentqb"
+          : state.excludeBluebookQuestions
+            ? "exclude"
+            : "only",
         totalQuestions: totalCount,
         filteredQuestions: filteredCount,
-        relevantExternalIds: relevantExternalIds.length,
+        studentQBIds: studentQBQuestionIds.length,
       });
     }
 
@@ -321,11 +358,13 @@ export function QuestionResults({
     state.selectedSkills,
     state.excludeBluebookQuestions,
     state.onlyBluebookQuestions,
+    state.onlyStudentQBQuestions,
     state.sortOrder,
     state.dateRange,
     state.answerStatus,
     bluebookExternalIds,
     selectedSubject,
+    studentQBQuestionIds,
     answeredQuestions,
   ]);
 
@@ -342,7 +381,7 @@ export function QuestionResults({
     async (questionId: string) => {
       // Find the question in the questionsWithData array
       const questionIndex = state.questionsWithData.findIndex(
-        (q) => q.questionId === questionId
+        (q) => q.questionId === questionId,
       );
 
       if (questionIndex === -1) {
@@ -402,7 +441,7 @@ export function QuestionResults({
         });
       }
     },
-    [state.questionsWithData, state.fetchedQuestionIds]
+    [state.questionsWithData, state.fetchedQuestionIds],
   );
 
   // Memoized retry handler to prevent recreation on every render
@@ -410,7 +449,7 @@ export function QuestionResults({
     (index: number, questionId: string) => {
       // Find the actual index in questionsWithData array
       const actualIndex = state.questionsWithData.findIndex(
-        (q) => q.questionId === questionId
+        (q) => q.questionId === questionId,
       );
       if (actualIndex !== -1) {
         dispatch({ type: "REMOVE_FETCHED_ID", payload: questionId });
@@ -420,7 +459,7 @@ export function QuestionResults({
         });
       }
     },
-    [state.questionsWithData]
+    [state.questionsWithData],
   );
 
   // Initialize questions when questions prop changes
@@ -468,7 +507,7 @@ export function QuestionResults({
       {
         threshold: 0.1,
         rootMargin: "100px", // Start loading when user is 100px away from the trigger
-      }
+      },
     );
 
     observerRef.current = observer;
@@ -497,7 +536,7 @@ export function QuestionResults({
         // Only fetch data for visible questions from filtered set
         const visibleQuestions = actualFilteredQuestions.slice(
           0,
-          state.visibleCount
+          state.visibleCount,
         );
 
         // console.log("state.visibleCount", state.visibleCount);
@@ -507,7 +546,7 @@ export function QuestionResults({
           .map((question) => {
             // Find the actual index in questionsWithData array
             const actualIndex = state.questionsWithData.findIndex(
-              (q) => q.questionId === question.questionId
+              (q) => q.questionId === question.questionId,
             );
             return { question, index: actualIndex };
           })
@@ -517,7 +556,7 @@ export function QuestionResults({
               question.isLoading &&
               !question.questionData &&
               !question.hasError &&
-              !state.fetchedQuestionIds.has(question.questionId)
+              !state.fetchedQuestionIds.has(question.questionId),
           );
 
         // console.log(
@@ -601,12 +640,12 @@ export function QuestionResults({
   const loadingIndicator = useMemo(() => {
     const visibleQuestions = actualFilteredQuestions.slice(
       0,
-      state.visibleCount
+      state.visibleCount,
     );
     const hasLoadingQuestions = visibleQuestions.some((q) => q.isLoading);
     const loadingCount = visibleQuestions.filter((q) => q.isLoading).length;
     const questionsWithMissingDifficulty = visibleQuestions.filter(
-      (q) => !q.difficulty
+      (q) => !q.difficulty,
     ).length;
 
     return hasLoadingQuestions ? (
@@ -666,7 +705,7 @@ export function QuestionResults({
         </div>
       </div>
     ),
-    []
+    [],
   );
 
   const renderSkillOption = useCallback(
@@ -683,14 +722,14 @@ export function QuestionResults({
         </div>
       </div>
     ),
-    []
+    [],
   );
 
   const renderSelectedDifficulties = useCallback((value: string[]) => {
     if (value.length === 0) return "";
     if (value.length === 1) {
       const difficulty = DIFFICULTY_OPTIONS.find(
-        (opt) => opt.value === value[0]
+        (opt) => opt.value === value[0],
       );
       return difficulty ? difficulty.label : value[0];
     }
@@ -706,8 +745,17 @@ export function QuestionResults({
       }
       return `${value.length} skills selected`;
     },
-    [skillOptions]
+    [skillOptions],
   );
+
+  const activeFilterLabels = [
+    state.excludeBluebookQuestions ? "excluding Bluebook" : null,
+    state.onlyBluebookQuestions ? "Bluebook only" : null,
+    state.onlyStudentQBQuestions ? "StudentQB only" : null,
+  ].filter(Boolean) as string[];
+
+  const activeFilterSummary =
+    activeFilterLabels.length > 0 ? `, ${activeFilterLabels.join(", ")}` : "";
 
   useEffect(() => {
     if (tourState.onboardingOpen && !isOnboardingComplete) {
@@ -802,7 +850,7 @@ export function QuestionResults({
             state.dateRange ? (
               <React.Fragment>
                 {actualFilteredQuestions.length} of{" "}
-                {state.questionsWithData.length} question
+                {state.questionsWithData.length} total fetched question
                 {state.questionsWithData.length !== 1 ? "s" : ""} for{" "}
                 {assessmentName}
                 <span className="text-xs text-blue-600 ml-1">
@@ -811,13 +859,12 @@ export function QuestionResults({
                   state.selectedSkills.length > 0
                     ? " by difficulty & skills"
                     : state.selectedDifficulties.length > 0
-                    ? " by difficulty"
-                    : state.selectedSkills.length > 0
-                    ? " by skills"
-                    : ""}
+                      ? " by difficulty"
+                      : state.selectedSkills.length > 0
+                        ? " by skills"
+                        : ""}
                   {state.dateRange ? " by date" : ""}
-                  {state.excludeBluebookQuestions && ", excluding Bluebook"}
-                  {state.onlyBluebookQuestions && ", Bluebook only"})
+                  {activeFilterSummary})
                 </span>
                 {(() => {
                   const questionsWithMissingDifficulty =
@@ -834,17 +881,15 @@ export function QuestionResults({
               </React.Fragment>
             ) : (
               <>
-                {actualFilteredQuestions.length} question
+                {actualFilteredQuestions.length} of{" "}
+                {state.questionsWithData.length} total fetched question
                 {actualFilteredQuestions.length !== 1 ? "s" : ""} for{" "}
                 {assessmentName}
                 {(state.excludeBluebookQuestions ||
-                  state.onlyBluebookQuestions) && (
+                  state.onlyBluebookQuestions ||
+                  state.onlyStudentQBQuestions) && (
                   <span className="text-xs text-blue-600 ml-1">
-                    (
-                    {state.excludeBluebookQuestions
-                      ? "excluding Bluebook"
-                      : "Bluebook only"}
-                    )
+                    ({activeFilterLabels.join(", ")})
                   </span>
                 )}
                 {(() => {
@@ -1061,19 +1106,35 @@ export function QuestionResults({
             data-onboard="bluebook-only-toggler"
           >
             <RadioGroup
-              value={state.onlyBluebookQuestions ? "bluebook-only" : "all"}
-              onValueChange={(value) =>
+              value={
+                state.onlyBluebookQuestions
+                  ? "bluebook-only"
+                  : state.onlyStudentQBQuestions
+                    ? "studentqb-only"
+                    : "all"
+              }
+              onValueChange={(value) => {
                 dispatch({
                   type: "TOGGLE_ONLY_BLUEBOOK",
                   payload: value === "bluebook-only",
-                })
+                });
+                dispatch({
+                  type: "TOGGLE_ONLY_STUDENT_QB",
+                  payload: value === "studentqb-only",
+                });
+              }}
+              className="group rounded-full p-2 relative inline-grid grid-cols-[1fr_1fr_1fr] items-center gap-3 text-sm font-medium after:absolute after:inset-y-0 after:w-[calc(33.333%)] after:rounded-full after:bg-blue-500 after:text-white after:shadow-sm after:shadow-black/5 after:outline-offset-2 after:transition-transform after:duration-300 after:[transition-timing-function:cubic-bezier(0.16,1,0.3,1)] has-[:focus-visible]:after:outline has-[:focus-visible]:after:outline-2 has-[:focus-visible]:after:outline-ring/70 data-[state=all]:after:translate-x-0 data-[state=bluebook-only]:after:translate-x-full data-[state=studentqb-only]:after:translate-x-[200%]"
+              data-state={
+                state.onlyBluebookQuestions
+                  ? "bluebook-only"
+                  : state.onlyStudentQBQuestions
+                    ? "studentqb-only"
+                    : "all"
               }
-              className="group rounded-full p-2 relative inline-grid grid-cols-[1fr_1fr] items-center gap-3 text-sm font-medium after:absolute after:inset-y-0 after:w-[calc(50%)] after:rounded-full after:bg-blue-500 after:text-white after:shadow-sm after:shadow-black/5 after:outline-offset-2 after:transition-transform after:duration-300 after:[transition-timing-function:cubic-bezier(0.16,1,0.3,1)] has-[:focus-visible]:after:outline has-[:focus-visible]:after:outline-2 has-[:focus-visible]:after:outline-ring/70 data-[state=all]:after:translate-x-0 data-[state=bluebook-only]:after:translate-x-full"
-              data-state={state.onlyBluebookQuestions ? "bluebook-only" : "all"}
             >
               <label
                 className={`relative z-10 inline-flex h-full cursor-pointer select-none items-center justify-center whitespace-nowrap space-x-1 transition-colors ${
-                  !state.onlyBluebookQuestions
+                  !state.onlyBluebookQuestions && !state.onlyStudentQBQuestions
                     ? "text-neutral-50"
                     : "text-neutral-400"
                 }`}
@@ -1096,6 +1157,20 @@ export function QuestionResults({
                 <RadioGroupItem
                   id={`${id}-bluebook-only`}
                   value="bluebook-only"
+                  className="sr-only"
+                />
+              </label>
+              <label
+                className={`relative z-10 inline-flex h-full cursor-pointer select-none items-center justify-center whitespace-nowrap space-x-1 transition-colors ${
+                  state.onlyStudentQBQuestions
+                    ? "text-neutral-50"
+                    : "text-neutral-400"
+                }`}
+              >
+                StudentQB Only
+                <RadioGroupItem
+                  id={`${id}-studentqb-only`}
+                  value="studentqb-only"
                   className="sr-only"
                 />
               </label>
@@ -1255,18 +1330,19 @@ export function QuestionResults({
                           state.dateRange
                             ? " difficulty, skill, and date filters"
                             : state.selectedDifficulties.length > 0 &&
-                              state.selectedSkills.length > 0
-                            ? " difficulty and skill filters"
-                            : state.selectedDifficulties.length > 0 &&
-                              state.dateRange
-                            ? " difficulty and date filters"
-                            : state.selectedSkills.length > 0 && state.dateRange
-                            ? " skill and date filters"
-                            : state.selectedDifficulties.length > 0
-                            ? " difficulty levels"
-                            : state.selectedSkills.length > 0
-                            ? " skills"
-                            : " date range"}
+                                state.selectedSkills.length > 0
+                              ? " difficulty and skill filters"
+                              : state.selectedDifficulties.length > 0 &&
+                                  state.dateRange
+                                ? " difficulty and date filters"
+                                : state.selectedSkills.length > 0 &&
+                                    state.dateRange
+                                  ? " skill and date filters"
+                                  : state.selectedDifficulties.length > 0
+                                    ? " difficulty levels"
+                                    : state.selectedSkills.length > 0
+                                      ? " skills"
+                                      : " date range"}
                           .
                           {hasQuestionsWithMissingDifficulty && (
                             <span className="block mt-2 text-xs text-amber-600">
@@ -1333,7 +1409,7 @@ export function QuestionResults({
                               Questions with missing difficulty data:{" "}
                               {
                                 state.questionsWithData.filter(
-                                  (q) => !q.difficulty
+                                  (q) => !q.difficulty,
                                 ).length
                               }
                             </span>
@@ -1379,7 +1455,7 @@ export function QuestionResults({
                         .map(
                           (d) =>
                             DIFFICULTY_OPTIONS.find((opt) => opt.value === d)
-                              ?.label || d
+                              ?.label || d,
                         )
                         .join(", ")}{" "}
                       difficulty
@@ -1392,7 +1468,7 @@ export function QuestionResults({
                     <>
                       {state.selectedSkills.length === 1
                         ? skillOptions.find(
-                            (opt) => opt.value === state.selectedSkills[0]
+                            (opt) => opt.value === state.selectedSkills[0],
                           )?.label || state.selectedSkills[0]
                         : `${state.selectedSkills.length} skill${
                             state.selectedSkills.length !== 1 ? "s" : ""
@@ -1427,7 +1503,7 @@ export function QuestionResults({
                   {(() => {
                     const questionsWithMissingDifficulty =
                       actualFilteredQuestions.filter(
-                        (q) => !q.difficulty
+                        (q) => !q.difficulty,
                       ).length;
                     return questionsWithMissingDifficulty > 0 &&
                       state.selectedDifficulties.includes("E") ? (

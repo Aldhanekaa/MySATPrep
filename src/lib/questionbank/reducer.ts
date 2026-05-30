@@ -3,7 +3,7 @@ import { INITIAL_VISIBLE_COUNT } from "./constants";
 
 export const questionResultsReducer = (
   state: QuestionResultsState,
-  action: QuestionResultsAction
+  action: QuestionResultsAction,
 ): QuestionResultsState => {
   switch (action.type) {
     case "INITIALIZE_QUESTIONS": {
@@ -26,7 +26,7 @@ export const questionResultsReducer = (
                 hasError: false,
                 errorMessage: undefined,
               }
-            : q
+            : q,
         ),
       };
     case "SET_QUESTION_SUCCESS":
@@ -38,7 +38,7 @@ export const questionResultsReducer = (
               isLoading: false,
               hasError: false,
             }
-          : q
+          : q,
       );
 
       return {
@@ -56,7 +56,7 @@ export const questionResultsReducer = (
                 hasError: true,
                 errorMessage: action.payload.errorMessage,
               }
-            : q
+            : q,
         ),
       };
     case "ADD_FETCHED_ID":
@@ -142,6 +142,12 @@ export const questionResultsReducer = (
         excludeBluebookQuestions: action.payload
           ? false
           : state.excludeBluebookQuestions,
+      };
+    }
+    case "TOGGLE_ONLY_STUDENT_QB": {
+      return {
+        ...state,
+        onlyStudentQBQuestions: action.payload,
       };
     }
     case "SET_SORT_ORDER": {

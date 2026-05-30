@@ -11,7 +11,7 @@ export const hasValidDifficulty = (question: QuestionWithData): boolean => {
 // Helper function to filter questions by difficulty
 export const filterQuestionsByDifficulty = (
   questions: QuestionWithData[],
-  selectedDifficulties: QuestionDifficulty[]
+  selectedDifficulties: QuestionDifficulty[],
 ): QuestionWithData[] => {
   // Default behavior: show all questions when no difficulties are selected
   if (selectedDifficulties.length === 0) {
@@ -36,7 +36,7 @@ export const filterQuestionsByDifficulty = (
 // Helper function to filter questions by skills
 export const filterQuestionsBySkills = (
   questions: QuestionWithData[],
-  selectedSkills: string[]
+  selectedSkills: string[],
 ): QuestionWithData[] => {
   // Default behavior: show all questions when no skills are selected
   if (selectedSkills.length === 0) {
@@ -54,7 +54,7 @@ export const filterOutBluebookQuestions = (
   questions: QuestionWithData[],
   excludeBluebook: boolean,
   bluebookExternalIds?: BluebookExternalIds,
-  selectedSubject?: string
+  selectedSubject?: string,
 ): QuestionWithData[] => {
   // If not excluding Bluebook questions, return all questions
   if (!excludeBluebook || !bluebookExternalIds || !selectedSubject) {
@@ -84,7 +84,7 @@ export const filterOnlyBluebookQuestions = (
   questions: QuestionWithData[],
   onlyBluebook: boolean,
   bluebookExternalIds?: BluebookExternalIds,
-  selectedSubject?: string
+  selectedSubject?: string,
 ): QuestionWithData[] => {
   // If not filtering for only Bluebook questions, return all questions
   if (!onlyBluebook || !bluebookExternalIds || !selectedSubject) {
@@ -109,10 +109,29 @@ export const filterOnlyBluebookQuestions = (
   });
 };
 
+// Helper function to show only StudentQB questions
+export const filterOnlyStudentQBQuestions = (
+  questions: QuestionWithData[],
+  onlyStudentQB: boolean,
+  studentQBQuestionIds: string[] = [],
+): QuestionWithData[] => {
+  if (!onlyStudentQB) {
+    return questions;
+  }
+
+  if (studentQBQuestionIds.length === 0) {
+    return [];
+  }
+
+  const studentQBIds = new Set(studentQBQuestionIds);
+
+  return questions.filter((question) => studentQBIds.has(question.questionId));
+};
+
 // Helper function to filter questions by date range
 export const filterQuestionsByDateRange = (
   questions: QuestionWithData[],
-  dateRange: RangeValue | null
+  dateRange: RangeValue | null,
 ): QuestionWithData[] => {
   // If no date range is selected, return all questions
   if (!dateRange || !dateRange.end) {
@@ -159,7 +178,7 @@ export const filterQuestionsByDateRange = (
 export const filterQuestionsByAnswerStatus = (
   questions: QuestionWithData[],
   answerStatus: "all" | "answered" | "not-answered",
-  answeredQuestions: string[] = []
+  answeredQuestions: string[] = [],
 ): QuestionWithData[] => {
   // Default behavior: show all questions when status is "all"
   if (answerStatus === "all") {
@@ -186,7 +205,7 @@ export const filterQuestionsByAnswerStatus = (
 // Helper function to sort questions by createDate
 export const sortQuestionsByDate = (
   questions: QuestionWithData[],
-  sortOrder: "default" | "newest" | "oldest"
+  sortOrder: "default" | "newest" | "oldest",
 ): QuestionWithData[] => {
   if (sortOrder === "default") {
     return questions;
@@ -239,7 +258,7 @@ export const sortQuestionsByDate = (
 export const filterQuestionsBasic = (
   questions: QuestionWithData[],
   selectedDifficulties: QuestionDifficulty[],
-  selectedSkills: string[]
+  selectedSkills: string[],
 ): QuestionWithData[] => {
   let filtered = questions;
 
@@ -259,12 +278,14 @@ export const filterQuestions = (
   selectedSkills: string[],
   excludeBluebook: boolean = false,
   onlyBluebook: boolean = false,
+  onlyStudentQB: boolean = false,
   sortOrder: "default" | "newest" | "oldest" = "default",
   dateRange: RangeValue | null = null,
   bluebookExternalIds?: BluebookExternalIds,
   selectedSubject?: string,
+  studentQBQuestionIds: string[] = [],
   answerStatus: "all" | "answered" | "not-answered" = "all",
-  answeredQuestions: string[] = []
+  answeredQuestions: string[] = [],
 ): QuestionWithData[] => {
   let filtered = questions;
 
@@ -280,14 +301,22 @@ export const filterQuestions = (
       filtered,
       excludeBluebook,
       bluebookExternalIds,
-      selectedSubject
+      selectedSubject,
     );
   } else if (onlyBluebook) {
     filtered = filterOnlyBluebookQuestions(
       filtered,
       onlyBluebook,
       bluebookExternalIds,
-      selectedSubject
+      selectedSubject,
+    );
+  }
+
+  if (onlyStudentQB) {
+    filtered = filterOnlyStudentQBQuestions(
+      filtered,
+      onlyStudentQB,
+      studentQBQuestionIds,
     );
   }
 
@@ -301,7 +330,7 @@ export const filterQuestions = (
   filtered = filterQuestionsByAnswerStatus(
     filtered,
     answerStatus,
-    answeredQuestions
+    answeredQuestions,
   );
 
   return filtered;
