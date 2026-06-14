@@ -13,7 +13,7 @@ import { AnimatedGroup } from "@/components/ui/animated-group";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { InfiniteSlider } from "@/components/ui/infinite-slider";
-import { ProgressiveBlur } from "@/components/ui/progressive-blur";
+import { ProgressiveBlur } from "@/components/ui/progressive-blur-v1";
 import { SiteHeader } from "@/app/navbar";
 
 import { motion } from "motion/react";

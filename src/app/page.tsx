@@ -1,4 +1,5 @@
 import { HeroSection } from "@/components/home-hero";
+import AnnouncementSection from "@/components/announcement-section";
 import React from "react";
 import type { Metadata } from "next";
 import FooterSection from "@/components/footer";
@@ -516,6 +517,7 @@ export default function Home() {
       </div>
 
       <HeroSection />
+      <AnnouncementSection />
       <FooterSection />
     </React.Fragment>
   );
