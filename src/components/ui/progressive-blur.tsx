@@ -148,6 +148,17 @@ const Skiper41 = () => {
             continue practicing through our alternative site at
             practicesat.vercel.app. Thank you for your patience and continued
             support as I work to improve the platform for all of you.
+            <br />
+            <br />
+            Please scroll down to export your data and migrate to the new site,
+            and also consider supporting us on Ko-fi should you wish. It would
+            really help us a lot in covering the hosting costs and ensuring the
+            platform can continue to grow and serve students effectively.
+            <br />
+            <br />
+            Sincerely,
+            <br />
+            Aldhaneka
           </div>
 
           <div className="rounded-2xl  border bg-black border-gray-900  w-full p-6 mb-6 mt-5 md:p-8 shadow-sm">
@@ -232,26 +243,6 @@ const Skiper41 = () => {
                 />
               </a>
             </div>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".json"
-              onChange={handleFileSelect}
-              className="hidden"
-              aria-label="Import data file"
-            />
-
-            {message && (
-              <div
-                className={`mt-4 rounded-md p-3 text-sm ${
-                  message.type === "success"
-                    ? "bg-green-100 text-green-800"
-                    : "bg-red-100 text-red-800"
-                }`}
-              >
-                {message.text}
-              </div>
-            )}
           </div>
         </div>
       </div>
