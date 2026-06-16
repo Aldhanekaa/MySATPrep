@@ -1,0 +1,896 @@
+# Implementation Plan: Better Auth System
+
+## Overview
+
+This implementation plan builds a comprehensive authentication system for MySATPrep using Better Auth, PostgreSQL, and Redux Toolkit. The system will migrate existing localStorage data to the database for authenticated users while maintaining backward compatibility for unauthenticated users. Implementation follows a 6-week phased approach with incremental validation and testing.
+
+## Tasks
+
+### Phase 1: Foundation (Week 1)
+
+- [x] 1. Set up Node.js version and install dependencies
+  - Run `nvm use 22` to ensure correct Node version
+  - Install Better Auth: `npm install better-auth`
+  - Install Redux Toolkit: `npm install @reduxjs/toolkit react-redux`
+  - Install PostgreSQL client: `npm install pg`
+  - Install LRU cache: `npm install lru-cache`
+  - Install TypeScript types: `npm install --save-dev @types/pg`
+  - _Requirements: 1.5, 15.1_
+
+- [x] 2. Configure environment variables
+  - [x] 2.1 Create environment variable schema
+    - Define required environment variables (DATABASE_URL, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, BETTER_AUTH_SECRET, NEXT_PUBLIC_BASE_URL)
+    - Create validation function to check all required variables at startup
+    - _Requirements: 15.1, 15.2, 15.3, 15.4, 15.5, 15.6, 15.7_
+  - [ ]\* 2.2 Write unit tests for environment validation
+    - Test missing required variables throw configuration errors
+    - Test validation passes with all variables present
+    - _Requirements: 15.7_
+
+- [x] 3. Create database schema and migrations
+  - [x] 3.1 Create migration file with all tables
+    - Create users table with indexes
+    - Create user_profiles table with JSONB xp_history
+    - Create practice_statistics table with JSONB columns
+    - Create practice_sessions table with JSONB session_data
+    - Create saved_questions table with JSONB plain_question
+    - Create saved_collections table with JSONB arrays
+    - Create vocabulary_progress table with JSONB progress_data
+    - Create user_preferences table with JSONB preferences_data
+    - Add all foreign key constraints and indexes
+    - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5, 5.6, 5.7, 5.8, 5.9, 5.10_
+  - [x] 3.2 Create database migration utility
+    - Write function to execute SQL migration files
+    - Add rollback capability for failed migrations
+    - _Requirements: 5.1-5.10_
+
+- [x] 4. Configure Better Auth
+  - [x] 4.1 Create Better Auth configuration file
+    - Create `lib/auth.ts` with Better Auth initialization
+    - Configure PostgreSQL database connection using pg Pool
+    - Enable email/password authentication with 8-character minimum
+    - Configure Google OAuth with environment variables
+    - Configure session cookies with 5-minute cache
+    - Set Better Auth secret and base URL from environment
+    - Export Session and User types
+    - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5_
+  - [x] 4.2 Create Better Auth API route handler
+    - Create `src/app/api/auth/[...all]/route.ts`
+    - Import and export Better Auth handlers for all methods (GET, POST)
+    - _Requirements: 1.4_
+
+- [ ] 5. Set up Redux store structure
+  - [x] 5.1 Create TypeScript type definitions
+    - Create `lib/types/auth.ts` with User, AuthState, LoginCredentials, RegisterCredentials
+    - Create `lib/types/userData.ts` with SavedQuestion, SavedCollection, VocabularyProgress, UserPreferences, UserData
+    - Create `lib/types/api.ts` with APIResponse, MigrationPayload, MigrationSummary
+    - Export all types from centralized location
+    - _Requirements: 14.1, 14.2, 14.3, 14.4, 14.5, 14.6, 14.7_
+  - [x] 5.2 Create auth Redux slice
+    - Create `lib/redux/slices/authSlice.ts`
+    - Define AuthState interface with isAuthenticated, user, loading, error, sessionChecked
+    - Implement reducers: setUser, clearUser, setLoading, setError, setSessionChecked
+    - Export actions and reducer
+    - _Requirements: 4.2_
+  - [ ] 5.3 Create userData Redux slice
+    - Create `lib/redux/slices/userDataSlice.ts`
+    - Define UserDataState with profile, statistics, sessions, bookmarks, collections, vocabulary, preferences, loading, error
+    - Implement reducers: setProfile, updateStatistics, addSession, addBookmark, removeBookmark, etc.
+    - Export actions and reducer
+    - _Requirements: 4.3_
+  - [ ] 5.4 Configure Redux store
+    - Create `lib/redux/store.ts`
+    - Combine auth and userData reducers
+    - Configure Redux Toolkit store with middleware
+    - Export store and RootState type
+    - _Requirements: 4.1_
+  - [ ] 5.5 Create Redux Provider component
+    - Create `lib/redux/Provider.tsx`
+    - Wrap children with Redux Provider
+    - Make compatible with Next.js App Router (use 'use client')
+    - _Requirements: 4.4_
+  - [ ]\* 5.6 Write unit tests for Redux slices
+    - Test auth slice reducers with various actions
+    - Test userData slice reducers with various actions
+    - Test initial state correctness
+    - _Requirements: 20.1_
+
+- [ ] 6. Checkpoint - Verify foundation setup
+  - Ensure all tests pass, ask the user if questions arise.
+
+### Phase 2: Authentication (Week 2)
+
+- [ ] 7. Implement authentication async thunks
+  - [ ] 7.1 Create auth API client functions
+    - Create `lib/api/authClient.ts`
+    - Implement loginWithGoogle() function calling Better Auth OAuth endpoint
+    - Implement loginWithEmail(credentials) function
+    - Implement registerWithEmail(credentials) function
+    - Implement logout() function
+    - Implement checkSession() function
+    - _Requirements: 2.1, 2.2, 3.1, 3.2, 17.1_
+  - [ ] 7.2 Create auth async thunks in Redux
+    - Add loginWithGoogle async thunk to authSlice
+    - Add loginWithEmail async thunk to authSlice
+    - Add registerWithEmail async thunk to authSlice
+    - Add logout async thunk to authSlice
+    - Add checkSession async thunk to authSlice
+    - Handle loading, success, and error states for each thunk
+    - _Requirements: 4.7_
+  - [ ]\* 7.3 Write property test for email validation
+    - **Property 4: Email Validation on Registration**
+    - **Validates: Requirements 3.3**
+    - Use fast-check to generate random email addresses
+    - Verify system validates standard email format
+    - Test 100+ random valid emails are accepted
+  - [ ]\* 7.4 Write property test for password strength validation
+    - **Property 5: Password Strength Validation**
+    - **Validates: Requirements 3.4**
+    - Use fast-check to generate passwords of various lengths
+    - Verify passwords < 8 chars are rejected
+    - Verify passwords >= 8 chars are accepted
+    - Test 100+ random password lengths
+  - [ ]\* 7.5 Write unit tests for auth thunks
+    - Test successful login updates Redux state correctly
+    - Test failed login sets error state
+    - Test logout clears user state
+    - Mock API responses for testing
+    - _Requirements: 20.1_
+
+- [ ] 8. Implement Google OAuth flow
+  - [ ] 8.1 Create Google OAuth button component
+    - Create `src/components/auth/GoogleSignInButton.tsx`
+    - Implement button that redirects to `/api/auth/sign-in/google`
+    - Add loading state during OAuth flow
+    - Style with accessible design (WCAG AA)
+    - _Requirements: 2.1, 16.8_
+  - [ ] 8.2 Handle OAuth callback and user record creation
+    - Verify Better Auth creates or retrieves user record on OAuth success
+    - Ensure user table is populated with Google user info
+    - _Requirements: 2.3_
+  - [ ] 8.3 Establish session and update Redux after OAuth
+    - After OAuth success, call checkSession thunk
+    - Update Redux auth state with authenticated user
+    - _Requirements: 2.4, 2.5_
+  - [ ]\* 8.4 Write property test for OAuth user record creation
+    - **Property 1: OAuth User Record Creation**
+    - **Validates: Requirements 2.3**
+    - Test that user records are created for new Google users
+    - Test that existing users are retrieved correctly
+    - Verify no duplicate records are created
+  - [ ]\* 8.5 Write property test for session establishment
+    - **Property 2: Session Establishment After Authentication**
+    - **Validates: Requirements 2.4, 2.5, 3.6, 3.7**
+    - Test session is established after successful auth
+    - Test Redux state is updated with user info
+    - Apply to both OAuth and email/password flows
+  - [ ]\* 8.6 Write unit tests for OAuth error handling
+    - **Property 3: OAuth Error Handling**
+    - **Validates: Requirements 2.6**
+    - Test failed OAuth displays error message
+    - Test no session is established on failure
+    - _Requirements: 18.3_
+
+- [ ] 9. Implement email/password authentication
+  - [ ] 9.1 Create email/password form components
+    - Create `src/components/auth/EmailPasswordForm.tsx`
+    - Add email input field with validation feedback
+    - Add password input field with strength indicator
+    - Add client-side validation for email format and password length
+    - Style with accessible design (labels, error messages)
+    - _Requirements: 3.1, 3.2, 16.8_
+  - [ ] 9.2 Implement registration flow
+    - Connect form to registerWithEmail thunk
+    - Validate email format on submit
+    - Validate password strength (minimum 8 characters)
+    - Create user record in database on success
+    - Display error for duplicate email
+    - Display error for validation failures
+    - _Requirements: 3.3, 3.4, 3.5, 3.8_
+  - [ ] 9.3 Implement sign-in flow
+    - Connect form to loginWithEmail thunk
+    - Establish session on successful sign-in
+    - Update Redux state with user information
+    - Display error for invalid credentials
+    - _Requirements: 3.6, 3.7, 3.9_
+  - [ ]\* 9.4 Write property test for user record creation
+    - **Property 6: User Record Creation on Registration**
+    - **Validates: Requirements 3.5**
+    - Test unique user records are created for valid registrations
+    - Use fast-check to generate random valid credentials
+  - [ ]\* 9.5 Write property test for duplicate email rejection
+    - **Property 7: Duplicate Email Rejection**
+    - **Validates: Requirements 3.8**
+    - Test registration with existing email returns error
+    - Test no duplicate record is created
+  - [ ]\* 9.6 Write property test for invalid credentials
+    - **Property 8: Invalid Credentials Error**
+    - **Validates: Requirements 3.9**
+    - Test sign-in with wrong password returns error
+    - Test no session is established on failure
+
+- [ ] 10. Create authentication UI components
+  - [ ] 10.1 Create SignInModal component
+    - Create `src/components/auth/SignInModal.tsx`
+    - Include GoogleSignInButton
+    - Include EmailPasswordForm for sign-in
+    - Add link to switch to SignUpModal
+    - Implement modal open/close state
+    - Add loading states during authentication
+    - Add error display area
+    - _Requirements: 16.1, 16.5, 16.6_
+  - [ ] 10.2 Create SignUpModal component
+    - Create `src/components/auth/SignUpModal.tsx`
+    - Include EmailPasswordForm for registration
+    - Add link to switch to SignInModal
+    - Implement modal open/close state
+    - Add loading states during registration
+    - Add error display area
+    - _Requirements: 16.2, 16.5, 16.6_
+  - [ ] 10.3 Create UserMenu component
+    - Create `src/components/auth/UserMenu.tsx`
+    - Display user name and email
+    - Add logout button
+    - Show dropdown menu with user options
+    - _Requirements: 16.3_
+  - [ ]\* 10.4 Write E2E test for authentication flow
+    - Test complete sign-up flow from button click to authenticated state
+    - Test complete sign-in flow with email/password
+    - Test Google OAuth flow (mocked)
+    - _Requirements: 20.7_
+
+- [ ] 11. Implement session management
+  - [ ] 11.1 Create session check on app mount
+    - In root layout or app component, call checkSession on mount
+    - Verify session with Better Auth
+    - Update Redux auth state if session valid
+    - Clear Redux state if session invalid/expired
+    - Set sessionChecked flag after verification
+    - _Requirements: 10.1, 10.2, 10.3, 10.6_
+  - [ ] 11.2 Implement session persistence across refreshes
+    - Ensure Redux state is restored from session cookie
+    - Fetch user data after session validation
+    - Populate userData Redux slice
+    - _Requirements: 10.4, 10.5_
+  - [ ]\* 11.3 Write property test for authentication state persistence
+    - **Property 9: Authentication State Persistence**
+    - **Validates: Requirements 4.5, 10.2, 10.3, 10.6**
+    - Test valid session restores auth state after refresh
+    - Test invalid session clears auth state
+  - [ ]\* 11.4 Write property test for session validation
+    - **Property 21: Session Validation on Refresh**
+    - **Validates: Requirements 10.4, 10.5**
+    - Test session validation fetches user data
+    - Test Redux is populated with fetched data
+  - [ ]\* 11.5 Write property test for session expiry redirect
+    - **Property 22: Session Expiry Redirect**
+    - **Validates: Requirements 10.7**
+    - Test expired session clears Redux state
+    - Test user is redirected to login page
+
+- [ ] 12. Checkpoint - Verify authentication system
+  - Ensure all tests pass, ask the user if questions arise.
+
+### Phase 3: Data Layer (Week 3)
+
+- [ ] 13. Implement cache layer
+  - [ ] 13.1 Create cache configuration and utilities
+    - Create `lib/cache.ts`
+    - Configure LRU caches for each data type with TTLs (profile: 5min, statistics: 5min, sessions: 10min, bookmarks: 10min, collections: 10min)
+    - Set max cache size to 1000 entries
+    - Implement getCacheKey() utility function
+    - Implement invalidateUserCache() function
+    - Implement getCachedOrFetch() generic function
+    - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.5, 9.10_
+  - [ ]\* 13.2 Write property test for cache-first retrieval
+    - **Property 18: Cache-First Data Retrieval**
+    - **Validates: Requirements 9.6, 9.7, 9.8**
+    - Test cache hit returns cached data without database query
+    - Test cache miss queries database and populates cache
+    - Verify 100+ cache operations follow this pattern
+  - [ ]\* 13.3 Write property test for cache TTL enforcement
+    - **Property 19: Cache TTL Enforcement**
+    - **Validates: Requirements 9.1, 9.2, 9.3, 9.4, 9.5**
+    - Test cached entries expire after TTL
+    - Test profile/statistics expire after 5 minutes
+    - Test sessions/bookmarks/collections expire after 10 minutes
+  - [ ]\* 13.4 Write property test for LRU eviction
+    - **Property 20: LRU Cache Eviction**
+    - **Validates: Requirements 9.10**
+    - Test cache evicts least recently used entry when max size reached
+    - Generate 1000+ cache entries and verify size limit maintained
+  - [ ]\* 13.5 Write unit tests for cache utilities
+    - Test getCacheKey generates consistent keys
+    - Test invalidateUserCache clears all user caches
+    - Test getCachedOrFetch returns cached data on hit
+    - _Requirements: 20.5_
+
+- [ ] 14. Create database access layer
+  - [ ] 14.1 Create database connection pool
+    - Create `lib/db.ts`
+    - Initialize PostgreSQL connection pool
+    - Export pool for use in API routes
+    - Add connection error handling
+    - _Requirements: 1.3, 18.7_
+  - [ ] 14.2 Create user data database operations
+    - Create `lib/db/userOperations.ts`
+    - Implement getUserProfile(userId) function
+    - Implement updateUserProfile(userId, data) function
+    - Implement getPracticeStatistics(userId, assessment) function
+    - Implement updatePracticeStatistics(userId, assessment, data) function
+    - Implement getPracticeSessions(userId) function
+    - Implement createPracticeSession(userId, sessionData) function
+    - Implement updatePracticeSession(sessionId, data) function
+    - Use parameterized queries to prevent SQL injection
+    - _Requirements: 7.3, 7.4, 7.5, 8.1, 8.4_
+  - [ ] 14.3 Create bookmark database operations
+    - Create `lib/db/bookmarkOperations.ts`
+    - Implement getSavedQuestions(userId) function
+    - Implement addSavedQuestion(userId, questionData) function
+    - Implement removeSavedQuestion(userId, questionId) function
+    - Use parameterized queries
+    - _Requirements: 7.6, 8.5, 8.6_
+  - [ ] 14.4 Create collection database operations
+    - Create `lib/db/collectionOperations.ts`
+    - Implement getSavedCollections(userId) function
+    - Implement createCollection(userId, collectionData) function
+    - Implement updateCollection(collectionId, data) function
+    - Implement deleteCollection(collectionId) function
+    - Use parameterized queries
+    - _Requirements: 7.7, 8.7, 8.8, 8.9_
+  - [ ] 14.5 Create vocabulary and preferences database operations
+    - Create `lib/db/miscOperations.ts`
+    - Implement getVocabularyProgress(userId) function
+    - Implement updateVocabularyProgress(userId, data) function
+    - Implement getUserPreferences(userId) function
+    - Implement updateUserPreferences(userId, data) function
+    - Use parameterized queries
+    - _Requirements: 7.8, 7.9, 8.10_
+  - [ ]\* 14.6 Write integration tests for database operations
+    - Test all CRUD operations for each data type
+    - Test parameterized queries prevent SQL injection
+    - Use test database or container
+    - _Requirements: 20.3_
+
+- [ ] 15. Implement user data fetch API route
+  - [ ] 15.1 Create GET /api/user/data endpoint
+    - Create `src/app/api/user/data/route.ts`
+    - Verify user is authenticated using Better Auth session
+    - Return 401 if not authenticated
+    - Fetch all user data types from database using cache layer
+    - Return complete UserData object with all seven categories
+    - Return empty structures for new users with no data
+    - Handle database connection errors with 503 response
+    - _Requirements: 7.1, 7.2, 7.10, 7.11, 7.12, 18.7_
+  - [ ]\* 15.2 Write property test for protected endpoint authentication
+    - **Property 10: Protected Endpoint Authentication**
+    - **Validates: Requirements 6.2, 7.2, 7.12, 8.11, 8.14**
+    - Test all `/api/user/*` endpoints require authentication
+    - Test 401 returned for unauthenticated requests
+    - Apply test to multiple endpoints with fast-check
+  - [ ]\* 15.3 Write property test for user data fetch completeness
+    - **Property 14: User Data Fetch Completeness**
+    - **Validates: Requirements 7.3, 7.4, 7.5, 7.6, 7.7, 7.8, 7.9, 7.10**
+    - Test response contains all seven data categories
+    - Verify structure even when some data is null/empty
+  - [ ]\* 15.4 Write property test for empty data structures
+    - **Property 15: Empty Data Structures for New Users**
+    - **Validates: Requirements 7.11**
+    - Test new users get empty arrays/objects, not errors
+  - [ ]\* 15.5 Write integration test for data fetch with cache
+    - Test cache hit returns cached data without DB query
+    - Test cache miss queries DB and populates cache
+    - _Requirements: 20.3, 20.5_
+
+- [ ] 16. Create Redux selectors and async thunks for user data
+  - [ ] 16.1 Create memoized Redux selectors
+    - Create `lib/redux/selectors.ts`
+    - Implement selectIsAuthenticated, selectUser, selectAuthLoading, selectAuthError
+    - Implement selectUserProfile, selectUserStatistics, selectUserSessions, selectUserBookmarks, selectUserCollections
+    - Implement computed selectors: selectUserLevel, selectAccuracy (using reselect)
+    - Ensure memoization to prevent unnecessary re-renders
+    - _Requirements: 4.6, 19.1_
+  - [ ] 16.2 Create user data async thunks
+    - Add fetchUserData thunk to userDataSlice
+    - Add updateUserProfile thunk to userDataSlice
+    - Add updateUserStatistics thunk to userDataSlice
+    - Add other data update thunks as needed
+    - Handle loading, success, and error states
+    - _Requirements: 4.8_
+  - [ ]\* 16.3 Write unit tests for Redux selectors
+    - Test selectors return correct data from state
+    - Test computed selectors calculate correctly
+    - Verify memoization prevents recalculation
+    - _Requirements: 20.1_
+
+- [ ] 17. Implement user data update API routes
+  - [ ] 17.1 Create PUT /api/user/profile endpoint
+    - Create `src/app/api/user/profile/route.ts`
+    - Verify user authentication
+    - Validate incoming profile data
+    - Update user_profiles table
+    - Invalidate cache for user profile
+    - Return updated profile data
+    - _Requirements: 8.1, 8.12, 8.13, 8.14_
+  - [ ] 17.2 Create PUT /api/user/statistics endpoint
+    - Create `src/app/api/user/statistics/route.ts`
+    - Verify user authentication
+    - Validate incoming statistics data
+    - Update practice_statistics table
+    - Invalidate cache for statistics
+    - Return updated statistics data
+    - _Requirements: 8.2, 8.12, 8.13, 8.14_
+  - [ ] 17.3 Create practice session API endpoints
+    - Create POST `src/app/api/user/sessions/route.ts` for creating sessions
+    - Create PUT `src/app/api/user/sessions/[id]/route.ts` for updating sessions
+    - Verify user authentication for both
+    - Invalidate sessions cache on updates
+    - Return updated session data
+    - _Requirements: 8.3, 8.4, 8.12, 8.13, 8.14_
+  - [ ] 17.4 Create bookmark API endpoints
+    - Create POST `src/app/api/user/bookmarks/route.ts` for adding bookmarks
+    - Create DELETE `src/app/api/user/bookmarks/[id]/route.ts` for removing bookmarks
+    - Verify user authentication for both
+    - Invalidate bookmarks cache on updates
+    - Return updated bookmark data
+    - _Requirements: 8.5, 8.6, 8.12, 8.13, 8.14_
+  - [ ] 17.5 Create collection API endpoints
+    - Create POST `src/app/api/user/collections/route.ts` for creating collections
+    - Create PUT `src/app/api/user/collections/[id]/route.ts` for updating collections
+    - Create DELETE `src/app/api/user/collections/[id]/route.ts` for deleting collections
+    - Verify user authentication for all
+    - Invalidate collections cache on updates
+    - Return updated collection data
+    - _Requirements: 8.7, 8.8, 8.9, 8.12, 8.13, 8.14_
+  - [ ] 17.6 Create vocabulary and preferences API endpoints
+    - Create PUT `src/app/api/user/vocabulary/route.ts`
+    - Create PUT `src/app/api/user/preferences/route.ts`
+    - Verify user authentication for both
+    - Invalidate respective caches on updates
+    - Return updated data
+    - _Requirements: 8.10, 8.12, 8.13, 8.14_
+  - [ ]\* 17.7 Write property test for cache invalidation on update
+    - **Property 16: Cache Invalidation on Update**
+    - **Validates: Requirements 8.12, 9.9**
+    - Test successful updates invalidate relevant cache entries
+    - Apply to multiple data types with fast-check
+  - [ ]\* 17.8 Write property test for updated data in response
+    - **Property 17: Updated Data in Response**
+    - **Validates: Requirements 8.13**
+    - Test API responses contain updated data
+    - Verify data matches what was persisted to database
+  - [ ]\* 17.9 Write integration tests for all update endpoints
+    - Test each endpoint updates database correctly
+    - Test cache invalidation occurs
+    - Test error handling for invalid data
+    - _Requirements: 20.3_
+
+- [ ] 18. Checkpoint - Verify data layer implementation
+  - Ensure all tests pass, ask the user if questions arise.
+
+### Phase 4: Migration (Week 4)
+
+- [ ] 19. Implement data migration service
+  - [ ] 19.1 Create migration data validation
+    - Create `lib/validation/migrationSchema.ts`
+    - Define Zod schemas for all data types (profile, statistics, sessions, bookmarks, collections, vocabulary, preferences)
+    - Implement validation function that returns detailed error messages
+    - _Requirements: 6.3, 6.13_
+  - [ ] 19.2 Create migration database operations
+    - Create `lib/db/migrationOperations.ts`
+    - Implement migrateUserData(userId, data) function with transaction
+    - Insert profile data into user_profiles table
+    - Insert statistics into practice_statistics table
+    - Insert sessions into practice_sessions table
+    - Insert bookmarks into saved_questions table
+    - Insert collections into saved_collections table
+    - Insert vocabulary into vocabulary_progress table
+    - Insert preferences into user_preferences table
+    - Ensure atomicity: commit all or rollback all on error
+    - _Requirements: 6.4, 6.5, 6.6, 6.7, 6.8, 6.9, 6.11_
+  - [ ] 19.3 Create POST /api/user/migrate-data endpoint
+    - Create `src/app/api/user/migrate-data/route.ts`
+    - Verify user is authenticated (return 401 if not)
+    - Validate incoming migration data structure (return 400 on validation error)
+    - Call migrateUserData with transaction
+    - Return migration summary with counts and boolean flags
+    - Handle transaction rollback on failure
+    - _Requirements: 6.1, 6.2, 6.10, 6.12, 6.13_
+  - [ ]\* 19.4 Write property test for migration data validation
+    - **Property 11: Migration Data Validation**
+    - **Validates: Requirements 6.3, 6.13**
+    - Test malformed data returns 400 with validation details
+    - Use fast-check to generate invalid data structures
+  - [ ]\* 19.5 Write property test for migration atomicity
+    - **Property 12: Migration Atomicity**
+    - **Validates: Requirements 6.4, 6.5, 6.6, 6.7, 6.8, 6.9, 6.11**
+    - Test all data types are inserted or all are rolled back
+    - Simulate database failures to test rollback
+    - Verify no partial data remains after rollback
+  - [ ]\* 19.6 Write property test for migration response summary
+    - **Property 13: Migration Response Summary**
+    - **Validates: Requirements 6.10**
+    - Test response includes summary with all data type flags and counts
+    - Verify summary matches actual migration results
+  - [ ]\* 19.7 Write integration test for complete migration flow
+    - Test end-to-end migration with sample localStorage data
+    - Verify all data is correctly inserted into database
+    - Test transaction rollback on error
+    - _Requirements: 20.4_
+
+- [ ] 20. Create migration UI components
+  - [ ] 20.1 Create MigrationPrompt component
+    - Create `src/components/auth/MigrationPrompt.tsx`
+    - Display modal explaining migration benefits
+    - Show "Import Data" and "Skip" buttons
+    - Implement loading state during migration
+    - Display migration progress/summary on completion
+    - Display error message on failure
+    - _Requirements: 11.3, 11.4, 11.5_
+  - [ ] 20.2 Implement migration check on login
+    - After successful login, fetch user data from `/api/user/data`
+    - Check if database is empty (all data categories empty/null)
+    - Check if localStorage has existing data
+    - Show MigrationPrompt if DB empty and localStorage has data
+    - Skip prompt if DB already has data
+    - _Requirements: 11.1, 11.2, 11.6_
+  - [ ]\* 20.3 Write property test for migration prompt display logic
+    - **Property 23: Migration Prompt Display Logic**
+    - **Validates: Requirements 11.2, 11.3, 11.6**
+    - Test prompt shown when DB empty and localStorage has data
+    - Test prompt not shown when DB has data
+    - Test prompt not shown when localStorage empty
+  - [ ]\* 20.4 Write property test for migration service invocation
+    - **Property 24: Migration Service Invocation**
+    - **Validates: Requirements 11.4, 11.5**
+    - Test accepting prompt calls migration API
+    - Test declining prompt skips API call
+
+- [ ] 21. Create migration Redux thunk
+  - [ ] 21.1 Implement migrateLocalStorageData async thunk
+    - Add migrateLocalStorageData thunk to userDataSlice
+    - Read all localStorage data (profile, statistics, sessions, bookmarks, collections, vocabulary, preferences)
+    - Call POST /api/user/migrate-data with data
+    - Update Redux with migrated data on success
+    - Display error notification on failure
+    - _Requirements: 4.8, 11.4_
+  - [ ]\* 21.2 Write E2E test for migration flow
+    - Test complete flow: login → detect localStorage → prompt → migrate → verify data
+    - Mock localStorage with sample data
+    - Verify data accessible from database after migration
+    - _Requirements: 20.8_
+
+- [ ] 22. Checkpoint - Verify migration system
+  - Ensure all tests pass, ask the user if questions arise.
+
+### Phase 5: Integration & Polish (Week 5)
+
+- [ ] 23. Implement logout functionality
+  - [ ] 23.1 Connect logout to Better Auth
+    - Ensure logout thunk calls Better Auth logout endpoint at `/api/auth/sign-out`
+    - Clear user session on server
+    - _Requirements: 17.2_
+  - [ ] 23.2 Implement logout state cleanup
+    - Clear Redux auth state on logout
+    - Clear Redux userData state on logout
+    - Redirect user to home page after logout
+    - Display logout success message
+    - _Requirements: 17.3, 17.4, 17.5, 17.6, 17.7_
+  - [ ]\* 23.3 Write property test for logout endpoint invocation
+    - **Property 31: Logout Endpoint Invocation**
+    - **Validates: Requirements 17.2**
+    - Test logout action calls Better Auth logout endpoint
+  - [ ]\* 23.4 Write property test for logout state cleanup
+    - **Property 32: Logout State Cleanup**
+    - **Validates: Requirements 17.3, 17.4, 17.5, 17.6, 17.7**
+    - Test logout clears session, Redux state, redirects, and shows message
+  - [ ]\* 23.5 Write unit test for logout flow
+    - Test logout thunk clears all state correctly
+    - _Requirements: 20.1_
+
+- [ ] 24. Implement data synchronization logic for authenticated users
+  - [ ] 24.1 Create data sync utilities
+    - Create `lib/utils/dataSync.ts`
+    - Implement saveUserProfile(data) function that calls API if authenticated, localStorage if not
+    - Implement saveUserStatistics(data) function with same logic
+    - Implement savePracticeSession(data) function
+    - Implement saveBookmark(data) and removeBookmark(id) functions
+    - Implement saveCollection(data) and removeCollection(id) functions
+    - Implement saveVocabulary(data) and savePreferences(data) functions
+    - _Requirements: 13.1, 13.2, 13.3, 13.4, 13.5, 13.6, 13.7_
+  - [ ] 24.2 Integrate sync utilities into app components
+    - Update all components that modify user data to use sync utilities
+    - Ensure authenticated users save to database
+    - Ensure unauthenticated users save to localStorage
+    - Update Redux store after successful saves
+    - _Requirements: 13.8_
+  - [ ]\* 24.3 Write property test for authenticated database persistence
+    - **Property 26: Authenticated Database Persistence**
+    - **Validates: Requirements 13.1, 13.2, 13.3, 13.4, 13.5, 13.6, 13.7**
+    - Test authenticated users save all data types to database via API
+    - Use fast-check to generate various data update scenarios
+  - [ ]\* 24.4 Write property test for Redux synchronization after save
+    - **Property 27: Redux Synchronization After Save**
+    - **Validates: Requirements 13.8**
+    - Test Redux store updates with latest data from API response
+    - Verify frontend-backend state consistency
+
+- [ ] 25. Maintain backward compatibility for unauthenticated users
+  - [ ] 25.1 Preserve localStorage functionality
+    - Ensure existing localStorage utility functions remain functional
+    - Verify unauthenticated users continue using localStorage
+    - Ensure no API calls are made for unauthenticated users
+    - Test all practice features work without authentication
+    - _Requirements: 12.1, 12.2, 12.3, 12.4_
+  - [ ]\* 25.2 Write property test for unauthenticated localStorage usage
+    - **Property 25: Unauthenticated localStorage Usage**
+    - **Validates: Requirements 12.1, 12.2, 12.3**
+    - Test unauthenticated users use localStorage for all persistence
+    - Test no API calls to user data endpoints for unauthenticated users
+  - [ ]\* 25.3 Write integration test for unauthenticated flow
+    - Test complete practice flow without authentication
+    - Verify localStorage is used correctly
+    - _Requirements: 12.1, 12.2, 12.3, 12.4, 12.5_
+
+- [ ] 26. Implement comprehensive error handling
+  - [ ] 26.1 Create error logger utility
+    - Create `lib/utils/errorLogger.ts`
+    - Implement logError(context, error, metadata) function
+    - Log errors to console in development
+    - Prepare for production error tracking service integration
+    - _Requirements: 18.1, 18.2_
+  - [ ] 26.2 Add error handling to all API routes
+    - Wrap route handlers in try-catch blocks
+    - Return 503 for database connection failures
+    - Return 401 for invalid authentication tokens
+    - Return 403 for permission denials
+    - Return 400 for validation errors
+    - Return 500 for unexpected errors
+    - Log all errors with context
+    - _Requirements: 18.7, 18.8, 18.9_
+  - [ ] 26.3 Implement error notification system
+    - Create `lib/utils/notifications.ts` using sonner toast library
+    - Display user-friendly error messages for authentication failures
+    - Display user-friendly error messages for network errors
+    - Display user-friendly error messages for validation errors
+    - Do not expose internal error details to users
+    - _Requirements: 18.3, 18.4, 18.5_
+  - [ ] 26.4 Implement retry logic for network errors
+    - Create retry utility with exponential backoff
+    - Retry data save operations up to 3 times on network error
+    - Display error only after all retries fail
+    - _Requirements: 13.10, 18.6_
+  - [ ]\* 26.5 Write property test for save error notification
+    - **Property 28: Save Error Notification**
+    - **Validates: Requirements 13.9**
+    - Test failed saves display error notification
+  - [ ]\* 26.6 Write property test for network error retry logic
+    - **Property 29: Network Error Retry Logic**
+    - **Validates: Requirements 13.10**
+    - Test network failures retry up to 3 times
+    - Verify error displayed only after all retries fail
+  - [ ]\* 26.7 Write property test for error logging and user feedback
+    - **Property 33: Error Logging and User Feedback**
+    - **Validates: Requirements 18.1, 18.2, 18.3, 18.4, 18.5**
+    - Test all error types are logged and display user-friendly messages
+  - [ ]\* 26.8 Write property test for HTTP error status codes
+    - **Property 34: HTTP Error Status Codes**
+    - **Validates: Requirements 18.7, 18.8, 18.9**
+    - Test correct status codes for different error scenarios
+
+- [ ] 27. Implement React Error Boundaries
+  - [ ] 27.1 Create ErrorBoundary component
+    - Create `src/components/ErrorBoundary.tsx`
+    - Catch rendering errors
+    - Log errors with errorLogger
+    - Display user-friendly error fallback UI
+    - Wrap app with ErrorBoundary
+    - _Requirements: 18.1_
+
+- [ ] 28. Add performance optimizations
+  - [ ] 28.1 Optimize Redux with memoization
+    - Verify all selectors use memoization (reselect)
+    - Wrap expensive components with React.memo
+    - Verify no unnecessary re-renders occur
+    - _Requirements: 19.1, 19.2_
+  - [ ] 28.2 Implement lazy loading for auth modals
+    - Use React lazy() to load SignInModal and SignUpModal
+    - Implement Suspense with loading fallback
+    - _Requirements: 19.3_
+  - [ ] 28.3 Implement debouncing for data saves
+    - Add 500ms debounce to user data save operations
+    - Prevent excessive API calls during rapid updates
+    - _Requirements: 19.4_
+  - [ ] 28.4 Implement request batching where possible
+    - Identify opportunities to batch multiple updates into single API call
+    - Implement batching for related data updates
+    - _Requirements: 19.5_
+  - [ ]\* 28.5 Write property test for cache response time
+    - **Property 35: Cache Response Time**
+    - **Validates: Requirements 19.6**
+    - Test cached queries return within 10ms
+  - [ ]\* 28.6 Write performance test for authentication flow
+    - **Property 36: Authentication Flow Performance**
+    - **Validates: Requirements 19.7**
+    - Test auth flow completes within 2 seconds (excluding OAuth redirect)
+  - [ ]\* 28.7 Write performance test for migration
+    - **Property 37: Migration Performance**
+    - **Validates: Requirements 19.8**
+    - Test migration completes within 5 seconds for typical data size
+
+- [ ] 29. Create AuthGuard component for route protection
+  - [ ] 29.1 Implement AuthGuard HOC
+    - Create `src/components/auth/AuthGuard.tsx`
+    - Check authentication state from Redux
+    - Redirect to login if not authenticated
+    - Allow access if authenticated
+    - Show loading state while checking session
+    - _Requirements: 16.4_
+  - [ ]\* 29.2 Write unit test for AuthGuard
+    - Test authenticated users can access protected routes
+    - Test unauthenticated users are redirected
+
+- [ ] 30. Add loading states and UI polish
+  - [ ] 30.1 Add loading indicators to all async operations
+    - Show loading spinner during authentication
+    - Show loading state during data fetch
+    - Show loading state during migration
+    - Show loading state during data updates
+    - _Requirements: 16.5_
+  - [ ] 30.2 Add success messages for key actions
+    - Show success message after registration
+    - Show success message after successful login
+    - Show success message after successful logout
+    - Show success message after successful migration
+    - _Requirements: 16.7_
+  - [ ] 30.3 Ensure accessibility compliance
+    - Verify all form inputs have proper labels
+    - Add aria-describedby for error messages
+    - Ensure keyboard navigation works for all interactive elements
+    - Test focus management in modals
+    - Announce loading states to screen readers
+    - Verify color contrast meets WCAG 2.1 AA standards
+    - _Requirements: 16.8_
+
+- [ ] 31. Checkpoint - Verify integration and polish
+  - Ensure all tests pass, ask the user if questions arise.
+
+### Phase 6: Testing (Week 6)
+
+- [ ] 32. Set up testing infrastructure
+  - [ ] 32.1 Install testing dependencies
+    - Install fast-check: `npm install --save-dev fast-check`
+    - Install Playwright: `npm install --save-dev @playwright/test`
+    - Install MSW: `npm install --save-dev msw`
+    - Install React Testing Library: `npm install --save-dev @testing-library/react @testing-library/jest-dom`
+    - Verify Jest is configured (Next.js default)
+    - _Requirements: 20.1, 20.2, 20.3, 20.4, 20.5, 20.6, 20.7, 20.8_
+  - [ ] 32.2 Configure test database
+    - Set up test database connection
+    - Create test database schema
+    - Configure database cleanup between tests
+    - _Requirements: 20.3, 20.4_
+  - [ ] 32.3 Configure MSW for API mocking
+    - Set up MSW handlers for API routes
+    - Mock Better Auth endpoints
+    - Mock user data endpoints
+    - _Requirements: 20.3_
+
+- [ ] 33. Write remaining unit tests
+  - [ ]\* 33.1 Write unit tests for authentication utilities
+    - Test email validation function with valid/invalid formats
+    - Test password validation function with various lengths
+    - Test session cookie handling
+    - _Requirements: 20.2_
+  - [ ]\* 33.2 Write unit tests for cache operations
+    - Test cache set/get operations
+    - Test cache key generation
+    - Test cache invalidation functions
+    - _Requirements: 20.2_
+  - [ ]\* 33.3 Write unit tests for error logger
+    - Test error logging with various error types
+    - Test metadata attachment
+    - _Requirements: 20.2_
+  - [ ]\* 33.4 Write unit tests for data sync utilities
+    - Test sync utilities route to API for authenticated users
+    - Test sync utilities route to localStorage for unauthenticated users
+    - _Requirements: 20.2_
+
+- [ ] 34. Write remaining integration tests
+  - [ ]\* 34.1 Write integration tests for all API routes
+    - Test authentication routes with database
+    - Test user data fetch with cache layer
+    - Test user data update with cache invalidation
+    - Test migration with transaction rollback
+    - _Requirements: 20.3_
+  - [ ]\* 34.2 Write integration tests for Redux + API
+    - Test login action → API → Redux update flow
+    - Test fetch data action → API → Redux update flow
+    - Test update data action → API → Redux update flow
+    - _Requirements: 20.3_
+  - [ ]\* 34.3 Write integration tests for cache layer
+    - Test cache miss → DB query → cache population
+    - Test cache hit → return cached data (no DB query)
+    - Test cache expiration → DB query on next fetch
+    - Test cache invalidation → DB query on next fetch
+    - _Requirements: 20.5_
+
+- [ ] 35. Write remaining property-based tests
+  - [ ]\* 35.1 Write property test for environment variable validation
+    - **Property 30: Missing Environment Variable Error**
+    - **Validates: Requirements 15.7**
+    - Test missing required env vars throw configuration error
+    - Use fast-check to test various missing variable scenarios
+
+- [ ] 36. Write remaining E2E tests
+  - [ ]\* 36.1 Write E2E test for complete authentication flow
+    - Test sign-up → login → authenticated state
+    - Test session persistence across refresh
+    - Test logout flow
+    - _Requirements: 20.7_
+  - [ ]\* 36.2 Write E2E test for data synchronization
+    - Test authenticated user data saves to database
+    - Test data persists across sessions
+    - Test data loads correctly after login
+    - _Requirements: 20.7_
+  - [ ]\* 36.3 Write E2E test for unauthenticated flow
+    - Test practice features work without authentication
+    - Test localStorage is used correctly
+    - Test no API calls to user data endpoints
+    - _Requirements: 20.7_
+
+- [ ] 37. Achieve test coverage goals
+  - [ ]\* 37.1 Run test coverage report
+    - Run `npm run test:coverage`
+    - Identify areas below coverage thresholds
+    - _Requirements: 20.6_
+  - [ ]\* 37.2 Write additional tests to meet coverage targets
+    - Add tests for auth module (target: 90%)
+    - Add tests for API routes (target: 85%)
+    - Add tests for Redux slices (target: 90%)
+    - Add tests for cache layer (target: 85%)
+    - Add tests for migration service (target: 90%)
+    - Overall target: minimum 80%
+    - _Requirements: 20.6_
+
+- [ ] 38. Final verification and documentation
+  - [ ] 38.1 Run full test suite
+    - Run all unit tests: `npm run test:unit`
+    - Run all integration tests: `npm run test:integration`
+    - Run all property tests: `npm run test:property`
+    - Run all E2E tests: `npm run test:e2e`
+    - Ensure all tests pass
+    - _Requirements: 20.1, 20.2, 20.3, 20.4, 20.5, 20.7, 20.8_
+  - [ ] 38.2 Verify all requirements are implemented
+    - Review requirements document
+    - Confirm all 20 requirements have corresponding implementation
+    - Confirm all acceptance criteria are met
+  - [ ] 38.3 Test in production-like environment
+    - Deploy to staging environment
+    - Test with real PostgreSQL database
+    - Test with real Google OAuth credentials
+    - Verify performance meets requirements
+    - Test error handling in production mode
+  - [ ] 38.4 Create implementation summary
+    - Document all new files created
+    - Document all environment variables needed
+    - Document database migration steps
+    - Document any breaking changes or migration steps for existing users
+
+- [ ] 39. Final checkpoint - Feature complete
+  - Ensure all tests pass, ask the user if questions arise.
+
+## Notes
+
+- Tasks marked with `*` are optional testing tasks and can be skipped for faster MVP
+- Each task references specific requirements for traceability
+- Checkpoints ensure incremental validation at phase boundaries
+- Property tests validate universal correctness properties with 100+ randomized iterations
+- Unit tests validate specific examples and edge cases
+- All tasks build incrementally on previous work with no orphaned code
+- Implementation uses TypeScript throughout for type safety
+- Better Auth handles password hashing and session management
+- PostgreSQL stores all authenticated user data
+- Redis or in-memory LRU cache optimizes database queries
+- Redux Toolkit manages application state
+- Backward compatibility maintained for unauthenticated localStorage users
