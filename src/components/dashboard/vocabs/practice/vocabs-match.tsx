@@ -26,6 +26,8 @@ import {
 } from "lucide-react";
 import { playSound } from "@/lib/playSound";
 import Link from "next/link";
+import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
+import { saveVocabulary } from "@/lib/utils/dataSync";
 
 interface MatchPair {
   word: VocabularyWord;
@@ -230,14 +232,23 @@ export default function VocabsMatchPractice({
   // Match state managed by reducer
   const [matchState, dispatch] = useReducer(matchReducer, initialMatchState);
 
+  const reduxDispatch = useAppDispatch();
+  const reduxState = useAppSelector((s) => s);
+
   // Use the useLocalStorage hook
   const [vocabsData, setVocabsData] = useLocalStorage<VocabsData>(
     "vocabsData",
     {
       learntVocabs: [],
       userSentences: {},
-    }
+    },
   );
+
+  // Sync vocabulary data to DB for authenticated users whenever it changes
+  useEffect(() => {
+    saveVocabulary(vocabsData, reduxDispatch, reduxState);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [vocabsData]);
 
   // Practice performance tracking
   const [practicePerformance, setPracticePerformance] =
@@ -256,22 +267,22 @@ export default function VocabsMatchPractice({
   const matchRounds = useMemo(() => {
     // Mix learned and unlearned words
     const learnedWords = vocabs_database.filter((word) =>
-      vocabsData.learntVocabs.includes(word.word)
+      vocabsData.learntVocabs.includes(word.word),
     );
 
     const unlearnedWords = vocabs_database.filter(
-      (word) => !vocabsData.learntVocabs.includes(word.word)
+      (word) => !vocabsData.learntVocabs.includes(word.word),
     );
 
     // Create a mix: 60% learned words, 40% unlearned words for discovery
     const totalWords = Math.min(vocabs_database.length, 40); // Limit to 40 words total
     const unlearnedCount = Math.min(
       Math.floor(totalWords * 0.4),
-      unlearnedWords.length
+      unlearnedWords.length,
     );
     const learnedCount = Math.min(
       totalWords - unlearnedCount,
-      learnedWords.length
+      learnedWords.length,
     );
 
     const selectedUnlearnedWords = unlearnedWords
@@ -314,7 +325,7 @@ export default function VocabsMatchPractice({
   const calculateMasteryLevel = (
     correctAttempts: number,
     totalAttempts: number,
-    consecutiveCorrect: number
+    consecutiveCorrect: number,
   ): WordPerformance["masteryLevel"] => {
     if (totalAttempts === 0) return "learning";
 
@@ -330,7 +341,7 @@ export default function VocabsMatchPractice({
   const updateWordPerformance = (
     word: string,
     isCorrect: boolean,
-    timeSpent: number
+    timeSpent: number,
   ) => {
     setPracticePerformance((prevData) => {
       const updatedData = { ...prevData };
@@ -377,7 +388,7 @@ export default function VocabsMatchPractice({
       wordPerf.masteryLevel = calculateMasteryLevel(
         wordPerf.correctAttempts,
         wordPerf.totalAttempts,
-        wordPerf.consecutiveCorrect
+        wordPerf.consecutiveCorrect,
       );
 
       // Update word performance in data
@@ -400,7 +411,7 @@ export default function VocabsMatchPractice({
         return prevData;
       });
     },
-    [setVocabsData]
+    [setVocabsData],
   );
 
   const currentRound = matchRounds[matchState.currentRoundIndex];
@@ -414,7 +425,7 @@ export default function VocabsMatchPractice({
     ) {
       const shuffledWords = [...currentRound].sort(() => Math.random() - 0.5);
       const shuffledDefinitions = [...currentRound].sort(
-        () => Math.random() - 0.5
+        () => Math.random() - 0.5,
       );
 
       dispatch({
@@ -439,7 +450,7 @@ export default function VocabsMatchPractice({
   const handleDragStart = (
     e: React.DragEvent,
     id: string,
-    type: "word" | "definition"
+    type: "word" | "definition",
   ) => {
     playSound("tap-radio.wav");
     dispatch({ type: "START_DRAG", payload: { id, type } });
@@ -455,7 +466,7 @@ export default function VocabsMatchPractice({
   const handleDrop = (
     e: React.DragEvent,
     targetId: string,
-    targetType: "word" | "definition"
+    targetType: "word" | "definition",
   ) => {
     e.preventDefault();
 
@@ -474,10 +485,10 @@ export default function VocabsMatchPractice({
 
       // Find the corresponding pair by matching the IDs directly
       const wordPair = currentRound.find(
-        (pair) => wordId === `word-${pair.id}`
+        (pair) => wordId === `word-${pair.id}`,
       );
       const definitionPair = currentRound.find(
-        (pair) => definitionId === `definition-${pair.id}`
+        (pair) => definitionId === `definition-${pair.id}`,
       );
 
       const isCorrect = !!(
@@ -498,7 +509,7 @@ export default function VocabsMatchPractice({
 
         // Update performance
         const timeSpent = Math.round(
-          (Date.now() - matchState.roundStartTime) / 1000
+          (Date.now() - matchState.roundStartTime) / 1000,
         );
         updateWordPerformance(wordText, true, timeSpent);
       } else {
@@ -507,7 +518,7 @@ export default function VocabsMatchPractice({
         // Update performance for wrong matches (if we can identify the word)
         if (wordPair) {
           const timeSpent = Math.round(
-            (Date.now() - matchState.roundStartTime) / 1000
+            (Date.now() - matchState.roundStartTime) / 1000,
           );
           updateWordPerformance(wordPair.word.word, false, timeSpent);
         }
@@ -577,7 +588,7 @@ export default function VocabsMatchPractice({
     return matchState.droppedPairs.some(
       (pair) =>
         (type === "word" && pair.wordId === id) ||
-        (type === "definition" && pair.definitionId === id)
+        (type === "definition" && pair.definitionId === id),
     );
   };
 
@@ -586,7 +597,7 @@ export default function VocabsMatchPractice({
     const matchResult = matchState.droppedPairs.find(
       (pair) =>
         (type === "word" && pair.wordId === id) ||
-        (type === "definition" && pair.definitionId === id)
+        (type === "definition" && pair.definitionId === id),
     );
     return matchResult;
   };
@@ -620,7 +631,7 @@ export default function VocabsMatchPractice({
   if (matchState.isGameComplete || matchState.showResults) {
     const totalPairs = matchRounds.reduce(
       (sum, round) => sum + round.length,
-      0
+      0,
     );
     const percentage = Math.round((matchState.score / totalPairs) * 100);
 
@@ -669,8 +680,8 @@ export default function VocabsMatchPractice({
               {percentage >= 80
                 ? "Excellent matching skills! You've mastered these word-definition pairs!"
                 : percentage >= 60
-                ? "Good job! Keep practicing to improve your vocabulary recognition!"
-                : "Keep studying! Practice makes perfect!"}
+                  ? "Good job! Keep practicing to improve your vocabulary recognition!"
+                  : "Keep studying! Practice makes perfect!"}
             </p>
           </div>
 
@@ -803,7 +814,7 @@ export default function VocabsMatchPractice({
                   const matchResult = getMatchResult(wordId, "word");
                   const isBeingDragged = matchState.draggedItem?.id === wordId;
                   const isNewlyLearned = matchState.newlyLearnedWords.includes(
-                    pair.word.word
+                    pair.word.word,
                   );
 
                   return (
@@ -822,8 +833,8 @@ export default function VocabsMatchPractice({
                               ? "border-green-500 bg-green-50 cursor-default"
                               : "border-red-500 bg-red-50 cursor-default"
                             : isBeingDragged
-                            ? "border-blue-500 bg-blue-50 scale-105 shadow-lg cursor-move"
-                            : "border-gray-200 bg-white hover:border-blue-300 hover:shadow-md cursor-move"
+                              ? "border-blue-500 bg-blue-50 scale-105 shadow-lg cursor-move"
+                              : "border-gray-200 bg-white hover:border-blue-300 hover:shadow-md cursor-move"
                         }`}
                       >
                         <div className="flex items-center gap-3">
@@ -836,7 +847,7 @@ export default function VocabsMatchPractice({
                                 {pair.word.word}
                               </p>
                               {!vocabsData.learntVocabs.includes(
-                                pair.word.word
+                                pair.word.word,
                               ) && (
                                 <span className="px-2 py-1 bg-orange-100 text-orange-700 rounded-full text-xs">
                                   New
@@ -880,7 +891,7 @@ export default function VocabsMatchPractice({
                   const isMatched = isItemMatched(definitionId, "definition");
                   const matchResult = getMatchResult(
                     definitionId,
-                    "definition"
+                    "definition",
                   );
                   const isBeingDragged =
                     matchState.draggedItem?.id === definitionId;
@@ -907,11 +918,11 @@ export default function VocabsMatchPractice({
                               ? "border-green-500 bg-green-50"
                               : "border-red-500 bg-red-50"
                             : isBeingDragged
-                            ? "border-blue-500 bg-blue-50 scale-105 shadow-lg cursor-move"
-                            : matchState.draggedItem &&
-                              matchState.draggedItem.type === "word"
-                            ? "border-dashed border-blue-400 bg-blue-50"
-                            : "border-gray-200 bg-white hover:border-blue-300 hover:shadow-md cursor-move"
+                              ? "border-blue-500 bg-blue-50 scale-105 shadow-lg cursor-move"
+                              : matchState.draggedItem &&
+                                  matchState.draggedItem.type === "word"
+                                ? "border-dashed border-blue-400 bg-blue-50"
+                                : "border-gray-200 bg-white hover:border-blue-300 hover:shadow-md cursor-move"
                         }`}
                       >
                         <div className="flex items-start gap-3">
@@ -990,7 +1001,7 @@ export default function VocabsMatchPractice({
               {/* Show incorrect matches with correct definitions */}
               {(() => {
                 const incorrectPairs = matchState.droppedPairs.filter(
-                  (p) => !p.isCorrect
+                  (p) => !p.isCorrect,
                 );
                 if (incorrectPairs.length > 0) {
                   return (
@@ -1005,7 +1016,7 @@ export default function VocabsMatchPractice({
                           const wordIdParts = pair.wordId.split("-");
                           const pairId = wordIdParts.slice(-1)[0]; // Get the last part (pair index)
                           const roundPair = currentRound.find((w) =>
-                            w.id.endsWith(`-${pairId}`)
+                            w.id.endsWith(`-${pairId}`),
                           );
                           if (!roundPair) return null;
 

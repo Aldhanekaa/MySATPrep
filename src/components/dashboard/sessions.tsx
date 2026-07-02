@@ -21,6 +21,12 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
 import { playSound } from "@/lib/playSound";
+import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
+import { removeSession } from "@/lib/redux/slices/userDataSlice";
+import {
+  selectIsAuthenticated,
+  selectUserSessions,
+} from "@/lib/redux/selectors";
 
 interface QuestionResult {
   questionId: string;
@@ -33,22 +39,32 @@ export function SessionsTab() {
   const [practiceHistory, setPracticeHistory] = useState<PracticeSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedSessions, setExpandedSessions] = useState<Set<string>>(
-    new Set()
+    new Set(),
   );
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [sessionToDelete, setSessionToDelete] =
     useState<PracticeSession | null>(null);
   const [isCurrentSession, setIsCurrentSession] = useState(false);
   const router = useRouter();
+  const dispatch = useAppDispatch();
+  const isAuthenticated = useAppSelector(selectIsAuthenticated);
+  const reduxSessions = useAppSelector(selectUserSessions);
 
   useEffect(() => {
     const loadSessions = () => {
       try {
-        const history = getSessionHistory();
+        let history: PracticeSession[];
+        if (isAuthenticated && reduxSessions.length > 0) {
+          // Authenticated: use Redux store (populated from DB)
+          history = [...reduxSessions];
+        } else {
+          // Unauthenticated: fall back to localStorage
+          history = getSessionHistory();
+        }
         // Sort sessions by timestamp (most recent first)
         const sortedHistory = history.sort(
           (a, b) =>
-            new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+            new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
         );
         setPracticeHistory(sortedHistory);
       } catch (error) {
@@ -59,7 +75,7 @@ export function SessionsTab() {
     };
 
     loadSessions();
-  }, []);
+  }, [isAuthenticated, reduxSessions]);
 
   const getQuestionResults = (session: PracticeSession): QuestionResult[] => {
     try {
@@ -80,7 +96,7 @@ export function SessionsTab() {
       // Map session questions to detailed results
       return session.answeredQuestions.map((questionId) => {
         const detailedResult = assessmentStats.answeredQuestionsDetailed.find(
-          (aq: AnsweredQuestion) => aq.questionId === questionId
+          (aq: AnsweredQuestion) => aq.questionId === questionId,
         );
 
         return {
@@ -142,12 +158,17 @@ export function SessionsTab() {
     if (!sessionToDelete) return;
 
     try {
-      // Remove from practice history
-      const history = getSessionHistory();
-      const updatedHistory = history.filter(
-        (session) => session.sessionId !== sessionToDelete.sessionId
-      );
-      localStorage.setItem("practiceHistory", JSON.stringify(updatedHistory));
+      if (isAuthenticated) {
+        // Authenticated: dispatch Redux action (removes from store)
+        dispatch(removeSession(sessionToDelete.sessionId));
+      } else {
+        // Unauthenticated: remove from localStorage
+        const history = getSessionHistory();
+        const updatedHistory = history.filter(
+          (session) => session.sessionId !== sessionToDelete.sessionId,
+        );
+        localStorage.setItem("practiceHistory", JSON.stringify(updatedHistory));
+      }
 
       // If this is the current session, also remove it from currentPracticeSession
       if (isCurrentSession) {
@@ -164,9 +185,6 @@ export function SessionsTab() {
           duration: 3000,
         });
       }
-
-      // Update the local state
-      setPracticeHistory(updatedHistory);
 
       // Close modal and reset state
       setDeleteModalOpen(false);
@@ -270,7 +288,7 @@ export function SessionsTab() {
             const isExpanded = expandedSessions.has(sessionId);
             const questionResults = getQuestionResults(session);
             const correctCount = questionResults.filter(
-              (q) => q.isCorrect
+              (q) => q.isCorrect,
             ).length;
 
             return (
@@ -309,7 +327,7 @@ export function SessionsTab() {
                               >
                                 {difficulty}
                               </Badge>
-                            )
+                            ),
                           )}
                         </div>
                       </div>
@@ -345,7 +363,7 @@ export function SessionsTab() {
                               ? Math.round(
                                   (correctCount /
                                     session.answeredQuestions.length) *
-                                    100
+                                    100,
                                 )
                               : 0}
                             %)
@@ -521,7 +539,7 @@ export function SessionsTab() {
                       {
                         hour: "2-digit",
                         minute: "2-digit",
-                      }
+                      },
                     )}
                   </p>
                   {isCurrentSession && (

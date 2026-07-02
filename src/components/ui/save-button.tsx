@@ -15,6 +15,14 @@ import { QuestionById_Data } from "@/types";
 import { playSound } from "@/lib/playSound";
 import { useLocalStorage } from "@/lib/useLocalStorage";
 import { useState, useId, useEffect } from "react";
+import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
+import {
+  saveBookmark,
+  removeBookmark as syncRemoveBookmark,
+  saveCollection,
+  updateCollection,
+  removeCollection,
+} from "@/lib/utils/dataSync";
 
 interface SaveButtonProps {
   question: QuestionById_Data;
@@ -50,6 +58,8 @@ export function SaveButton({
   setSavedQuestions,
 }: SaveButtonProps) {
   const id = useId();
+  const reduxDispatch = useAppDispatch();
+  const reduxState = useAppSelector((s) => s);
   const [savedCollections, setSavedCollections] =
     useLocalStorage<SavedCollections>("savedCollections", {});
   const [searchTerm, setSearchTerm] = useState("");
@@ -121,12 +131,12 @@ export function SaveButton({
 
   // Filter collections based on search term
   const filteredCollections = migratedCollections.filter((collection) =>
-    collection.name?.toLowerCase().includes(searchTerm.toLowerCase())
+    collection.name?.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   // Check which collections contain this question
   const questionCollections = migratedCollections.filter((collection) =>
-    collection.questionIds.includes(questionId)
+    collection.questionIds.includes(questionId),
   );
 
   // Check if question is saved in any collection (this means it's also saved)
@@ -146,11 +156,11 @@ export function SaveButton({
 
       // Check if question is already saved in savedQuestions
       const questionIndex = updatedSavedQuestions[assessment].findIndex(
-        (q: SavedQuestion) => q.questionId === questionId
+        (q: SavedQuestion) => q.questionId === questionId,
       );
 
       if (questionIndex === -1 && !isQuestionInAnyCollection) {
-        // Question not saved anywhere, so save it to savedQuestions
+        // Question not saved anywhere, so save it
         playSound("tap-checkbox-checked.wav");
         const newSavedQuestion: SavedQuestion = {
           questionId: questionId,
@@ -160,6 +170,12 @@ export function SaveButton({
           timestamp: new Date().toISOString(),
         };
         updatedSavedQuestions[assessment].push(newSavedQuestion);
+        // Sync: API for authenticated users, localStorage for unauthenticated
+        saveBookmark(
+          { ...newSavedQuestion, assessment },
+          reduxDispatch,
+          reduxState,
+        );
         toast.success("Question saved!");
       } else {
         // Question is saved somewhere, so remove it completely
@@ -172,26 +188,29 @@ export function SaveButton({
 
         // Also remove from all collections
         const updatedCollections = { ...savedCollections };
-
-        // Find and update collections that contain this question
-        Object.keys(updatedCollections).forEach((collectionId) => {
-          const collection = updatedCollections[collectionId];
-          if (collection.questionIds.includes(questionId)) {
-            updatedCollections[collectionId] = {
-              ...collection,
-              questionIds: collection.questionIds.filter(
-                (id: string) => id !== questionId
+        Object.keys(updatedCollections).forEach((collId) => {
+          const col = updatedCollections[collId];
+          if (col.questionIds.includes(questionId)) {
+            const updatedCol = {
+              ...col,
+              questionIds: col.questionIds.filter(
+                (id: string) => id !== questionId,
               ),
               questionDetails:
-                collection.questionDetails?.filter(
-                  (detail) => detail.questionId !== questionId
+                col.questionDetails?.filter(
+                  (detail) => detail.questionId !== questionId,
                 ) || [],
               updatedAt: new Date().toISOString(),
             };
+            updatedCollections[collId] = updatedCol;
+            // Sync collection update
+            updateCollection(collId, updatedCol, reduxDispatch, reduxState);
           }
         });
 
         setSavedCollections(updatedCollections);
+        // Sync bookmark removal
+        syncRemoveBookmark(questionId, reduxDispatch, reduxState);
         toast.success("Question removed from saved and all collections!");
       }
 
@@ -206,8 +225,6 @@ export function SaveButton({
     if (!newCollectionName.trim()) return;
 
     try {
-      const updatedCollections = { ...savedCollections };
-
       const newCollection: SavedCollection = {
         id: `collection_${Date.now()}_${Math.random()
           .toString(36)
@@ -216,11 +233,20 @@ export function SaveButton({
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         questionIds: [],
-        questionDetails: [], // Initialize empty questionDetails array
+        questionDetails: [],
       };
 
-      updatedCollections[newCollection.id] = newCollection;
+      const updatedCollections = {
+        ...savedCollections,
+        [newCollection.id]: newCollection,
+      };
       setSavedCollections(updatedCollections);
+      // Sync: API for authenticated users, localStorage for unauthenticated
+      saveCollection(
+        { ...newCollection, collectionId: newCollection.id },
+        reduxDispatch,
+        reduxState,
+      );
       setNewCollectionName("");
       setIsCreateDialogOpen(false);
       playSound("tap-checkbox-checked.wav");
@@ -239,6 +265,8 @@ export function SaveButton({
       if (collectionToDelete) {
         delete updatedCollections[collectionId];
         setSavedCollections(updatedCollections);
+        // Sync: API for authenticated users, localStorage for unauthenticated
+        removeCollection(collectionId, reduxDispatch, reduxState);
         playSound("tap-checkbox-unchecked.wav");
         toast.success(`Collection "${collectionToDelete.name}" deleted!`);
       }
@@ -255,12 +283,15 @@ export function SaveButton({
       const updatedCollections = { ...savedCollections };
 
       if (updatedCollections[collectionId]) {
-        updatedCollections[collectionId] = {
+        const updatedCol = {
           ...updatedCollections[collectionId],
           name: newName.trim(),
           updatedAt: new Date().toISOString(),
         };
+        updatedCollections[collectionId] = updatedCol;
         setSavedCollections(updatedCollections);
+        // Sync: API for authenticated users, localStorage for unauthenticated
+        updateCollection(collectionId, updatedCol, reduxDispatch, reduxState);
         setEditingCollection(null);
         playSound("button-pressed.wav");
         toast.success("Collection renamed!");
@@ -283,20 +314,23 @@ export function SaveButton({
 
       if (questionExists) {
         // Remove question from collection
-        updatedCollections[collectionId] = {
+        const updatedCol = {
           ...collection,
           questionIds: collection.questionIds.filter(
-            (id: string) => id !== questionId
+            (id: string) => id !== questionId,
           ),
           questionDetails:
             collection.questionDetails?.filter(
-              (detail) => detail.questionId !== questionId
+              (detail) => detail.questionId !== questionId,
             ) || [],
           updatedAt: new Date().toISOString(),
         };
+        updatedCollections[collectionId] = updatedCol;
+        // Sync collection update
+        updateCollection(collectionId, updatedCol, reduxDispatch, reduxState);
       } else {
         // Add question to collection
-        updatedCollections[collectionId] = {
+        const updatedCol = {
           ...collection,
           questionIds: [...collection.questionIds, questionId],
           questionDetails: [
@@ -309,18 +343,17 @@ export function SaveButton({
           ],
           updatedAt: new Date().toISOString(),
         };
+        updatedCollections[collectionId] = updatedCol;
+        // Sync collection update
+        updateCollection(collectionId, updatedCol, reduxDispatch, reduxState);
 
-        // If we're adding the question to a collection and it's not in savedQuestions, add it there too
-        // Initialize array if it doesn't exist
+        // Also ensure question is in savedQuestions
         if (!updatedSavedQuestions[assessment]) {
           updatedSavedQuestions[assessment] = [];
         }
-
-        // Check if question is already in savedQuestions
         const questionIndex = updatedSavedQuestions[assessment].findIndex(
-          (q: SavedQuestion) => q.questionId === questionId
+          (q: SavedQuestion) => q.questionId === questionId,
         );
-
         if (questionIndex === -1) {
           const newSavedQuestion: SavedQuestion = {
             questionId: questionId,
@@ -331,6 +364,12 @@ export function SaveButton({
           };
           updatedSavedQuestions[assessment].push(newSavedQuestion);
           setSavedQuestions(updatedSavedQuestions);
+          // Sync bookmark addition
+          saveBookmark(
+            { ...newSavedQuestion, assessment },
+            reduxDispatch,
+            reduxState,
+          );
         }
       }
 
@@ -522,7 +561,7 @@ export function SaveButton({
                             if (e.key === "Enter" && editingCollection) {
                               handleRenameCollection(
                                 collection.id,
-                                editingCollection.name
+                                editingCollection.name,
                               );
                             } else if (e.key === "Escape") {
                               setEditingCollection(null);
@@ -532,7 +571,7 @@ export function SaveButton({
                             editingCollection &&
                             handleRenameCollection(
                               collection.id,
-                              editingCollection.name
+                              editingCollection.name,
                             )
                           }
                           className="h-7 text-sm flex-1 border-2 rounded-lg focus:border-blue-500 focus:ring-0"

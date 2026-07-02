@@ -27,6 +27,8 @@ import {
 } from "lucide-react";
 import { playSound } from "@/lib/playSound";
 import Link from "next/link";
+import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
+import { saveVocabulary } from "@/lib/utils/dataSync";
 
 interface SentenceQuestion {
   word: VocabularyWord;
@@ -76,7 +78,7 @@ type SentenceAction =
 // Sentence reducer
 function sentenceReducer(
   state: SentenceState,
-  action: SentenceAction
+  action: SentenceAction,
 ): SentenceState {
   switch (action.type) {
     case "INITIALIZE_SENTENCE":
@@ -220,8 +222,11 @@ export default function VocabsFormaSentencePractice({
   // Sentence state managed by reducer
   const [sentenceState, dispatch] = useReducer(
     sentenceReducer,
-    initialSentenceState
+    initialSentenceState,
   );
+
+  const reduxDispatch = useAppDispatch();
+  const reduxState = useAppSelector((s) => s);
 
   // Use the useLocalStorage hook
   const [vocabsData, setVocabsData] = useLocalStorage<VocabsData>(
@@ -229,8 +234,14 @@ export default function VocabsFormaSentencePractice({
     {
       learntVocabs: [],
       userSentences: {},
-    }
+    },
   );
+
+  // Sync vocabulary data to DB for authenticated users whenever it changes
+  useEffect(() => {
+    saveVocabulary(vocabsData, reduxDispatch, reduxState);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [vocabsData]);
 
   // Practice performance tracking
   const [practicePerformance, setPracticePerformance] =
@@ -248,7 +259,7 @@ export default function VocabsFormaSentencePractice({
   // Get learned vocabulary words
   const learnedWords = useMemo(() => {
     return vocabs_database.filter((word) =>
-      vocabsData.learntVocabs.includes(word.word)
+      vocabsData.learntVocabs.includes(word.word),
     );
   }, [vocabsData.learntVocabs]);
 
@@ -293,7 +304,7 @@ export default function VocabsFormaSentencePractice({
     // Shuffle each category separately
     Object.keys(categorizedWords).forEach((key) => {
       categorizedWords[key as keyof typeof categorizedWords].sort(
-        () => Math.random() - 0.5
+        () => Math.random() - 0.5,
       );
     });
 
@@ -360,7 +371,7 @@ export default function VocabsFormaSentencePractice({
   const calculateMasteryLevel = (
     correctAttempts: number,
     totalAttempts: number,
-    consecutiveCorrect: number
+    consecutiveCorrect: number,
   ): WordPerformance["masteryLevel"] => {
     if (totalAttempts === 0) return "learning";
 
@@ -376,7 +387,7 @@ export default function VocabsFormaSentencePractice({
   const updateWordPerformance = (
     word: string,
     isCorrect: boolean,
-    timeSpent: number
+    timeSpent: number,
   ) => {
     setPracticePerformance((prevData) => {
       const updatedData = { ...prevData };
@@ -423,7 +434,7 @@ export default function VocabsFormaSentencePractice({
       wordPerf.masteryLevel = calculateMasteryLevel(
         wordPerf.correctAttempts,
         wordPerf.totalAttempts,
-        wordPerf.consecutiveCorrect
+        wordPerf.consecutiveCorrect,
       );
 
       // Update word performance in data
@@ -447,7 +458,7 @@ export default function VocabsFormaSentencePractice({
       // Update overall statistics
       updatedData.lastUpdated = Date.now();
       const totalCorrect = updatedData.attempts.filter(
-        (a) => a.isCorrect
+        (a) => a.isCorrect,
       ).length;
       updatedData.overallAccuracy = totalCorrect / updatedData.attempts.length;
 
@@ -456,7 +467,7 @@ export default function VocabsFormaSentencePractice({
       updatedData.strongWords = allWords
         .filter(
           (w) =>
-            w.masteryLevel === "mastered" || w.masteryLevel === "proficient"
+            w.masteryLevel === "mastered" || w.masteryLevel === "proficient",
         )
         .map((w) => w.word);
 
@@ -466,7 +477,7 @@ export default function VocabsFormaSentencePractice({
 
       updatedData.improvingWords = allWords
         .filter(
-          (w) => w.masteryLevel === "learning" && w.consecutiveCorrect > 0
+          (w) => w.masteryLevel === "learning" && w.consecutiveCorrect > 0,
         )
         .map((w) => w.word);
 
@@ -536,13 +547,13 @@ export default function VocabsFormaSentencePractice({
         // Fallback to simple evaluation if AI fails
         isCorrect = evaluateSentence(
           sentenceState.userSentence,
-          currentQuestion.word.word
+          currentQuestion.word.word,
         );
         aiMessage = "Unable to get AI feedback. Using basic evaluation.";
       }
 
       const timeSpent = Math.round(
-        (Date.now() - sentenceState.questionStartTime) / 1000
+        (Date.now() - sentenceState.questionStartTime) / 1000,
       );
 
       // Update sentence state with AI response
@@ -577,14 +588,14 @@ export default function VocabsFormaSentencePractice({
       // Fallback to simple evaluation if AI request fails
       const isCorrect = evaluateSentence(
         sentenceState.userSentence,
-        currentQuestion.word.word
+        currentQuestion.word.word,
       );
 
       const fallbackMessage =
         "Unable to connect to AI service. Using basic evaluation.";
 
       const timeSpent = Math.round(
-        (Date.now() - sentenceState.questionStartTime) / 1000
+        (Date.now() - sentenceState.questionStartTime) / 1000,
       );
 
       // Update sentence state with fallback response
@@ -619,7 +630,7 @@ export default function VocabsFormaSentencePractice({
   // Simple evaluation function (used as fallback)
   const evaluateSentence = (
     userSentence: string,
-    targetWord: string
+    targetWord: string,
   ): boolean => {
     // Basic check: sentence contains the target word and is reasonably long
     const sentence = userSentence.toLowerCase();
@@ -702,7 +713,7 @@ export default function VocabsFormaSentencePractice({
   // Sentence complete screen
   if (sentenceState.isSentenceComplete) {
     const percentage = Math.round(
-      (sentenceState.score / sentenceQuestions.length) * 100
+      (sentenceState.score / sentenceQuestions.length) * 100,
     );
 
     return (
@@ -728,8 +739,8 @@ export default function VocabsFormaSentencePractice({
               {percentage >= 80
                 ? "Excellent sentences! You really know how to use these words!"
                 : percentage >= 60
-                ? "Good job! Keep practicing to improve your sentence skills!"
-                : "Keep studying! Practice writing sentences to master these words!"}
+                  ? "Good job! Keep practicing to improve your sentence skills!"
+                  : "Keep studying! Practice writing sentences to master these words!"}
             </p>
           </div>
 

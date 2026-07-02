@@ -78,6 +78,13 @@ import { playSound } from "@/lib/playSound";
 import { useLocalStorage } from "@/lib/useLocalStorage";
 import { useRouter } from "next/navigation";
 import { LookupRequest } from "@/types";
+import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
+import {
+  saveUserProfile as syncSaveUserProfile,
+  saveUserStatistics,
+  savePracticeSession,
+  updatePracticeSession,
+} from "@/lib/utils/dataSync";
 
 // Duolingo-styled Loading Spinner Component
 interface DuolingoLoadingSpinnerProps {
@@ -670,7 +677,7 @@ const AnswerOptions = React.memo(function AnswerOptions({
 }: AnswerOptionsProps) {
   const optionEntries = useMemo(
     () => Object.entries(answerOptions),
-    [answerOptions]
+    [answerOptions],
   );
 
   // Note: isReviewMode indicates when displaying a previously answered question
@@ -714,17 +721,17 @@ const AnswerOptions = React.memo(function AnswerOptions({
                 disabledOptions[key]
                   ? " cursor-not-allowed after:absolute after:inset-0 after:h-0.5 after:w-[102.5%] after:bg-black after:-translate-x-1/2 after:left-1/2 after:top-1/2 after:-translate-y-1/2"
                   : isAnswerChecked || isReviewMode
-                  ? "cursor-default"
-                  : "cursor-pointer"
+                    ? "cursor-default"
+                    : "cursor-pointer"
               } w-full transition duration-500 ${
                 isAnswerChecked &&
                 (isCorrectAnswer || correctAnswers.includes(key))
                   ? "border-2 border-green-500 bg-green-500/10"
                   : isSelectedWrongAnswer
-                  ? "border-2 border-red-500 bg-red-500/10"
-                  : isSelected
-                  ? "border-2 border-blue-500 bg-blue-500/10"
-                  : "border-2 border-input"
+                    ? "border-2 border-red-500 bg-red-500/10"
+                    : isSelected
+                      ? "border-2 border-blue-500 bg-blue-500/10"
+                      : "border-2 border-input"
               } has-[[data-disabled]]:opacity-50  has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-ring/70 flex flex-col items-start gap-4 rounded-lg p-3 shadow-sm shadow-black/5`}
             >
               <div className={`grid grid-cols-9 items-center gap-3 `}>
@@ -734,10 +741,10 @@ const AnswerOptions = React.memo(function AnswerOptions({
                       isAnswerChecked && isCorrectAnswer
                         ? "border-green-500 bg-green-500 text-white"
                         : isSelectedWrongAnswer
-                        ? "border-red-500 bg-red-500 text-white"
-                        : isSelected
-                        ? "border-blue-500 bg-blue-500 text-white"
-                        : "border-gray-300 bg-gray-50 text-gray-600"
+                          ? "border-red-500 bg-red-500 text-white"
+                          : isSelected
+                            ? "border-blue-500 bg-blue-500 text-white"
+                            : "border-gray-300 bg-gray-50 text-gray-600"
                     }`}
                   >
                     {isCorrectAnswer ? (
@@ -1033,7 +1040,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
       if (action.payload.answer) {
         // Check if question already exists in details
         const existingDetailIndex = updatedQuestionDetails.findIndex(
-          (detail) => detail.questionId === questionId
+          (detail) => detail.questionId === questionId,
         );
 
         const questionDetail = {
@@ -1180,7 +1187,7 @@ interface PracticeRushMultistepProps {
   practiceSelections: PracticeSelections;
   onSessionComplete?: (
     sessionData: PracticeSession,
-    correctAnswers: { [questionId: string]: Array<string> }
+    correctAnswers: { [questionId: string]: Array<string> },
   ) => void;
   restoredSessionData?: PracticeSession; // New prop for passing down localStorage data
   isReviewMode?: boolean; // New prop for review-only mode
@@ -1195,19 +1202,22 @@ export default function PracticeRushMultistep({
   const router = useRouter();
   const confettiRef = useRef<ConfettiRef>(null);
 
+  const reduxDispatch = useAppDispatch();
+  const reduxState = useAppSelector((s) => s);
+
   const [state, dispatch] = useReducer(appReducer, initialState);
   const [isGridCollapsed, setIsGridCollapsed] = useState(false);
 
   // Load question notes from localStorage
   const [questionNotes, setQuestionNotes] = useLocalStorage<QuestionNotes>(
     "questionNotes",
-    {}
+    {},
   );
 
   // Load saved questions from localStorage
   const [savedQuestions, setSavedQuestions] = useLocalStorage<SavedQuestions>(
     "savedQuestions",
-    {}
+    {},
   );
 
   // Check URL parameters to determine if this is a continue session
@@ -1240,7 +1250,7 @@ export default function PracticeRushMultistep({
 
     // Calculate correct answers by comparing user answers with correct answers
     const answeredQuestions = Object.keys(state.questionAnswers).filter(
-      (id) => state.questionAnswers[id] !== null
+      (id) => state.questionAnswers[id] !== null,
     );
 
     let correctAnswersCount = 0;
@@ -1248,7 +1258,7 @@ export default function PracticeRushMultistep({
       const userAnswer = state.questionAnswers[questionId];
 
       const question = state.questions?.find(
-        (q) => q.plainQuestion.questionId === questionId
+        (q) => q.plainQuestion.questionId === questionId,
       );
 
       // console.log("User Answer:", userAnswer);
@@ -1304,45 +1314,44 @@ export default function PracticeRushMultistep({
         Object.keys(state.questionTimes).length > 0
           ? Object.values(state.questionTimes).reduce(
               (sum, time) => sum + time,
-              0
+              0,
             ) / Object.keys(state.questionTimes).length
           : 0,
       totalTimeSpent: Object.values(state.questionTimes).reduce(
         (sum, time) => sum + time,
-        0
+        0,
       ),
       totalXPReceived: state.sessionXPReceived, // Include session XP tracking
     };
 
     try {
-      // Save current session
+      // Save current session as temporary in-progress marker
       localStorage.setItem(
         "currentPracticeSession",
-        JSON.stringify(currentSession)
+        JSON.stringify(currentSession),
       );
 
-      // Update practice sessions history
+      // Determine if this session already exists (used to pick save vs update)
       const existingSessions = localStorage.getItem("practiceHistory");
       const sessions: PracticeSession[] = existingSessions
         ? JSON.parse(existingSessions)
         : [];
-
-      // Find if this session already exists in history
       const existingIndex = sessions.findIndex(
-        (session) => session.sessionId === state.sessionId
+        (session) => session.sessionId === state.sessionId,
       );
 
+      // Sync session via dataSync: saves to DB for authenticated users,
+      // or writes to localStorage ("practiceHistory") for unauthenticated users.
       if (existingIndex !== -1) {
-        // Update existing session
-        sessions[existingIndex] = currentSession;
+        updatePracticeSession(
+          currentSession.sessionId,
+          currentSession,
+          reduxDispatch,
+          reduxState,
+        );
       } else {
-        // Add new session
-        sessions.push(currentSession);
+        savePracticeSession(currentSession, reduxDispatch, reduxState);
       }
-
-      // Keep only last 20 sessions
-      const recentSessions = sessions.slice(-20);
-      localStorage.setItem("practiceHistory", JSON.stringify(recentSessions));
 
       // Show saving indicator briefly
       setTimeout(() => {
@@ -1376,7 +1385,7 @@ export default function PracticeRushMultistep({
 
   const currentQuestion = useMemo(
     () => (state.questions ? state.questions[state.currentQuestionStep] : null),
-    [state.questions, state.currentQuestionStep]
+    [state.questions, state.currentQuestionStep],
   );
 
   // Convert QuestionState to QuestionById_Data format for SaveButton compatibility
@@ -1405,7 +1414,7 @@ export default function PracticeRushMultistep({
     }
 
     return savedQuestions[practiceSelections.assessment].some(
-      (q) => q.questionId === currentQuestion.plainQuestion.questionId
+      (q) => q.questionId === currentQuestion.plainQuestion.questionId,
     );
   }, [currentQuestion, savedQuestions, practiceSelections.assessment]);
 
@@ -1415,7 +1424,7 @@ export default function PracticeRushMultistep({
       isReviewMode ||
       (restoredSessionData &&
         (restoredSessionData.status as string) === "completed"),
-    [isReviewMode, restoredSessionData]
+    [isReviewMode, restoredSessionData],
   );
 
   // console.log("Effective Review Mode:", effectiveReviewMode);
@@ -1446,7 +1455,7 @@ export default function PracticeRushMultistep({
 
         // Check if the answer was correct
         const correctAnswers = currentQuestion.correct_answer.map((e) =>
-          e.trim()
+          e.trim(),
         );
         const isCorrect = correctAnswers.includes(savedAnswer.trim());
 
@@ -1512,16 +1521,16 @@ export default function PracticeRushMultistep({
         content: state.isLoadingNextBatch
           ? `Loading Next Batch... (${state.questionsProcessedCount}/22)`
           : state.questionsProcessedCount > 0 && state.totalQuestionsToFetch > 0
-          ? state.questionsProcessedCount <=
-            Math.floor(state.totalQuestionsToFetch / 2)
-            ? `Fetching Questions... (${
-                state.questionsProcessedCount
-              }/${Math.floor(state.totalQuestionsToFetch / 2)})`
-            : `Verifying Questions... (${
-                state.questionsProcessedCount -
-                Math.floor(state.totalQuestionsToFetch / 2)
-              }/${Math.floor(state.totalQuestionsToFetch / 2)})`
-          : "Fetching Each Question 🔍",
+            ? state.questionsProcessedCount <=
+              Math.floor(state.totalQuestionsToFetch / 2)
+              ? `Fetching Questions... (${
+                  state.questionsProcessedCount
+                }/${Math.floor(state.totalQuestionsToFetch / 2)})`
+              : `Verifying Questions... (${
+                  state.questionsProcessedCount -
+                  Math.floor(state.totalQuestionsToFetch / 2)
+                }/${Math.floor(state.totalQuestionsToFetch / 2)})`
+            : "Fetching Each Question 🔍",
       },
       {
         id: "verifying",
@@ -1546,7 +1555,7 @@ export default function PracticeRushMultistep({
       state.isLoadingNextBatch,
       state.questionsProcessedCount,
       state.totalQuestionsToFetch,
-    ]
+    ],
   );
 
   // Initialize session when practice starts
@@ -1608,7 +1617,7 @@ export default function PracticeRushMultistep({
         if (state.questions && state.questions.length > 0) {
           // Calculate correct answers by comparing user answers with correct answers
           const answeredQuestions = Object.keys(state.questionAnswers).filter(
-            (id) => state.questionAnswers[id] !== null
+            (id) => state.questionAnswers[id] !== null,
           );
 
           let correctAnswersCount = 0;
@@ -1616,7 +1625,7 @@ export default function PracticeRushMultistep({
             const userAnswer = state.questionAnswers[questionId];
 
             const question = state.questions?.find(
-              (q) => q.plainQuestion.questionId === questionId
+              (q) => q.plainQuestion.questionId === questionId,
             );
 
             if (question && userAnswer && question.correct_answer) {
@@ -1653,26 +1662,26 @@ export default function PracticeRushMultistep({
             accuracyPercentage:
               answeredQuestions.length > 0
                 ? Math.round(
-                    (correctAnswersCount / answeredQuestions.length) * 100
+                    (correctAnswersCount / answeredQuestions.length) * 100,
                   )
                 : 0,
             averageTimePerQuestion:
               Object.keys(state.questionTimes).length > 0
                 ? Object.values(state.questionTimes).reduce(
                     (sum, time) => sum + time,
-                    0
+                    0,
                   ) / Object.keys(state.questionTimes).length
                 : 0,
             totalTimeSpent: Object.values(state.questionTimes).reduce(
               (sum, time) => sum + time,
-              0
+              0,
             ),
             totalXPReceived: state.sessionXPReceived, // Include session XP tracking
           };
           try {
             localStorage.setItem(
               "currentPracticeSession",
-              JSON.stringify(currentSession)
+              JSON.stringify(currentSession),
             );
           } catch (error) {
             console.error("Failed to save session on unload:", error);
@@ -1700,7 +1709,7 @@ export default function PracticeRushMultistep({
   const completeSession = useCallback(() => {
     // Calculate correct answers by comparing user answers with correct answers
     const answeredQuestions = Object.keys(state.questionAnswers).filter(
-      (id) => state.questionAnswers[id] !== null
+      (id) => state.questionAnswers[id] !== null,
     );
 
     let correctAnswersCount = 0;
@@ -1708,7 +1717,7 @@ export default function PracticeRushMultistep({
       const userAnswer = state.questionAnswers[questionId];
 
       const question = state.questions?.find(
-        (q) => q.plainQuestion.questionId === questionId
+        (q) => q.plainQuestion.questionId === questionId,
       );
 
       // console.log("User Answer:", userAnswer);
@@ -1750,34 +1759,38 @@ export default function PracticeRushMultistep({
         Object.keys(state.questionTimes).length > 0
           ? Object.values(state.questionTimes).reduce(
               (sum, time) => sum + time,
-              0
+              0,
             ) / Object.keys(state.questionTimes).length
           : 0,
       totalTimeSpent: Object.values(state.questionTimes).reduce(
         (sum, time) => sum + time,
-        0
+        0,
       ),
       totalXPReceived: state.sessionXPReceived, // Include session XP tracking
     };
 
     try {
-      // Save completed session to history
+      // Determine if this session already exists (used to pick save vs update)
       const existingSessions = localStorage.getItem("practiceHistory");
       const sessions: PracticeSession[] = existingSessions
         ? JSON.parse(existingSessions)
         : [];
-
-      // Update or add the completed session
       const existingIndex = sessions.findIndex(
-        (session) => session.sessionId === state.sessionId
+        (session) => session.sessionId === state.sessionId,
       );
-      if (existingIndex !== -1) {
-        sessions[existingIndex] = completedSession;
-      } else {
-        sessions.push(completedSession);
-      }
 
-      localStorage.setItem("practiceHistory", JSON.stringify(sessions));
+      // Sync completed session via dataSync: saves to DB for authenticated users,
+      // or writes to localStorage ("practiceHistory") for unauthenticated users.
+      if (existingIndex !== -1) {
+        updatePracticeSession(
+          completedSession.sessionId,
+          completedSession,
+          reduxDispatch,
+          reduxState,
+        );
+      } else {
+        savePracticeSession(completedSession, reduxDispatch, reduxState);
+      }
 
       // Clear current session since it's completed
       localStorage.removeItem("currentPracticeSession");
@@ -1786,12 +1799,12 @@ export default function PracticeRushMultistep({
       console.log("Session ID:", completedSession.sessionId);
       console.log(
         "Total questions answered:",
-        completedSession.answeredQuestions.length
+        completedSession.answeredQuestions.length,
       );
       console.log(
         "Total time spent:",
         Math.round(completedSession.totalTimeSpent / 1000),
-        "seconds"
+        "seconds",
       );
 
       // Call the parent callback with completed session data
@@ -1843,7 +1856,7 @@ export default function PracticeRushMultistep({
     async (
       questionsToFetch: PlainQuestionType[],
       existingQuestions: QuestionState[] = [],
-      showProgress: boolean = false
+      showProgress: boolean = false,
     ): Promise<QuestionState[]> => {
       const questions: {
         plainQuestion: PlainQuestionType;
@@ -1874,8 +1887,8 @@ export default function PracticeRushMultistep({
             question.external_id
               ? question.external_id
               : question.ibn
-              ? question.ibn
-              : ""
+                ? question.ibn
+                : "",
           );
 
         if (questionData && questionData.correct_answer)
@@ -1918,7 +1931,7 @@ export default function PracticeRushMultistep({
 
       return correctQuestions;
     },
-    []
+    [],
   );
 
   // Helper function to fetch and process questions based on selections
@@ -1926,7 +1939,7 @@ export default function PracticeRushMultistep({
     async (
       questionsData: API_Response_Question_List,
       selections: PracticeSelections,
-      existingQuestions: QuestionState[] = []
+      existingQuestions: QuestionState[] = [],
     ): Promise<QuestionState[]> => {
       const isRandomized = selections.randomize;
       const difficultiesChosen = selections.difficulties;
@@ -1942,7 +1955,7 @@ export default function PracticeRushMultistep({
         // Group questions by difficulty
         difficultiesChosen.forEach((difficulty) => {
           questionsByDifficulty[difficulty] = questionsData.filter(
-            (question: PlainQuestionType) => question.difficulty === difficulty
+            (question: PlainQuestionType) => question.difficulty === difficulty,
           );
         });
 
@@ -1957,7 +1970,7 @@ export default function PracticeRushMultistep({
         }
 
         const questionsPerDifficulty = Math.floor(
-          totalQuestions / difficultiesChosen.length
+          totalQuestions / difficultiesChosen.length,
         );
         const remainder = totalQuestions % difficultiesChosen.length;
 
@@ -1977,11 +1990,11 @@ export default function PracticeRushMultistep({
 
           // Shuffle questions for this difficulty and take the required amount
           const shuffledQuestions = [...questionsForThisDifficulty].sort(
-            () => Math.random() - 0.5
+            () => Math.random() - 0.5,
           );
           const selectedFromThisDifficulty = shuffledQuestions.slice(
             0,
-            questionsToTakeFromThisDifficulty
+            questionsToTakeFromThisDifficulty,
           );
 
           selectedQuestions.push(...selectedFromThisDifficulty);
@@ -2010,7 +2023,7 @@ export default function PracticeRushMultistep({
         dispatch({ type: "SET_QUESTIONS_PROCESSED_COUNT", payload: 0 });
 
         console.log(
-          `Total questions after difficulty-based selection: ${questionsToFetch.length}`
+          `Total questions after difficulty-based selection: ${questionsToFetch.length}`,
         );
       } else {
         let questionsNeeded = 0;
@@ -2029,10 +2042,10 @@ export default function PracticeRushMultistep({
       return await fetchQuestionDetails(
         questionsToFetch,
         existingQuestions,
-        true
+        true,
       );
     },
-    [fetchQuestionDetails]
+    [fetchQuestionDetails],
   );
 
   const FetchQuestions = useCallback(
@@ -2050,7 +2063,7 @@ export default function PracticeRushMultistep({
         state.questions.length > 0
       ) {
         console.log(
-          "🔍 Review mode: Questions already loaded in state, skipping fetch"
+          "🔍 Review mode: Questions already loaded in state, skipping fetch",
         );
         return;
       }
@@ -2087,13 +2100,13 @@ export default function PracticeRushMultistep({
         // This includes: explicit review mode OR sessions with COMPLETED status
         if (effectiveReviewMode && restoredSessionData) {
           console.log(
-            "🔍 Review mode detected - loading only answered questions..."
+            "🔍 Review mode detected - loading only answered questions...",
           );
 
           const answeredQuestionDetails =
             restoredSessionData.answeredQuestionDetails || [];
           const answeredQuestionIds = Object.keys(
-            restoredSessionData.questionAnswers || {}
+            restoredSessionData.questionAnswers || {},
           );
 
           console.log("📊 Review session details:", {
@@ -2126,7 +2139,7 @@ export default function PracticeRushMultistep({
             const reviewQuestions = await fetchQuestionDetails(
               validPlainQuestions,
               [],
-              true // Enable progress tracking for review sessions
+              true, // Enable progress tracking for review sessions
             );
 
             dispatch({ type: "SET_CURRENT_STEP", payload: 4 });
@@ -2144,7 +2157,7 @@ export default function PracticeRushMultistep({
                   restoredSessionData.answeredQuestionDetails || [],
                 currentQuestionStep: 0, // Start from first question in review mode
                 sessionStartTime: new Date(
-                  restoredSessionData.timestamp
+                  restoredSessionData.timestamp,
                 ).getTime(),
                 sessionId: restoredSessionData.sessionId,
               },
@@ -2159,15 +2172,15 @@ export default function PracticeRushMultistep({
             console.log("✅ Review session loaded - questions are read-only");
 
             const answeredCount = Object.keys(
-              restoredSessionData.questionAnswers || {}
+              restoredSessionData.questionAnswers || {},
             ).length;
             const correctAnswers = Object.keys(
-              restoredSessionData.questionAnswers || {}
+              restoredSessionData.questionAnswers || {},
             ).filter((questionId) => {
               const userAnswer =
                 restoredSessionData.questionAnswers?.[questionId];
               const question = reviewQuestions.find(
-                (q) => q.plainQuestion.questionId === questionId
+                (q) => q.plainQuestion.questionId === questionId,
               );
               return (
                 userAnswer &&
@@ -2196,7 +2209,7 @@ export default function PracticeRushMultistep({
 
         // Normal flow for new sessions or when no restored data is available
         console.log(
-          "🔄 No restored session data found, fetching from /api/get-questions..."
+          "🔄 No restored session data found, fetching from /api/get-questions...",
         );
 
         let excludeQuestionsIds: string[] = [];
@@ -2227,7 +2240,7 @@ export default function PracticeRushMultistep({
           // Filter out questions that were already answered in the session
           const answeredQuestionIds =
             restoredSessionData.answeredQuestionDetails.map(
-              (e) => e.questionId
+              (e) => e.questionId,
             );
 
           // Combine already answered questions from both sources
@@ -2249,10 +2262,10 @@ export default function PracticeRushMultistep({
             }&domains=${selections.domains
               .map((d) => d.primaryClassCd)
               .join(",")}&difficulties=${selections.difficulties.join(
-              ","
+              ",",
             )}&skills=${selections.skills
               .map((s) => s.skill_cd)
-              .join(",")}${otherParams}`
+              .join(",")}${otherParams}`,
           )
             .then((res) => res.json())
             .catch((error) => {
@@ -2304,7 +2317,7 @@ export default function PracticeRushMultistep({
           }
 
           console.log(
-            `selections.excludeBluebook ${selections.excludeBluebook} : ${questionsData.length}`
+            `selections.excludeBluebook ${selections.excludeBluebook} : ${questionsData.length}`,
           );
 
           dispatch({
@@ -2335,7 +2348,7 @@ export default function PracticeRushMultistep({
           const questionDetails = restoredSessionData.answeredQuestionDetails;
           console.log(
             "Restoring previously answered questions:",
-            questionDetails
+            questionDetails,
           );
 
           dispatch({ type: "SET_CURRENT_STEP", payload: 3 });
@@ -2350,7 +2363,7 @@ export default function PracticeRushMultistep({
             const restoredQuestions = await fetchQuestionDetails(
               validPlainQuestions,
               [],
-              true // Enable progress tracking for restored sessions
+              true, // Enable progress tracking for restored sessions
             );
 
             dispatch({ type: "SET_CURRENT_STEP", payload: 4 });
@@ -2374,7 +2387,7 @@ export default function PracticeRushMultistep({
                 currentQuestionStep:
                   restoredSessionData.currentQuestionStep || 0,
                 sessionStartTime: new Date(
-                  restoredSessionData.timestamp
+                  restoredSessionData.timestamp,
                 ).getTime(),
                 sessionId: restoredSessionData.sessionId,
               },
@@ -2385,7 +2398,7 @@ export default function PracticeRushMultistep({
               answeredQuestions: Object.keys(restoredAnswers).length,
               totalTimeSpent: Object.values(restoredTimes).reduce(
                 (sum, time) => sum + time,
-                0
+                0,
               ),
               sessionId: restoredSessionData.sessionId,
               currentStep: restoredSessionData.currentQuestionStep || 0,
@@ -2396,29 +2409,29 @@ export default function PracticeRushMultistep({
 
             console.log(
               "🔄 Fetching new questions with restored selections...",
-              restoredSelections
+              restoredSelections,
             );
 
             let finalQuestions = restoredQuestions;
 
             if (questionsData.length > 0) {
               console.log(
-                `✅ Fetched ${questionsData.length} new questions to add to restored session`
+                `✅ Fetched ${questionsData.length} new questions to add to restored session`,
               );
 
               // Use the helper function to process new questions and combine with restored ones
               finalQuestions = await fetchAndProcessQuestions(
                 questionsData,
                 restoredSelections,
-                restoredQuestions
+                restoredQuestions,
               );
 
               console.log(
-                `✅ Total questions after combining restored + new: ${finalQuestions.length}`
+                `✅ Total questions after combining restored + new: ${finalQuestions.length}`,
               );
             } else {
               console.log(
-                "No new questions available, continuing with restored questions only"
+                "No new questions available, continuing with restored questions only",
               );
             }
 
@@ -2441,7 +2454,7 @@ export default function PracticeRushMultistep({
 
             // Don't start timer immediately - user is reviewing restored session
             console.log(
-              "🎯 Session restored - user can review previous answers"
+              "🎯 Session restored - user can review previous answers",
             );
 
             // Show a toast to inform user about restored session
@@ -2450,7 +2463,7 @@ export default function PracticeRushMultistep({
               (questionId) => {
                 const userAnswer = restoredAnswers[questionId];
                 const question = finalQuestions.find(
-                  (q) => q.plainQuestion.questionId === questionId
+                  (q) => q.plainQuestion.questionId === questionId,
                 );
                 return (
                   userAnswer &&
@@ -2458,7 +2471,7 @@ export default function PracticeRushMultistep({
                     ?.map((a) => a.trim())
                     .includes(userAnswer)
                 );
-              }
+              },
             ).length;
 
             toast.success("Session Restored Successfully! 🎯", {
@@ -2470,7 +2483,7 @@ export default function PracticeRushMultistep({
             return;
           } else {
             console.warn(
-              "No valid questions found in restored session data, proceeding with normal fetch"
+              "No valid questions found in restored session data, proceeding with normal fetch",
             );
           }
         }
@@ -2483,7 +2496,7 @@ export default function PracticeRushMultistep({
         ) {
           console.log(
             "Using pre-selected questions from shared link:",
-            selections.questionIds
+            selections.questionIds,
           );
 
           dispatch({ type: "SET_CURRENT_STEP", payload: 3 });
@@ -2491,14 +2504,14 @@ export default function PracticeRushMultistep({
           // Create mock questionsData from the provided questionIds
           const filteredQuestionsData: API_Response_Question_List =
             questionsData.filter((question) =>
-              selections.questionIds?.includes(question.questionId)
+              selections.questionIds?.includes(question.questionId),
             );
 
           // Use the helper function to fetch question details
           const correctQuestions = await fetchQuestionDetails(
             filteredQuestionsData,
             [],
-            true
+            true,
           );
 
           dispatch({ type: "SET_CURRENT_STEP", payload: 4 });
@@ -2520,7 +2533,7 @@ export default function PracticeRushMultistep({
 
         if (questionsData) {
           console.log(
-            "✅ Successfully fetched questions data from API, caching for future use"
+            "✅ Successfully fetched questions data from API, caching for future use",
           );
 
           dispatch({ type: "SET_CURRENT_STEP", payload: 3 });
@@ -2530,7 +2543,7 @@ export default function PracticeRushMultistep({
           // Use the helper function to fetch and process questions
           const correctQuestions = await fetchAndProcessQuestions(
             questionsData,
-            selections
+            selections,
           );
 
           dispatch({ type: "SET_CURRENT_STEP", payload: 4 });
@@ -2568,7 +2581,7 @@ export default function PracticeRushMultistep({
       effectiveReviewMode,
       fetchAndProcessQuestions,
       fetchQuestionDetails,
-    ]
+    ],
   );
 
   useEffect(() => {
@@ -2621,7 +2634,7 @@ export default function PracticeRushMultistep({
 
   async function fetchQuestionsbyIBN_ExternalId(id: string) {
     const questionResponse: { data: API_Response_Question } = await fetch(
-      `/api/question/${id}`
+      `/api/question/${id}`,
     )
       .then((res) => res.json())
       .catch((error) => {
@@ -2675,8 +2688,8 @@ export default function PracticeRushMultistep({
           (q) =>
             q.questionId &&
             !state.questions?.some(
-              (loadedQ) => loadedQ.plainQuestion.questionId === q.questionId
-            )
+              (loadedQ) => loadedQ.plainQuestion.questionId === q.questionId,
+            ),
         );
 
         // Filter remaining questions by selected difficulties
@@ -2687,14 +2700,14 @@ export default function PracticeRushMultistep({
         // Group remaining questions by difficulty
         difficultiesChosen.forEach((difficulty) => {
           questionsByDifficulty[difficulty] = remainingQuestions.filter(
-            (question) => question.difficulty === difficulty
+            (question) => question.difficulty === difficulty,
           );
         });
 
         // Calculate how many questions to take from each difficulty
         const totalQuestions = 22;
         const questionsPerDifficulty = Math.floor(
-          totalQuestions / difficultiesChosen.length
+          totalQuestions / difficultiesChosen.length,
         );
         const remainder = totalQuestions % difficultiesChosen.length;
 
@@ -2710,17 +2723,17 @@ export default function PracticeRushMultistep({
 
           // Shuffle questions for this difficulty and take the required amount
           const shuffledQuestions = [...questionsForThisDifficulty].sort(
-            () => Math.random() - 0.5
+            () => Math.random() - 0.5,
           );
           const selectedFromThisDifficulty = shuffledQuestions.slice(
             0,
-            questionsToTakeFromThisDifficulty
+            questionsToTakeFromThisDifficulty,
           );
 
           selectedQuestions.push(...selectedFromThisDifficulty);
 
           console.log(
-            `Selected ${selectedFromThisDifficulty.length} questions from difficulty ${difficulty} for next batch`
+            `Selected ${selectedFromThisDifficulty.length} questions from difficulty ${difficulty} for next batch`,
           );
         });
 
@@ -2728,13 +2741,13 @@ export default function PracticeRushMultistep({
         questionsToFetch = selectedQuestions.sort(() => Math.random() - 0.5);
 
         console.log(
-          `Total questions after difficulty-based selection for next batch: ${questionsToFetch.length}`
+          `Total questions after difficulty-based selection for next batch: ${questionsToFetch.length}`,
         );
       } else {
         // Original behavior for non-randomized or when no difficulties specified
         questionsToFetch = state.questionsData.slice(
           startIndex,
-          startIndex + 22
+          startIndex + 22,
         );
       }
 
@@ -2756,8 +2769,8 @@ export default function PracticeRushMultistep({
             question.ibn
               ? question.ibn
               : question.external_id
-              ? question.external_id
-              : ""
+                ? question.external_id
+                : "",
           );
 
         if (questionData) questions.push(questionData);
@@ -2843,7 +2856,7 @@ export default function PracticeRushMultistep({
           } else {
             // This was the last question in loaded questions - user can choose to continue or finish
             console.log(
-              "Reached end of loaded questions. User can choose to continue or finish."
+              "Reached end of loaded questions. User can choose to continue or finish.",
             );
             // Don't automatically load next batch or complete - let user decide via buttons
           }
@@ -2856,7 +2869,7 @@ export default function PracticeRushMultistep({
         if (!state.isAnswerChecked) {
           // First time answering this question
           const correctAnswers = currentQuestion.correct_answer.map((e) =>
-            e.trim()
+            e.trim(),
           );
           const correct = correctAnswers.includes(state.selectedAnswer.trim());
 
@@ -2921,7 +2934,7 @@ export default function PracticeRushMultistep({
               correct,
               timeElapsed,
               currentQuestion.plainQuestion, // Include plainQuestion data
-              state.selectedAnswer // Include the selected answer
+              state.selectedAnswer, // Include the selected answer
             );
 
             // Update user profile and XP based on answer correctness
@@ -2934,7 +2947,7 @@ export default function PracticeRushMultistep({
               // Add XP for correct answer
               updatedProfile = addXPForCorrectAnswer(
                 currentQuestion.plainQuestion.questionId,
-                scoreBandRange
+                scoreBandRange,
               );
 
               // Calculate session XP change
@@ -2950,7 +2963,7 @@ export default function PracticeRushMultistep({
               // Reduce XP for incorrect answer
               updatedProfile = reduceXPForIncorrectAnswer(
                 currentQuestion.plainQuestion.questionId,
-                scoreBandRange
+                scoreBandRange,
               );
 
               // Calculate session XP change (negative)
@@ -2978,6 +2991,18 @@ export default function PracticeRushMultistep({
               incorrectAnswers: updatedProfile.incorrectAnswers,
               sessionXPChange,
             });
+
+            // Sync profile and statistics to DB for authenticated users
+            syncSaveUserProfile(updatedProfile, reduxDispatch, reduxState);
+            const currentStats = (() => {
+              try {
+                const raw = localStorage.getItem("practiceStatistics");
+                return raw ? JSON.parse(raw) : {};
+              } catch {
+                return {};
+              }
+            })();
+            saveUserStatistics(currentStats, reduxDispatch, reduxState);
 
             // currentQuestion.plainQuestion.score_band_range_cd
           } catch (error) {
@@ -3010,7 +3035,7 @@ export default function PracticeRushMultistep({
           } else {
             // This was the last question in loaded questions - user can choose to continue or finish
             console.log(
-              "Reached end of loaded questions. User can choose to continue or finish."
+              "Reached end of loaded questions. User can choose to continue or finish.",
             );
             // Don't automatically load next batch or complete - let user decide via buttons
           }
@@ -3030,7 +3055,7 @@ export default function PracticeRushMultistep({
       state.sessionId,
       practiceSelections,
       effectiveReviewMode,
-    ]
+    ],
   );
 
   // Handle saving note
@@ -3053,7 +3078,7 @@ export default function PracticeRushMultistep({
         if (!noteText.trim()) {
           if (updatedNotes[assessment]) {
             updatedNotes[assessment] = updatedNotes[assessment].filter(
-              (note: QuestionNote) => note.questionId !== questionId
+              (note: QuestionNote) => note.questionId !== questionId,
             );
           }
           setQuestionNotes(updatedNotes);
@@ -3068,7 +3093,7 @@ export default function PracticeRushMultistep({
 
         // Check if note already exists
         const noteIndex = updatedNotes[assessment].findIndex(
-          (note: QuestionNote) => note.questionId === questionId
+          (note: QuestionNote) => note.questionId === questionId,
         );
 
         const now = new Date().toISOString();
@@ -3114,7 +3139,7 @@ export default function PracticeRushMultistep({
       practiceSelections.assessment,
       questionNotes,
       setQuestionNotes,
-    ]
+    ],
   );
 
   // function handleExit() {
@@ -3143,14 +3168,14 @@ export default function PracticeRushMultistep({
   function confirmExit() {
     // Calculate correct answers by comparing user answers with correct answers
     const answeredQuestions = Object.keys(state.questionAnswers).filter(
-      (id) => state.questionAnswers[id] !== null
+      (id) => state.questionAnswers[id] !== null,
     );
 
     let correctAnswersCount = 0;
     answeredQuestions.forEach((questionId) => {
       const userAnswer = state.questionAnswers[questionId];
       const question = state.questions?.find(
-        (q) => q.plainQuestion.questionId === questionId
+        (q) => q.plainQuestion.questionId === questionId,
       );
 
       if (question && userAnswer && question.correct_answer) {
@@ -3189,18 +3214,18 @@ export default function PracticeRushMultistep({
         Object.keys(state.questionTimes).length > 0
           ? Object.values(state.questionTimes).reduce(
               (sum, time) => sum + time,
-              0
+              0,
             ) / Object.values(state.questionTimes).length
           : 0,
       totalTimeSpent: Object.values(state.questionTimes).reduce(
         (sum, time) => sum + time,
-        0
+        0,
       ),
       totalXPReceived: state.sessionXPReceived, // Include session XP tracking
     };
 
     try {
-      // Save session using localStorage directly
+      // Determine if this session already exists (used to pick save vs update)
       const existingSessions = localStorage.getItem("practiceHistory");
       const sessions: PracticeSession[] = existingSessions
         ? JSON.parse(existingSessions)
@@ -3208,15 +3233,21 @@ export default function PracticeRushMultistep({
 
       // Update or add the abandoned session
       const existingIndex = sessions.findIndex(
-        (session) => session.sessionId === state.sessionId
+        (session) => session.sessionId === state.sessionId,
       );
-      if (existingIndex !== -1) {
-        sessions[existingIndex] = abandonedSession;
-      } else {
-        sessions.push(abandonedSession);
-      }
 
-      localStorage.setItem("practiceHistory", JSON.stringify(sessions));
+      // Sync abandoned session via dataSync: saves to DB for authenticated users,
+      // or writes to localStorage ("practiceHistory") for unauthenticated users.
+      if (existingIndex !== -1) {
+        updatePracticeSession(
+          abandonedSession.sessionId,
+          abandonedSession,
+          reduxDispatch,
+          reduxState,
+        );
+      } else {
+        savePracticeSession(abandonedSession, reduxDispatch, reduxState);
+      }
 
       console.log("Practice session saved successfully as abandoned");
       console.log(
@@ -3225,8 +3256,8 @@ export default function PracticeRushMultistep({
           Object.entries(state.questionTimes).map(([id, time]) => [
             id,
             Math.round(time / 1000),
-          ])
-        )
+          ]),
+        ),
       );
 
       // Call the parent callback with session data
@@ -3342,16 +3373,16 @@ export default function PracticeRushMultistep({
                                     !isAnswered
                                       ? "bg-white border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300"
                                       : isCorrect
-                                      ? "bg-green-50 border-green-200 text-green-800 hover:bg-green-100 hover:border-green-300"
-                                      : "bg-red-50 border-red-200 text-red-800 hover:bg-red-100 hover:border-red-300"
+                                        ? "bg-green-50 border-green-200 text-green-800 hover:bg-green-100 hover:border-green-300"
+                                        : "bg-red-50 border-red-200 text-red-800 hover:bg-red-100 hover:border-red-300"
                                   }`}
                                   title={`Question ${idx + 1} - ${
                                     question.plainQuestion.difficulty === "E"
                                       ? "Easy"
                                       : question.plainQuestion.difficulty ===
-                                        "M"
-                                      ? "Medium"
-                                      : "Hard"
+                                          "M"
+                                        ? "Medium"
+                                        : "Hard"
                                   }${
                                     isAnswered
                                       ? ` - ${
@@ -3366,8 +3397,8 @@ export default function PracticeRushMultistep({
                                       !isAnswered
                                         ? "bg-gray-400"
                                         : isCorrect
-                                        ? "bg-green-500"
-                                        : "bg-red-500"
+                                          ? "bg-green-500"
+                                          : "bg-red-500"
                                     }`}
                                   />
 
@@ -3382,24 +3413,24 @@ export default function PracticeRushMultistep({
                                       question.plainQuestion.difficulty === "E"
                                         ? "bg-green-200 text-green-800"
                                         : question.plainQuestion.difficulty ===
-                                          "M"
-                                        ? "bg-yellow-200 text-yellow-800"
-                                        : "bg-red-200 text-red-800"
+                                            "M"
+                                          ? "bg-yellow-200 text-yellow-800"
+                                          : "bg-red-200 text-red-800"
                                     }`}
                                   >
                                     {question.plainQuestion.difficulty === "E"
                                       ? "Easy"
                                       : question.plainQuestion.difficulty ===
-                                        "M"
-                                      ? "Medium"
-                                      : "Hard"}
+                                          "M"
+                                        ? "Medium"
+                                        : "Hard"}
                                   </div>
 
                                   {/* Time spent */}
                                   <div className="text-xs text-gray-600 mb-1">
                                     {Math.floor(timeSpent / (1000 * 60))}m{" "}
                                     {Math.floor(
-                                      (timeSpent % (1000 * 60)) / 1000
+                                      (timeSpent % (1000 * 60)) / 1000,
                                     )}
                                     s
                                   </div>
@@ -3762,7 +3793,7 @@ export default function PracticeRushMultistep({
                               const hasNote = assessmentNotes.some(
                                 (note: QuestionNote) =>
                                   note.questionId ===
-                                  currentQuestion?.plainQuestion.questionId
+                                  currentQuestion?.plainQuestion.questionId,
                               );
 
                               return (
@@ -3788,7 +3819,7 @@ export default function PracticeRushMultistep({
                               const hasNote = assessmentNotes.some(
                                 (note: QuestionNote) =>
                                   note.questionId ===
-                                  currentQuestion?.plainQuestion.questionId
+                                  currentQuestion?.plainQuestion.questionId,
                               );
 
                               return hasNote
@@ -3876,7 +3907,7 @@ export default function PracticeRushMultistep({
                           }}
                           showStrikethrough={true}
                           correctAnswers={currentQuestion.correct_answer.map(
-                            (answer) => answer.trim()
+                            (answer) => answer.trim(),
                           )}
                           isAnswerChecked={state.isAnswerChecked}
                           isReviewMode={
@@ -3884,7 +3915,7 @@ export default function PracticeRushMultistep({
                             Boolean(
                               state.questionAnswers[
                                 currentQuestion.plainQuestion.questionId
-                              ]
+                              ],
                             )
                           }
                         />
@@ -3898,7 +3929,7 @@ export default function PracticeRushMultistep({
                             })
                           }
                           onSubmit={handleAnsweringQuestion(
-                            currentQuestion.plainQuestion.questionId
+                            currentQuestion.plainQuestion.questionId,
                           )}
                           disabled={state.isAnswerChecked || isReviewMode}
                         />
@@ -3954,11 +3985,11 @@ export default function PracticeRushMultistep({
                               state.isLoadingNextBatch
                                 ? "bg-yellow-500 hover:bg-yellow-600 border-yellow-700 hover:border-yellow-800 cursor-wait animate-pulse"
                                 : state.isAnswerChecked && state.isAnswerCorrect
-                                ? "bg-green-500 hover:bg-green-600 border-green-700 hover:border-green-800 cursor-pointer hover:shadow-xl active:translate-y-0.5 active:border-b-2"
-                                : state.isAnswerChecked &&
-                                  !state.isAnswerCorrect
-                                ? "bg-red-500 hover:bg-red-600 border-red-700 hover:border-red-800 cursor-pointer hover:shadow-xl active:translate-y-0.5 active:border-b-2"
-                                : "bg-blue-500 hover:bg-blue-600 border-blue-700 hover:border-blue-800 cursor-pointer hover:shadow-xl active:translate-y-0.5 active:border-b-2"
+                                  ? "bg-green-500 hover:bg-green-600 border-green-700 hover:border-green-800 cursor-pointer hover:shadow-xl active:translate-y-0.5 active:border-b-2"
+                                  : state.isAnswerChecked &&
+                                      !state.isAnswerCorrect
+                                    ? "bg-red-500 hover:bg-red-600 border-red-700 hover:border-red-800 cursor-pointer hover:shadow-xl active:translate-y-0.5 active:border-b-2"
+                                    : "bg-blue-500 hover:bg-blue-600 border-blue-700 hover:border-blue-800 cursor-pointer hover:shadow-xl active:translate-y-0.5 active:border-b-2"
                             }`}
                             disabled={
                               (state.selectedAnswer == null &&
@@ -3968,7 +3999,7 @@ export default function PracticeRushMultistep({
                               state.isLoadingNextBatch
                             }
                             onClick={handleAnsweringQuestion(
-                              currentQuestion.plainQuestion.questionId
+                              currentQuestion.plainQuestion.questionId,
                             )}
                           >
                             {state.isLoadingNextBatch ? (
@@ -4106,7 +4137,7 @@ export default function PracticeRushMultistep({
                           }}
                           showStrikethrough={true}
                           correctAnswers={currentQuestion.correct_answer.map(
-                            (answer) => answer.trim()
+                            (answer) => answer.trim(),
                           )}
                           isAnswerChecked={state.isAnswerChecked}
                           isReviewMode={
@@ -4114,7 +4145,7 @@ export default function PracticeRushMultistep({
                             Boolean(
                               state.questionAnswers[
                                 currentQuestion.plainQuestion.questionId
-                              ]
+                              ],
                             )
                           }
                         />
@@ -4128,7 +4159,7 @@ export default function PracticeRushMultistep({
                             })
                           }
                           onSubmit={handleAnsweringQuestion(
-                            currentQuestion.plainQuestion.questionId
+                            currentQuestion.plainQuestion.questionId,
                           )}
                           disabled={state.isAnswerChecked || isReviewMode}
                         />
@@ -4185,12 +4216,12 @@ export default function PracticeRushMultistep({
                                 state.isLoadingNextBatch
                                   ? "bg-yellow-500 hover:bg-yellow-600 border-yellow-700 hover:border-yellow-800 cursor-wait animate-pulse"
                                   : state.isAnswerChecked &&
-                                    state.isAnswerCorrect
-                                  ? "bg-green-500 hover:bg-green-600 border-green-700 hover:border-green-800 cursor-pointer hover:shadow-xl active:translate-y-0.5 active:border-b-2"
-                                  : state.isAnswerChecked &&
-                                    !state.isAnswerCorrect
-                                  ? "bg-red-500 hover:bg-red-600 border-red-700 hover:border-red-800 cursor-pointer hover:shadow-xl active:translate-y-0.5 active:border-b-2"
-                                  : "bg-blue-500 hover:bg-blue-600 border-blue-700 hover:border-blue-800 cursor-pointer hover:shadow-xl active:translate-y-0.5 active:border-b-2"
+                                      state.isAnswerCorrect
+                                    ? "bg-green-500 hover:bg-green-600 border-green-700 hover:border-green-800 cursor-pointer hover:shadow-xl active:translate-y-0.5 active:border-b-2"
+                                    : state.isAnswerChecked &&
+                                        !state.isAnswerCorrect
+                                      ? "bg-red-500 hover:bg-red-600 border-red-700 hover:border-red-800 cursor-pointer hover:shadow-xl active:translate-y-0.5 active:border-b-2"
+                                      : "bg-blue-500 hover:bg-blue-600 border-blue-700 hover:border-blue-800 cursor-pointer hover:shadow-xl active:translate-y-0.5 active:border-b-2"
                               }`}
                               disabled={
                                 (state.selectedAnswer == null &&
@@ -4200,7 +4231,7 @@ export default function PracticeRushMultistep({
                                 state.isLoadingNextBatch
                               }
                               onClick={handleAnsweringQuestion(
-                                currentQuestion.plainQuestion.questionId
+                                currentQuestion.plainQuestion.questionId,
                               )}
                             >
                               {state.isLoadingNextBatch ? (
@@ -4281,7 +4312,7 @@ export default function PracticeRushMultistep({
               questionNotes[practiceSelections.assessment] || [];
             const existingNote = assessmentNotes.find(
               (note: QuestionNote) =>
-                note.questionId === currentQuestion?.plainQuestion.questionId
+                note.questionId === currentQuestion?.plainQuestion.questionId,
             );
             return existingNote?.note || "";
           } catch {
@@ -4309,7 +4340,7 @@ export default function PracticeRushMultistep({
           } else {
             // At end of loaded questions - don't automatically continue
             console.log(
-              "Reached end of loaded questions in success feedback. User can choose to continue or finish."
+              "Reached end of loaded questions in success feedback. User can choose to continue or finish.",
             );
           }
         }}
@@ -4329,7 +4360,7 @@ export default function PracticeRushMultistep({
         onCancel={() => dispatch({ type: "TOGGLE_FINISH_CONFIRMATION" })}
         questionsAnswered={
           Object.keys(state.questionAnswers).filter(
-            (id) => state.questionAnswers[id] !== null
+            (id) => state.questionAnswers[id] !== null,
           ).length
         }
       />

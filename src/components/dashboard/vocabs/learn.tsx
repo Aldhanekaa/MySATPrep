@@ -28,6 +28,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useLocalStorage } from "@/lib/useLocalStorage";
+import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
+import { saveVocabulary } from "@/lib/utils/dataSync";
 import { useSearchParams } from "next/navigation";
 
 // Learn vocab reducer
@@ -79,14 +81,14 @@ const filterVocabs = (
   difficultyFilter: "all" | "easy" | "medium" | "hard",
   learnedFilter: "all" | "learned" | "not-learned",
   learntVocabs: string[],
-  shouldShuffle = false
+  shouldShuffle = false,
 ): VocabularyWord[] => {
   let filtered = vocabs_database;
 
   // Filter by difficulty
   if (difficultyFilter !== "all") {
     filtered = filtered.filter(
-      (vocab) => vocab.difficulty === difficultyFilter
+      (vocab) => vocab.difficulty === difficultyFilter,
     );
   }
 
@@ -118,7 +120,7 @@ function learnReducer(state: LearnState, action: LearnAction): LearnState {
     case "NEXT_VOCAB":
       const nextIndex = Math.min(
         state.currentIndex + 1,
-        state.filteredVocabs.length - 1
+        state.filteredVocabs.length - 1,
       );
       return {
         ...state,
@@ -184,6 +186,9 @@ export default function LearnVocab() {
     filteredVocabs: vocabs_database,
   });
 
+  const reduxDispatch = useAppDispatch();
+  const reduxState = useAppSelector((s) => s);
+
   const [userSentence, setUserSentence] = useState("");
   const [showPreviousSentences, setShowPreviousSentences] = useState(false);
   const [deletingIndex, setDeletingIndex] = useState<number | null>(null);
@@ -197,21 +202,29 @@ export default function LearnVocab() {
     {
       learntVocabs: [],
       userSentences: {},
-    }
+    },
   );
+
+  // Sync vocabulary data to DB for authenticated users whenever it changes
+  useEffect(() => {
+    saveVocabulary(vocabsData, reduxDispatch, reduxState);
+    // We intentionally exclude reduxState and reduxDispatch from deps to avoid
+    // re-running the effect on every Redux action — vocabsData changes are the trigger.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [vocabsData]);
 
   // Handle URL parameter for specific word
   useEffect(() => {
     if (wordParam) {
       // Find the word in the database
       const foundWord = vocabs_database.find(
-        (vocab) => vocab.word.toLowerCase() === wordParam.toLowerCase()
+        (vocab) => vocab.word.toLowerCase() === wordParam.toLowerCase(),
       );
 
       if (foundWord) {
         // Find the index of this word in the current filtered vocabs
         const wordIndex = learnState.filteredVocabs.findIndex(
-          (vocab) => vocab.word.toLowerCase() === wordParam.toLowerCase()
+          (vocab) => vocab.word.toLowerCase() === wordParam.toLowerCase(),
         );
 
         if (wordIndex !== -1) {
@@ -225,7 +238,7 @@ export default function LearnVocab() {
           // Find what filters would include this word
           const wordDifficulty = foundWord.difficulty;
           const isWordLearned = vocabsData.learntVocabs.includes(
-            foundWord.word
+            foundWord.word,
           );
 
           // Check if current filters exclude this word
@@ -275,7 +288,7 @@ export default function LearnVocab() {
       learnState.difficultyFilter,
       learnState.learnedFilter,
       vocabsData.learntVocabs,
-      !wordParam // Shuffle only when there's no specific word parameter
+      !wordParam, // Shuffle only when there's no specific word parameter
     );
 
     dispatch({
@@ -286,7 +299,7 @@ export default function LearnVocab() {
     // If we have a word parameter, try to maintain focus on that word
     if (wordParam && filteredVocabs.length > 0) {
       const foundWordIndex = filteredVocabs.findIndex(
-        (vocab) => vocab.word.toLowerCase() === wordParam.toLowerCase()
+        (vocab) => vocab.word.toLowerCase() === wordParam.toLowerCase(),
       );
 
       if (foundWordIndex !== -1) {
@@ -379,7 +392,7 @@ export default function LearnVocab() {
 
           // Also remove from learnt vocabs if no sentences exist
           updatedData.learntVocabs = updatedData.learntVocabs.filter(
-            (learntWord) => learntWord !== word
+            (learntWord) => learntWord !== word,
           );
         }
       }
@@ -422,7 +435,7 @@ export default function LearnVocab() {
     // Check if we're looking for a specific word that doesn't exist
     if (wordParam) {
       const foundWord = vocabs_database.find(
-        (vocab) => vocab.word.toLowerCase() === wordParam.toLowerCase()
+        (vocab) => vocab.word.toLowerCase() === wordParam.toLowerCase(),
       );
 
       if (!foundWord) {
@@ -586,7 +599,7 @@ export default function LearnVocab() {
                 "w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:border-transparent",
                 sentenceError
                   ? "border-red-300 focus:ring-red-500"
-                  : "border-gray-300 focus:ring-blue-500"
+                  : "border-gray-300 focus:ring-blue-500",
               )}
             />
             {sentenceError && (
@@ -700,7 +713,7 @@ export default function LearnVocab() {
                         "p-3 dark:bg-blue-800/30 border border-blue-100 dark:border-blue-700 rounded text-sm flex items-start justify-between group transition-colors",
                         deletingIndex === index
                           ? "bg-red-100 dark:bg-red-900/30 border-red-200 dark:border-red-700"
-                          : "hover:bg-blue-100 dark:hover:bg-blue-800/50"
+                          : "hover:bg-blue-100 dark:hover:bg-blue-800/50",
                       )}
                     >
                       <span className="text-zinc-700 dark:text-zinc-300 italic flex-1 mr-3">

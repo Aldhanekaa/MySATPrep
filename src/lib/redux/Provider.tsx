@@ -2,8 +2,7 @@
 
 /**
  * Redux Provider Component
- * Wraps the application with Redux Provider for state management
- * Compatible with Next.js 15 App Router
+ * Wraps children with Redux Provider for Next.js App Router compatibility
  *
  * Validates: Requirement 4.4
  */

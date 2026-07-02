@@ -13,6 +13,17 @@ import { SavedQuestions, SavedQuestion } from "@/types/savedQuestions";
 import { SavedCollections, SavedCollection } from "@/types/savedCollections";
 import { QuestionById_Data } from "@/types/question";
 import { Card, CardContent } from "@/components/ui/card-v2";
+import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
+import {
+  saveCollection,
+  updateCollection as syncUpdateCollection,
+  removeCollection,
+} from "@/lib/utils/dataSync";
+import {
+  selectIsAuthenticated,
+  selectUserBookmarks,
+  selectUserCollections,
+} from "@/lib/redux/selectors";
 import {
   OptimizedQuestionCard,
   BaseQuestionWithData,
@@ -115,7 +126,7 @@ interface SavedTabState {
 function filterQuestions(
   questions: QuestionWithData[],
   subject: string,
-  difficulty: string
+  difficulty: string,
 ) {
   let filteredBySubject = questions.filter((question) => {
     // Apply subject filter
@@ -198,7 +209,7 @@ type SavedTabAction =
 
 const savedTabReducer = (
   state: SavedTabState,
-  action: SavedTabAction
+  action: SavedTabAction,
 ): SavedTabState => {
   switch (action.type) {
     case "INITIALIZE_QUESTIONS":
@@ -220,7 +231,7 @@ const savedTabReducer = (
                 hasError: false,
                 errorMessage: undefined,
               }
-            : q
+            : q,
         ),
       };
     case "SET_QUESTION_SUCCESS":
@@ -245,7 +256,7 @@ const savedTabReducer = (
                 isLoading: false,
                 hasError: false,
               }
-            : q
+            : q,
         ),
       };
     case "SET_QUESTION_ERROR":
@@ -259,7 +270,7 @@ const savedTabReducer = (
                 hasError: true,
                 errorMessage: action.payload.errorMessage,
               }
-            : q
+            : q,
         ),
       };
     case "ADD_FETCHED_ID":
@@ -276,17 +287,17 @@ const savedTabReducer = (
       if (action.payload.selectedCollection) {
         const collectionQuestionIds =
           action.payload.selectedCollection.questionDetails.map(
-            (detail) => detail.questionId
+            (detail) => detail.questionId,
           );
         questionsForSubjectFilter = state.allSavedQuestions.filter((question) =>
-          collectionQuestionIds.includes(question.questionId)
+          collectionQuestionIds.includes(question.questionId),
         );
       }
 
       const filteredSubjectQuestions = filterQuestions(
         questionsForSubjectFilter,
         action.payload.subject,
-        state.filterDifficulty
+        state.filterDifficulty,
       ).slice(0, 10);
 
       return {
@@ -302,17 +313,17 @@ const savedTabReducer = (
       if (action.payload.selectedCollection) {
         const collectionQuestionIds =
           action.payload.selectedCollection.questionDetails.map(
-            (detail) => detail.questionId
+            (detail) => detail.questionId,
           );
         questionsForDifficultyFilter = state.allSavedQuestions.filter(
-          (question) => collectionQuestionIds.includes(question.questionId)
+          (question) => collectionQuestionIds.includes(question.questionId),
         );
       }
 
       const filteredDifficultyQuestions = filterQuestions(
         questionsForDifficultyFilter,
         state.filterSubject,
-        action.payload.difficulty
+        action.payload.difficulty,
       ).slice(0, 10);
 
       return {
@@ -340,22 +351,22 @@ const savedTabReducer = (
       if (action.payload.selectedCollection) {
         const collectionQuestionIds =
           action.payload.selectedCollection.questionDetails.map(
-            (detail) => detail.questionId
+            (detail) => detail.questionId,
           );
         questionsForLoadMore = state.allSavedQuestions.filter((question) =>
-          collectionQuestionIds.includes(question.questionId)
+          collectionQuestionIds.includes(question.questionId),
         );
       }
 
       const filteredQuestions = filterQuestions(
         questionsForLoadMore,
         state.filterSubject,
-        state.filterDifficulty
+        state.filterDifficulty,
       );
 
       const nextCount = Math.min(
         state.displayedQuestionsCount + 10,
-        filteredQuestions.length
+        filteredQuestions.length,
       );
       const newQuestions = filteredQuestions
         .slice(state.displayedQuestionsCount, nextCount)
@@ -388,17 +399,17 @@ const savedTabReducer = (
       // Apply collection filtering first if there's a selected collection
       if (action.payload) {
         const collectionQuestionIds = action.payload.questionDetails.map(
-          (detail) => detail.questionId
+          (detail) => detail.questionId,
         );
         console.log(collectionQuestionIds);
         let questionsForSubjectFilter = state.allSavedQuestions.filter(
-          (question) => collectionQuestionIds.includes(question.questionId)
+          (question) => collectionQuestionIds.includes(question.questionId),
         );
 
         let filteredCollectionQuestions = filterQuestions(
           questionsForSubjectFilter,
           state.filterSubject,
-          state.filterDifficulty
+          state.filterDifficulty,
         ).slice(0, Math.min(10, questionsForSubjectFilter.length));
 
         console.log("filteredCollectionQuestions", filteredCollectionQuestions);
@@ -434,18 +445,57 @@ const savedTabReducer = (
 };
 
 export function SavedTab({ selectedAssessment }: SavedTabProps) {
-  // Load saved questions from localStorage
-  const [savedQuestions, setSavedQuestions] = useLocalStorage<SavedQuestions>(
-    "savedQuestions",
-    {}
-  );
+  const reduxDispatch = useAppDispatch();
+  const reduxState = useAppSelector((s) => s);
+  const isAuthenticated = useAppSelector(selectIsAuthenticated);
+  const reduxBookmarks = useAppSelector(selectUserBookmarks);
+  const reduxCollections = useAppSelector(selectUserCollections);
 
-  // Load saved collections from localStorage
-  const [savedCollections, setSavedCollections] =
+  // Load saved questions from localStorage (used for unauthenticated users)
+  const [savedQuestionsLS, setSavedQuestionsLS] =
+    useLocalStorage<SavedQuestions>("savedQuestions", {});
+
+  // Load saved collections from localStorage (used for unauthenticated users)
+  const [savedCollectionsLS, setSavedCollectionsLS] =
     useLocalStorage<SavedCollections>("savedCollections", {});
 
-  // Effect to keep savedCollections updated with latest localStorage data
+  // For authenticated users, derive savedQuestions from Redux bookmarks
+  const savedQuestions: SavedQuestions = useMemo(() => {
+    if (isAuthenticated) {
+      return reduxBookmarks.reduce<SavedQuestions>((acc, bookmark) => {
+        const key = bookmark.assessment;
+        if (!acc[key]) acc[key] = [];
+        acc[key].push(bookmark as SavedQuestion);
+        return acc;
+      }, {});
+    }
+    return savedQuestionsLS;
+  }, [isAuthenticated, reduxBookmarks, savedQuestionsLS]);
+
+  // Setter that only writes to localStorage (for unauthenticated path in sub-components)
+  const setSavedQuestions = (value: SavedQuestions) => {
+    if (!isAuthenticated) setSavedQuestionsLS(value);
+  };
+
+  // For authenticated users, derive savedCollections from Redux collections
+  const savedCollections: SavedCollections = useMemo(() => {
+    if (isAuthenticated) {
+      return reduxCollections.reduce<SavedCollections>((acc, col) => {
+        acc[col.collectionId] = col as SavedCollection;
+        return acc;
+      }, {});
+    }
+    return savedCollectionsLS;
+  }, [isAuthenticated, reduxCollections, savedCollectionsLS]);
+
+  const setSavedCollections = (value: SavedCollections) => {
+    if (!isAuthenticated) setSavedCollectionsLS(value);
+  };
+
+  // Effect to keep savedCollections updated with latest localStorage data (unauthenticated only)
   useEffect(() => {
+    if (isAuthenticated) return;
+
     const updateSavedCollections = () => {
       try {
         const currentCollections =
@@ -482,10 +532,12 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
       clearInterval(interval);
       window.removeEventListener("storage", handleStorageChange);
     };
-  }, [savedCollections, setSavedCollections]);
+  }, [isAuthenticated, savedCollections, setSavedCollections]);
 
-  // Effect to keep savedQuestions updated with latest localStorage data
+  // Effect to keep savedQuestions updated with latest localStorage data (unauthenticated only)
   useEffect(() => {
+    if (isAuthenticated) return;
+
     const updateSavedQuestions = () => {
       try {
         const currentQuestions = window.localStorage.getItem("savedQuestions");
@@ -521,7 +573,7 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
       clearInterval(interval);
       window.removeEventListener("storage", handleStorageChange);
     };
-  }, [savedQuestions, setSavedQuestions]);
+  }, [isAuthenticated, savedQuestions, setSavedQuestions]);
 
   // State for collection management
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -546,6 +598,12 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
         ...savedCollections,
         [newCollection.id]: newCollection,
       });
+      // Sync: API for authenticated users, localStorage for unauthenticated
+      saveCollection(
+        { ...newCollection, collectionId: newCollection.id },
+        reduxDispatch,
+        reduxState,
+      );
 
       setNewCollectionName("");
       setIsCreateDialogOpen(false);
@@ -557,6 +615,8 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
     const updatedCollections = { ...savedCollections };
     delete updatedCollections[collectionId];
     setSavedCollections(updatedCollections);
+    // Sync: API for authenticated users, localStorage for unauthenticated
+    removeCollection(collectionId, reduxDispatch, reduxState);
   };
 
   // Handle editing a collection
@@ -569,14 +629,22 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
   // Handle updating a collection
   const handleUpdateCollection = () => {
     if (editingCollection && newCollectionName.trim()) {
+      const updatedCollection = {
+        ...editingCollection,
+        name: newCollectionName.trim(),
+        updatedAt: new Date().toISOString(),
+      };
       setSavedCollections({
         ...savedCollections,
-        [editingCollection.id]: {
-          ...editingCollection,
-          name: newCollectionName.trim(),
-          updatedAt: new Date().toISOString(),
-        },
+        [editingCollection.id]: updatedCollection,
       });
+      // Sync: API for authenticated users, localStorage for unauthenticated
+      syncUpdateCollection(
+        editingCollection.id,
+        updatedCollection,
+        reduxDispatch,
+        reduxState,
+      );
 
       setEditingCollection(null);
       setNewCollectionName("");
@@ -600,13 +668,15 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
         ...collection,
         id: collection.id || `collection_${index}_${Date.now()}`, // Ensure id exists
       };
-    }
+    },
   );
 
-  // Migrate collections in localStorage if needed
+  // Migrate collections in localStorage if needed (unauthenticated only)
   useEffect(() => {
+    if (isAuthenticated) return;
+
     const needsMigration = Object.values(savedCollections).some(
-      (collection) => !collection.questionDetails
+      (collection) => !collection.questionDetails,
     );
 
     if (needsMigration) {
@@ -621,7 +691,7 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
       });
       setSavedCollections(migratedCollections);
     }
-  }, [savedCollections, setSavedCollections]);
+  }, [isAuthenticated, savedCollections, setSavedCollections]);
 
   // Use reducer for better state management and performance
   const [state, dispatch] = useReducer(savedTabReducer, {
@@ -639,8 +709,10 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
 
   const loadMoreRef = useRef<HTMLDivElement>(null);
 
-  // Effect to sync both savedCollections and savedQuestions when view mode or collection changes
+  // Effect to sync both savedCollections and savedQuestions when view mode or collection changes (unauthenticated only)
   useEffect(() => {
+    if (isAuthenticated) return;
+
     const syncDataOnNavigation = () => {
       try {
         // Sync savedCollections
@@ -674,6 +746,7 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
     // This ensures fresh data when opening bookmark folders or switching views
     syncDataOnNavigation();
   }, [
+    isAuthenticated,
     state.viewMode,
     state.selectedCollection,
     setSavedCollections,
@@ -696,19 +769,19 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
 
       return assessmentMap[assessment.name] || "SAT";
     },
-    []
+    [],
   );
 
   // Memoize assessment key to prevent unnecessary recalculations
   const assessmentKey = useMemo(
     () => getAssessmentKey(selectedAssessment),
-    [selectedAssessment, getAssessmentKey]
+    [selectedAssessment, getAssessmentKey],
   );
 
   // Memoize assessment name to prevent unnecessary recalculations
   const assessmentName = useMemo(
     () => selectedAssessment?.name || "SAT",
-    [selectedAssessment?.name]
+    [selectedAssessment?.name],
   );
 
   // Get the current fresh collection data from savedCollections
@@ -717,7 +790,7 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
 
     // Find the collection in the migrated collections array to get fresh data
     const freshCollection = collectionsArray.find(
-      (collection) => collection.id === state.selectedCollection?.id
+      (collection) => collection.id === state.selectedCollection?.id,
     );
 
     return freshCollection || state.selectedCollection;
@@ -731,17 +804,17 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
     if (currentSelectedCollection) {
       const collectionQuestionIds =
         currentSelectedCollection.questionDetails.map(
-          (detail) => detail.questionId
+          (detail) => detail.questionId,
         );
       questionsToFilter = state.allSavedQuestions.filter((question) =>
-        collectionQuestionIds.includes(question.questionId)
+        collectionQuestionIds.includes(question.questionId),
       );
     }
 
     return filterQuestions(
       questionsToFilter,
       state.filterSubject,
-      state.filterDifficulty
+      state.filterDifficulty,
     ).length;
   }, [
     state.allSavedQuestions,
@@ -769,11 +842,11 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
       // Filter questions based on selected collection
       const collectionQuestionIds =
         currentSelectedCollection.questionDetails.map(
-          (detail) => detail.questionId
+          (detail) => detail.questionId,
         );
       questionsToShow = assessmentSavedQuestions
         .filter((question) =>
-          collectionQuestionIds.includes(question.questionId)
+          collectionQuestionIds.includes(question.questionId),
         )
         .map((question) => ({
           ...question,
@@ -810,7 +883,7 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
       state.viewMode,
       state.isInitialized,
       state.questionsWithData.length,
-      state.fetchedQuestionIds.size
+      state.fetchedQuestionIds.size,
     );
     if (state.viewMode == "folders") return;
     if (!state.isInitialized || state.questionsWithData.length === 0) return;
@@ -825,7 +898,7 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
             question.isLoading &&
             !question.questionData &&
             !question.hasError &&
-            !state.fetchedQuestionIds.has(question.questionId)
+            !state.fetchedQuestionIds.has(question.questionId),
         );
 
       console.log("questionsToFetch:", questionsToFetch.length);
@@ -939,7 +1012,7 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
           loadMoreQuestions();
         }
       },
-      { threshold: 0.1 }
+      { threshold: 0.1 },
     );
 
     observer.observe(currentLoadMoreRef);
@@ -989,8 +1062,8 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
               {state.viewMode === "folders"
                 ? "Saved Collections"
                 : state.selectedCollection
-                ? state.selectedCollection.name
-                : "All Questions"}
+                  ? state.selectedCollection.name
+                  : "All Questions"}
             </h2>
           </div>
           <p className="text-sm text-muted-foreground">
@@ -1006,16 +1079,17 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
                     : ""
                 }`
               : state.selectedCollection
-              ? `${
-                  (state.selectedCollection.questionDetails || []).length
-                } question${
-                  (state.selectedCollection.questionDetails || []).length !== 1
-                    ? "s"
-                    : ""
-                } in ${state.selectedCollection.name}`
-              : `${state.allSavedQuestions.length} saved question${
-                  state.allSavedQuestions.length !== 1 ? "s" : ""
-                } for ${assessmentName}`}
+                ? `${
+                    (state.selectedCollection.questionDetails || []).length
+                  } question${
+                    (state.selectedCollection.questionDetails || []).length !==
+                    1
+                      ? "s"
+                      : ""
+                  } in ${state.selectedCollection.name}`
+                : `${state.allSavedQuestions.length} saved question${
+                    state.allSavedQuestions.length !== 1 ? "s" : ""
+                  } for ${assessmentName}`}
           </p>
         </div>
 
@@ -1066,8 +1140,8 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
                 state.filterSubject === "all"
                   ? ListFilterIcon
                   : state.filterSubject == "math"
-                  ? SigmaIcon
-                  : PencilRuler
+                    ? SigmaIcon
+                    : PencilRuler
               }
               className=" bg-background"
             >

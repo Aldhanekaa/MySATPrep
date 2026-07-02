@@ -1,12 +1,114 @@
 /**
  * Authentication Redux Slice
- * Manages authentication state including user information, loading states, and errors
+ * Manages authentication state including user information, loading states, and errors.
+ * Includes async thunks for all authentication actions.
  *
- * Validates: Requirement 4.2
+ * Validates: Requirements 4.2, 4.7
  */
 
-import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import type { AuthState, User } from "@/lib/types/auth";
+import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
+import type {
+  AuthState,
+  User,
+  LoginCredentials,
+  RegisterCredentials,
+} from "@/lib/types/auth";
+import {
+  loginWithGoogle as apiLoginWithGoogle,
+  loginWithEmail as apiLoginWithEmail,
+  registerWithEmail as apiRegisterWithEmail,
+  logout as apiLogout,
+  checkSession as apiCheckSession,
+} from "@/lib/api/authClient";
+
+// ─── Async Thunks ────────────────────────────────────────────────────────────
+
+/**
+ * Initiates Google OAuth sign-in (redirects; no return value needed in Redux).
+ * Validates: Requirement 2.1
+ */
+export const loginWithGoogle = createAsyncThunk<void, string | undefined>(
+  "auth/loginWithGoogle",
+  async (callbackURL, { rejectWithValue }) => {
+    try {
+      await apiLoginWithGoogle(callbackURL);
+    } catch (error) {
+      return rejectWithValue(
+        error instanceof Error ? error.message : "Google sign-in failed",
+      );
+    }
+  },
+);
+
+/**
+ * Signs in with email and password, then stores the user in Redux.
+ * Validates: Requirement 3.1, 4.7
+ */
+export const loginWithEmail = createAsyncThunk<User, LoginCredentials>(
+  "auth/loginWithEmail",
+  async (credentials, { rejectWithValue }) => {
+    try {
+      return await apiLoginWithEmail(credentials);
+    } catch (error) {
+      return rejectWithValue(
+        error instanceof Error ? error.message : "Login failed",
+      );
+    }
+  },
+);
+
+/**
+ * Registers a new user with email and password, then stores the user in Redux.
+ * Validates: Requirement 3.2, 4.7
+ */
+export const registerWithEmail = createAsyncThunk<User, RegisterCredentials>(
+  "auth/registerWithEmail",
+  async (credentials, { rejectWithValue }) => {
+    try {
+      return await apiRegisterWithEmail(credentials);
+    } catch (error) {
+      return rejectWithValue(
+        error instanceof Error ? error.message : "Registration failed",
+      );
+    }
+  },
+);
+
+/**
+ * Signs out the current user and clears Redux auth state.
+ * Validates: Requirement 17.1, 4.7
+ */
+export const logout = createAsyncThunk<void, void>(
+  "auth/logout",
+  async (_, { rejectWithValue }) => {
+    try {
+      await apiLogout();
+    } catch (error) {
+      return rejectWithValue(
+        error instanceof Error ? error.message : "Logout failed",
+      );
+    }
+  },
+);
+
+/**
+ * Checks the current session on app load and restores auth state if valid.
+ * Validates: Requirements 10.2, 10.3, 10.6, 4.7
+ */
+export const checkSession = createAsyncThunk<User | null, void>(
+  "auth/checkSession",
+  async (_, { rejectWithValue }) => {
+    try {
+      return await apiCheckSession();
+    } catch (error) {
+      return rejectWithValue(
+        error instanceof Error ? error.message : "Session check failed",
+      );
+    }
+  },
+);
+
+// ─── Slice ───────────────────────────────────────────────────────────────────
 
 // Initial authentication state
 const initialState: AuthState = {
@@ -17,7 +119,7 @@ const initialState: AuthState = {
   sessionChecked: false,
 };
 
-// Auth slice with reducers
+// Auth slice with reducers and extraReducers for async thunks
 const authSlice = createSlice({
   name: "auth",
   initialState,
@@ -53,6 +155,102 @@ const authSlice = createSlice({
     setSessionChecked: (state, action: PayloadAction<boolean>) => {
       state.sessionChecked = action.payload;
     },
+  },
+  extraReducers: (builder) => {
+    // ── loginWithGoogle ──────────────────────────────────────────────────────
+    builder
+      .addCase(loginWithGoogle.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(loginWithGoogle.fulfilled, (state) => {
+        // OAuth redirects away; state will be updated via checkSession on return
+        state.loading = false;
+      })
+      .addCase(loginWithGoogle.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      });
+
+    // ── loginWithEmail ───────────────────────────────────────────────────────
+    builder
+      .addCase(loginWithEmail.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(loginWithEmail.fulfilled, (state, action) => {
+        state.user = action.payload;
+        state.isAuthenticated = true;
+        state.loading = false;
+        state.error = null;
+      })
+      .addCase(loginWithEmail.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      });
+
+    // ── registerWithEmail ────────────────────────────────────────────────────
+    builder
+      .addCase(registerWithEmail.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(registerWithEmail.fulfilled, (state, action) => {
+        state.user = action.payload;
+        state.isAuthenticated = true;
+        state.loading = false;
+        state.error = null;
+      })
+      .addCase(registerWithEmail.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      });
+
+    // ── logout ───────────────────────────────────────────────────────────────
+    builder
+      .addCase(logout.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(logout.fulfilled, (state) => {
+        state.user = null;
+        state.isAuthenticated = false;
+        state.loading = false;
+        state.error = null;
+        state.sessionChecked = false;
+      })
+      .addCase(logout.rejected, (state, action) => {
+        // Even on failure, clear local state for security
+        state.user = null;
+        state.isAuthenticated = false;
+        state.loading = false;
+        state.error = action.payload as string;
+      });
+
+    // ── checkSession ─────────────────────────────────────────────────────────
+    builder
+      .addCase(checkSession.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(checkSession.fulfilled, (state, action) => {
+        if (action.payload) {
+          state.user = action.payload;
+          state.isAuthenticated = true;
+        } else {
+          state.user = null;
+          state.isAuthenticated = false;
+        }
+        state.loading = false;
+        state.sessionChecked = true;
+      })
+      .addCase(checkSession.rejected, (state, action) => {
+        state.user = null;
+        state.isAuthenticated = false;
+        state.loading = false;
+        state.sessionChecked = true;
+        state.error = action.payload as string;
+      });
   },
 });
 

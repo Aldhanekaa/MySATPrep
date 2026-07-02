@@ -53,40 +53,66 @@ import { useAssessment } from "@/contexts/assessment-context";
 import { useLocalStorage } from "@/lib/useLocalStorage";
 import { SavedQuestions } from "@/types/savedQuestions";
 import { PracticeStatistics } from "@/types/statistics";
+import { useAppSelector } from "@/lib/redux/hooks";
+import {
+  selectIsAuthenticated,
+  selectUserBookmarks,
+  selectUserStatistics,
+} from "@/lib/redux/selectors";
 // import { SidebarFooterNews } from "./app-footer-news";
-
-import { it } from "node:test";
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { state, getAssessmentKey } = useAssessment();
+  const isAuthenticated = useAppSelector(selectIsAuthenticated);
+  const reduxBookmarks = useAppSelector(selectUserBookmarks);
+  const reduxStatistics = useAppSelector(selectUserStatistics);
 
-  // Load saved questions to calculate badge count
+  // Load saved questions from localStorage (used for unauthenticated users)
   const [savedQuestions] = useLocalStorage<SavedQuestions>(
     "savedQuestions",
     {},
   );
 
-  // Load practice statistics to calculate answered questions badge count
+  // Load practice statistics from localStorage (used for unauthenticated users)
   const [practiceStatistics] = useLocalStorage<PracticeStatistics>(
     "practiceStatistics",
     {},
   );
 
-  // Calculate saved questions count for current assessment
+  // Calculate saved questions count — from Redux for authenticated users, localStorage otherwise
   const savedQuestionsCount = React.useMemo(() => {
+    if (isAuthenticated) {
+      const assessmentKey = getAssessmentKey(state.selectedAssessment);
+      return reduxBookmarks.filter((b) => b.assessment === assessmentKey)
+        .length;
+    }
     const assessmentKey = getAssessmentKey(state.selectedAssessment);
     const assessmentSavedQuestions = savedQuestions[assessmentKey] || [];
     return assessmentSavedQuestions.length;
-  }, [savedQuestions, state.selectedAssessment, getAssessmentKey]);
+  }, [
+    isAuthenticated,
+    reduxBookmarks,
+    savedQuestions,
+    state.selectedAssessment,
+    getAssessmentKey,
+  ]);
 
-  // Calculate answered questions count for current assessment
+  // Calculate answered questions count — from Redux for authenticated users, localStorage otherwise
   const answeredQuestionsCount = React.useMemo(() => {
     const assessmentKey = getAssessmentKey(state.selectedAssessment);
+    if (isAuthenticated) {
+      const assessmentStats = reduxStatistics[assessmentKey];
+      return assessmentStats?.answeredQuestionsDetailed?.length ?? 0;
+    }
     const assessmentStats = practiceStatistics[assessmentKey];
-    const answeredQuestionsDetailed =
-      assessmentStats?.answeredQuestionsDetailed || [];
-    return answeredQuestionsDetailed.length;
-  }, [practiceStatistics, state.selectedAssessment, getAssessmentKey]);
+    return assessmentStats?.answeredQuestionsDetailed?.length ?? 0;
+  }, [
+    isAuthenticated,
+    reduxStatistics,
+    practiceStatistics,
+    state.selectedAssessment,
+    getAssessmentKey,
+  ]);
 
   const data = {
     user: {

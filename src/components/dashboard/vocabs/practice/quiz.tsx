@@ -25,6 +25,8 @@ import {
 } from "lucide-react";
 import { playSound } from "@/lib/playSound";
 import Link from "next/link";
+import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
+import { saveVocabulary } from "@/lib/utils/dataSync";
 
 interface QuizQuestion {
   word: VocabularyWord;
@@ -192,14 +194,23 @@ export default function VocabsQuizPractice({
   // Quiz state managed by reducer
   const [quizState, dispatch] = useReducer(quizReducer, initialQuizState);
 
+  const reduxDispatch = useAppDispatch();
+  const reduxState = useAppSelector((s) => s);
+
   // Use the useLocalStorage hook
   const [vocabsData, setVocabsData] = useLocalStorage<VocabsData>(
     "vocabsData",
     {
       learntVocabs: [],
       userSentences: {},
-    }
+    },
   );
+
+  // Sync vocabulary data to DB for authenticated users whenever it changes
+  useEffect(() => {
+    saveVocabulary(vocabsData, reduxDispatch, reduxState);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [vocabsData]);
 
   // Practice performance tracking
   const [practicePerformance, setPracticePerformance] =
@@ -217,7 +228,7 @@ export default function VocabsQuizPractice({
   // Get learned vocabulary words
   const learnedWords = useMemo(() => {
     return vocabs_database.filter((word) =>
-      vocabsData.learntVocabs.includes(word.word)
+      vocabsData.learntVocabs.includes(word.word),
     );
   }, [vocabsData.learntVocabs]);
 
@@ -262,7 +273,7 @@ export default function VocabsQuizPractice({
     // Shuffle each category separately
     Object.keys(categorizedWords).forEach((key) => {
       categorizedWords[key as keyof typeof categorizedWords].sort(
-        () => Math.random() - 0.5
+        () => Math.random() - 0.5,
       );
     });
 
@@ -278,7 +289,7 @@ export default function VocabsQuizPractice({
     return prioritizedWords.map((word) => {
       // First, try to get wrong answers with the same part of speech
       const samePartOfSpeechWords = vocabs_database.filter(
-        (w) => w.word !== word.word && w.part_of_speech === word.part_of_speech
+        (w) => w.word !== word.word && w.part_of_speech === word.part_of_speech,
       );
 
       let wrongAnswers: string[] = [];
@@ -296,7 +307,7 @@ export default function VocabsQuizPractice({
         const otherWords = vocabs_database
           .filter(
             (w) =>
-              w.word !== word.word && w.part_of_speech !== word.part_of_speech
+              w.word !== word.word && w.part_of_speech !== word.part_of_speech,
           )
           .sort(() => Math.random() - 0.5)
           .slice(0, 3 - samePoSAnswers.length)
@@ -307,7 +318,7 @@ export default function VocabsQuizPractice({
 
       // Create options array with correct answer
       const options = [word.definition, ...wrongAnswers].sort(
-        () => Math.random() - 0.5
+        () => Math.random() - 0.5,
       );
 
       return {
@@ -362,7 +373,7 @@ export default function VocabsQuizPractice({
   const calculateMasteryLevel = (
     correctAttempts: number,
     totalAttempts: number,
-    consecutiveCorrect: number
+    consecutiveCorrect: number,
   ): WordPerformance["masteryLevel"] => {
     if (totalAttempts === 0) return "learning";
 
@@ -378,7 +389,7 @@ export default function VocabsQuizPractice({
   const updateWordPerformance = (
     word: string,
     isCorrect: boolean,
-    timeSpent: number
+    timeSpent: number,
   ) => {
     setPracticePerformance((prevData) => {
       const updatedData = { ...prevData };
@@ -425,7 +436,7 @@ export default function VocabsQuizPractice({
       wordPerf.masteryLevel = calculateMasteryLevel(
         wordPerf.correctAttempts,
         wordPerf.totalAttempts,
-        wordPerf.consecutiveCorrect
+        wordPerf.consecutiveCorrect,
       );
 
       // Update word performance in data
@@ -449,7 +460,7 @@ export default function VocabsQuizPractice({
       // Update overall statistics
       updatedData.lastUpdated = Date.now();
       const totalCorrect = updatedData.attempts.filter(
-        (a) => a.isCorrect
+        (a) => a.isCorrect,
       ).length;
       updatedData.overallAccuracy = totalCorrect / updatedData.attempts.length;
 
@@ -458,7 +469,7 @@ export default function VocabsQuizPractice({
       updatedData.strongWords = allWords
         .filter(
           (w) =>
-            w.masteryLevel === "mastered" || w.masteryLevel === "proficient"
+            w.masteryLevel === "mastered" || w.masteryLevel === "proficient",
         )
         .map((w) => w.word);
 
@@ -468,7 +479,7 @@ export default function VocabsQuizPractice({
 
       updatedData.improvingWords = allWords
         .filter(
-          (w) => w.masteryLevel === "learning" && w.consecutiveCorrect > 0
+          (w) => w.masteryLevel === "learning" && w.consecutiveCorrect > 0,
         )
         .map((w) => w.word);
 
@@ -490,7 +501,7 @@ export default function VocabsQuizPractice({
     const isCorrect =
       quizState.selectedAnswer === currentQuestion.correctAnswer;
     const timeSpent = Math.round(
-      (Date.now() - quizState.questionStartTime) / 1000
+      (Date.now() - quizState.questionStartTime) / 1000,
     ); // Convert to seconds
 
     // Update quiz state
@@ -577,7 +588,7 @@ export default function VocabsQuizPractice({
   // Quiz complete screen
   if (quizState.isQuizComplete) {
     const percentage = Math.round(
-      (quizState.score / quizQuestions.length) * 100
+      (quizState.score / quizQuestions.length) * 100,
     );
 
     return (
@@ -601,8 +612,8 @@ export default function VocabsQuizPractice({
               {percentage >= 80
                 ? "Excellent work! You really know your vocabulary!"
                 : percentage >= 60
-                ? "Good job! Keep practicing to improve even more!"
-                : "Keep studying! Practice makes perfect!"}
+                  ? "Good job! Keep practicing to improve even more!"
+                  : "Keep studying! Practice makes perfect!"}
             </p>
           </div>
 
@@ -728,11 +739,11 @@ export default function VocabsQuizPractice({
                         ? shouldHighlight
                           ? "border-green-500 bg-green-50"
                           : isWrong
-                          ? "border-red-500 bg-red-50"
-                          : "border-gray-200 bg-gray-50"
+                            ? "border-red-500 bg-red-50"
+                            : "border-gray-200 bg-gray-50"
                         : isSelected
-                        ? "border-blue-500 bg-blue-50"
-                        : "border-gray-200 hover:border-blue-300 bg-white"
+                          ? "border-blue-500 bg-blue-50"
+                          : "border-gray-200 hover:border-blue-300 bg-white"
                     }`}
                   >
                     <div className="flex items-start gap-4">

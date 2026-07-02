@@ -31,6 +31,7 @@ export {
   setSessions,
   addSession,
   updateSession,
+  removeSession,
   setBookmarks,
   addBookmark,
   removeBookmark,
