@@ -109,7 +109,7 @@ export const AuthModals = memo(function AuthModals({
   >(null);
 
   // Determine which modal is active — controlled prop takes precedence
-  const activeModal = openModal !== undefined ? openModal : internalModal;
+  const activeModal = internalModal == null ? openModal : internalModal;
 
   function handleClose() {
     setInternalModal(null);
@@ -117,6 +117,10 @@ export const AuthModals = memo(function AuthModals({
   }
 
   function switchToSignUp() {
+    // In controlled mode the parent owns `openModal`, so we must notify it to
+    // clear its controlled value while simultaneously setting our internal
+    // state to "signup".  Otherwise the controlled prop would keep winning.
+    console.log("WOI");
     setInternalModal("signup");
   }
 

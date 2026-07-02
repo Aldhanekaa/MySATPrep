@@ -119,7 +119,7 @@ export default function SummaryCharts({
       const statisticsData = selectedStats["statistics"];
 
       for (const [primaryClassCd, skillCds_Data] of Object.entries(
-        statisticsData
+        statisticsData,
       )) {
         for (const [classCd, questions] of Object.entries(skillCds_Data)) {
           for (const question in questions) {
@@ -169,7 +169,7 @@ export default function SummaryCharts({
       //   console.log(`${subject} ${JSON.stringify(primaryClassCds)}`);
 
       for (const [primaryClassCd, skillData] of Object.entries(
-        primaryClassCds
+        primaryClassCds,
       )) {
         // console.log(
         //   "skillCdsObjectData",
@@ -229,7 +229,7 @@ export default function SummaryCharts({
       const statisticsData = selectedStats["statistics"];
 
       for (const [primaryClassCd, skillCds_Data] of Object.entries(
-        statisticsData
+        statisticsData,
       )) {
         // console.log("primaryClassCd", primaryClassCd, primaryClassCdObjectData);
 
@@ -411,7 +411,7 @@ export default function SummaryCharts({
             ) : (
               <EmptyState
                 theme={"light"}
-                className=" border-0"
+                className=" border-0 z-0"
                 title="No Data Available"
                 description="Start practice to view your reading & writing skills."
                 icons={[
@@ -533,7 +533,7 @@ export default function SummaryCharts({
             ) : (
               <EmptyState
                 theme={"light"}
-                className=" border-0"
+                className=" border-0 z-0"
                 title="No Data Available"
                 description="Start practice to view your maths skills."
                 icons={[
@@ -577,7 +577,7 @@ export default function SummaryCharts({
                         const percentage = Math.round(
                           (skill.correctAnswers /
                             (skill.correctAnswers + skill.incorrectAnswers)) *
-                            100
+                            100,
                         );
 
                         return (
@@ -604,12 +604,12 @@ export default function SummaryCharts({
                       })}
                     </div>
                   </div>
-                )
+                ),
               )
             ) : (
               <EmptyState
                 theme={"light"}
-                className=" border-0"
+                className=" border-0 z-0"
                 title="No Reading & Writing Data Available"
                 description="Start practice to view your Reading & Writing skills insights."
                 icons={[
@@ -651,7 +651,7 @@ export default function SummaryCharts({
                         const percentage = Math.round(
                           (skill.correctAnswers /
                             (skill.correctAnswers + skill.incorrectAnswers)) *
-                            100
+                            100,
                         );
 
                         return (
@@ -678,12 +678,12 @@ export default function SummaryCharts({
                       })}
                     </div>
                   </div>
-                )
+                ),
               )
             ) : (
               <EmptyState
                 theme={"light"}
-                className=" border-0"
+                className=" border-0 z-0"
                 title="No Math Data Available"
                 description="Start practice to view your Math skills insights."
                 icons={[

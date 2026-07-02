@@ -80,8 +80,8 @@ export const BookmarksSchema = z.array(SavedQuestionSchema);
 
 export const QuestionDetailSchema = z.object({
   questionId: z.string(),
-  externalId: z.string().optional(),
-  ibn: z.string().optional(),
+  externalId: z.string().nullable().optional(),
+  ibn: z.string().nullable().optional(),
   plainQuestion: z.unknown().optional(),
 });
 

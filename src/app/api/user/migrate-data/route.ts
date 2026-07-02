@@ -39,6 +39,7 @@ export async function POST(request: NextRequest) {
 
   // Requirement 6.3, 6.13 – validate incoming data structure
   const validation = validateMigrationPayload(body);
+  console.log("validation", validation, body);
   if (!validation.valid) {
     return NextResponse.json(
       {

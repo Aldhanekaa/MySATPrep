@@ -496,7 +496,17 @@ export const migrateLocalStorageData = createAsyncThunk<MigrationSummary, void>(
     const bookmarks = (() => {
       try {
         const raw = localStorage.getItem("savedQuestions");
-        return raw ? JSON.parse(raw) : [];
+        if (!raw) return [];
+        const parsed = JSON.parse(raw);
+        // localStorage stores bookmarks as Record<assessment, SavedQuestion[]>
+        // The assessment key is not stored inside each item, so inject it.
+        if (Array.isArray(parsed)) return parsed;
+        return Object.entries(parsed).flatMap(([assessment, questions]) =>
+          (questions as Record<string, unknown>[]).map((q) => ({
+            ...q,
+            assessment,
+          })),
+        );
       } catch {
         return [];
       }
@@ -505,7 +515,15 @@ export const migrateLocalStorageData = createAsyncThunk<MigrationSummary, void>(
     const collections = (() => {
       try {
         const raw = localStorage.getItem("savedCollections");
-        return raw ? JSON.parse(raw) : [];
+        if (!raw) return [];
+        const parsed = JSON.parse(raw);
+        // localStorage stores collections as Record<collectionId, SavedCollection>
+        // The collectionId key is not stored inside each item, so inject it.
+        if (Array.isArray(parsed)) return parsed;
+        return Object.entries(parsed).map(([collectionId, col]) => ({
+          ...(col as Record<string, unknown>),
+          collectionId,
+        }));
       } catch {
         return [];
       }

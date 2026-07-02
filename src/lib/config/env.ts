@@ -7,6 +7,7 @@
 
 interface EnvConfig {
   DATABASE_URL: string;
+  DATABASE_URL_UNPOOLED: string;
   GOOGLE_CLIENT_ID: string;
   GOOGLE_CLIENT_SECRET: string;
   BETTER_AUTH_SECRET: string;
@@ -20,6 +21,7 @@ interface EnvConfig {
 export function validateEnv(): EnvConfig {
   const requiredVars = [
     "DATABASE_URL",
+    "DATABASE_URL_UNPOOLED",
     "GOOGLE_CLIENT_ID",
     "GOOGLE_CLIENT_SECRET",
     "BETTER_AUTH_SECRET",
@@ -44,6 +46,7 @@ export function validateEnv(): EnvConfig {
 
   return {
     DATABASE_URL: process.env.DATABASE_URL!,
+    DATABASE_URL_UNPOOLED: process.env.DATABASE_URL_UNPOOLED!,
     GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID!,
     GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET!,
     BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET!,

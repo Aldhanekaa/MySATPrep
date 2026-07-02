@@ -3,38 +3,25 @@
 import * as React from "react";
 import {
   ArrowDownUpIcon,
-  AudioWaveformIcon,
   BookAIcon,
   BookCopyIcon,
   BookMarkedIcon,
-  BookOpen,
-  Bot,
   BrainCircuitIcon,
   CheckCircleIcon,
   ClockIcon,
-  Command,
-  Frame,
-  GalleryVerticalEnd,
   GraduationCapIcon,
   HistoryIcon,
   Home,
   HomeIcon,
   LandmarkIcon,
-  Layers2Icon,
-  LifeBuoy,
-  Map,
-  PieChart,
+  LogInIcon,
   RabbitIcon,
-  Send,
-  Settings2,
-  SquareTerminal,
   TrendingUpIcon,
 } from "lucide-react";
 
 import { NavMain } from "@/components/dashboard-layout/nav-main";
 import { NavProjects } from "@/components/dashboard-layout/nav-projects";
 import { NavSecondary } from "@/components/dashboard-layout/nav-secondary";
-import { NavUser } from "@/components/dashboard-layout/nav-user";
 import {
   Sidebar,
   SidebarContent,
@@ -43,12 +30,9 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarTrigger,
 } from "@/components/ui/sidebar";
 
 import { TeamSwitcher as AssessmentSwitcher } from "@/components/dashboard-layout/assessment-switcher";
-import Link from "next/link";
-import { Logo } from "../logo";
 import { useAssessment } from "@/contexts/assessment-context";
 import { useLocalStorage } from "@/lib/useLocalStorage";
 import { SavedQuestions } from "@/types/savedQuestions";
@@ -56,16 +40,24 @@ import { PracticeStatistics } from "@/types/statistics";
 import { useAppSelector } from "@/lib/redux/hooks";
 import {
   selectIsAuthenticated,
+  selectUser,
   selectUserBookmarks,
   selectUserStatistics,
 } from "@/lib/redux/selectors";
+import { AuthModals } from "@/components/auth/AuthModals";
+import { SidebarAuthUser } from "@/components/dashboard-layout/sidebar-auth-user";
 // import { SidebarFooterNews } from "./app-footer-news";
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { state, getAssessmentKey } = useAssessment();
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
+  const user = useAppSelector(selectUser);
   const reduxBookmarks = useAppSelector(selectUserBookmarks);
   const reduxStatistics = useAppSelector(selectUserStatistics);
+
+  const [authModal, setAuthModal] = React.useState<"signin" | "signup" | null>(
+    null,
+  );
 
   // Load saved questions from localStorage (used for unauthenticated users)
   const [savedQuestions] = useLocalStorage<SavedQuestions>(
@@ -116,9 +108,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   const data = {
     user: {
-      name: "shadcn",
-      email: "m@example.com",
-      avatar: "/avatars/shadcn.jpg",
+      name: user?.name ?? "Guest",
+      email: user?.email ?? "",
     },
     navMain: [
       {
@@ -225,9 +216,37 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <NavProjects projects={data.explore} />
         <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
-      {/* <SidebarFooter>
-        <SidebarFooterNews />
-      </SidebarFooter> */}
+      <SidebarFooter>
+        {isAuthenticated && user ? (
+          <SidebarAuthUser user={data.user} />
+        ) : (
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                size="lg"
+                onClick={() => setAuthModal("signin")}
+                className="gap-3"
+                tooltip="Sign In"
+              >
+                <LogInIcon className="size-5 shrink-0" />
+                <div className="grid flex-1 text-left text-sm leading-tight">
+                  <span className="truncate font-medium">Sign In</span>
+                  <span className="truncate text-xs text-muted-foreground">
+                    Save your progress
+                  </span>
+                </div>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        )}
+      </SidebarFooter>
+
+      {/* Auth modals — rendered outside SidebarContent to avoid z-index issues */}
+      <AuthModals
+        openModal={authModal}
+        onClose={() => setAuthModal(null)}
+        callbackURL="/dashboard"
+      />
     </Sidebar>
   );
 }

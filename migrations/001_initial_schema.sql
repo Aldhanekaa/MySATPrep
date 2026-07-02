@@ -19,7 +19,7 @@ CREATE INDEX idx_users_provider ON users(provider);
 
 -- User profiles table
 CREATE TABLE IF NOT EXISTS user_profiles (
-  user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  user_id TEXT PRIMARY KEY REFERENCES "user"(id) ON DELETE CASCADE,
   total_xp INTEGER DEFAULT 0,
   level INTEGER DEFAULT 0,
   questions_answered INTEGER DEFAULT 0,
@@ -37,7 +37,7 @@ CREATE INDEX idx_user_profiles_total_xp ON user_profiles(total_xp);
 
 -- Practice statistics table
 CREATE TABLE IF NOT EXISTS practice_statistics (
-  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  user_id TEXT NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
   assessment VARCHAR(50) NOT NULL, -- 'SAT', 'PSAT/NMSQT', 'PSAT'
   answered_questions JSONB DEFAULT '[]'::jsonb,
   answered_questions_detailed JSONB DEFAULT '[]'::jsonb,
@@ -52,7 +52,7 @@ CREATE INDEX idx_practice_statistics_assessment ON practice_statistics(assessmen
 -- Practice sessions table
 CREATE TABLE IF NOT EXISTS practice_sessions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  user_id TEXT NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
   session_id VARCHAR(255) UNIQUE NOT NULL,
   session_data JSONB NOT NULL,
   status VARCHAR(50) NOT NULL, -- 'not_started', 'in_progress', 'completed'
@@ -68,7 +68,7 @@ CREATE INDEX idx_practice_sessions_created_at ON practice_sessions(created_at DE
 -- Saved questions table (bookmarks)
 CREATE TABLE IF NOT EXISTS saved_questions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  user_id TEXT NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
   assessment VARCHAR(50) NOT NULL,
   question_id VARCHAR(255) NOT NULL,
   external_id VARCHAR(255),
@@ -86,7 +86,7 @@ CREATE INDEX idx_saved_questions_timestamp ON saved_questions(timestamp DESC);
 -- Saved collections table
 CREATE TABLE IF NOT EXISTS saved_collections (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  user_id TEXT NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
   collection_id VARCHAR(255) UNIQUE NOT NULL,
   name VARCHAR(255) NOT NULL,
   description TEXT,
@@ -103,7 +103,7 @@ CREATE INDEX idx_saved_collections_created_at ON saved_collections(created_at DE
 
 -- Vocabulary progress table
 CREATE TABLE IF NOT EXISTS vocabulary_progress (
-  user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  user_id TEXT PRIMARY KEY REFERENCES "user"(id) ON DELETE CASCADE,
   progress_data JSONB DEFAULT '{}'::jsonb,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
@@ -112,7 +112,7 @@ CREATE INDEX idx_vocabulary_progress_user_id ON vocabulary_progress(user_id);
 
 -- User preferences table
 CREATE TABLE IF NOT EXISTS user_preferences (
-  user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  user_id TEXT PRIMARY KEY REFERENCES "user"(id) ON DELETE CASCADE,
   preferences_data JSONB DEFAULT '{}'::jsonb,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );

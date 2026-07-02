@@ -6,7 +6,8 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "db:migrate": "node scripts/migrate-db.mjs"
   },
   "dependencies": {
     "@ai-sdk/deepseek": "^1.0.15",
