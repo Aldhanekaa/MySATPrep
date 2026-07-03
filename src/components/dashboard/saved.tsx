@@ -8,9 +8,12 @@ import React, {
 } from "react";
 import { Button } from "@/components/ui/button";
 import { AssessmentWorkspace } from "@/app/dashboard/types";
-import { useLocalStorage } from "@/lib/useLocalStorage";
 import { SavedQuestions, SavedQuestion } from "@/types/savedQuestions";
 import { SavedCollections, SavedCollection } from "@/types/savedCollections";
+import {
+  useResolvedBookmarks,
+  useResolvedCollections,
+} from "@/hooks/use-resolved-user-data";
 import { QuestionById_Data } from "@/types/question";
 import { Card, CardContent } from "@/components/ui/card-v2";
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
@@ -21,8 +24,6 @@ import {
 } from "@/lib/utils/dataSync";
 import {
   selectIsAuthenticated,
-  selectUserBookmarks,
-  selectUserCollections,
 } from "@/lib/redux/selectors";
 import {
   OptimizedQuestionCard,
@@ -448,49 +449,8 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
   const reduxDispatch = useAppDispatch();
   const reduxState = useAppSelector((s) => s);
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
-  const reduxBookmarks = useAppSelector(selectUserBookmarks);
-  const reduxCollections = useAppSelector(selectUserCollections);
-
-  // Load saved questions from localStorage (used for unauthenticated users)
-  const [savedQuestionsLS, setSavedQuestionsLS] =
-    useLocalStorage<SavedQuestions>("savedQuestions", {});
-
-  // Load saved collections from localStorage (used for unauthenticated users)
-  const [savedCollectionsLS, setSavedCollectionsLS] =
-    useLocalStorage<SavedCollections>("savedCollections", {});
-
-  // For authenticated users, derive savedQuestions from Redux bookmarks
-  const savedQuestions: SavedQuestions = useMemo(() => {
-    if (isAuthenticated) {
-      return reduxBookmarks.reduce<SavedQuestions>((acc, bookmark) => {
-        const key = bookmark.assessment;
-        if (!acc[key]) acc[key] = [];
-        acc[key].push(bookmark as SavedQuestion);
-        return acc;
-      }, {});
-    }
-    return savedQuestionsLS;
-  }, [isAuthenticated, reduxBookmarks, savedQuestionsLS]);
-
-  // Setter that only writes to localStorage (for unauthenticated path in sub-components)
-  const setSavedQuestions = (value: SavedQuestions) => {
-    if (!isAuthenticated) setSavedQuestionsLS(value);
-  };
-
-  // For authenticated users, derive savedCollections from Redux collections
-  const savedCollections: SavedCollections = useMemo(() => {
-    if (isAuthenticated) {
-      return reduxCollections.reduce<SavedCollections>((acc, col) => {
-        acc[col.collectionId] = col as SavedCollection;
-        return acc;
-      }, {});
-    }
-    return savedCollectionsLS;
-  }, [isAuthenticated, reduxCollections, savedCollectionsLS]);
-
-  const setSavedCollections = (value: SavedCollections) => {
-    if (!isAuthenticated) setSavedCollectionsLS(value);
-  };
+  const [savedQuestions, setSavedQuestions] = useResolvedBookmarks();
+  const [savedCollections, setSavedCollections] = useResolvedCollections();
 
   // Effect to keep savedCollections updated with latest localStorage data (unauthenticated only)
   useEffect(() => {

@@ -6,17 +6,11 @@ import { SiteHeader } from "../navbar";
 import ReviewOnboarding from "@/components/review-onboarding";
 import PracticeRushMultistep from "@/components/practice-rush-multistep";
 import { PracticeSelections, PracticeSession } from "@/types/session";
-import { SavedQuestions } from "@/types/savedQuestions";
-import { PracticeStatistics } from "@/types/statistics";
 import { PlainQuestionType } from "@/types/question";
-import { useLocalStorage } from "@/lib/useLocalStorage";
-import { useAppSelector } from "@/lib/redux/hooks";
 import {
-  selectIsAuthenticated,
-  selectUserBookmarks,
-  selectUserStatistics,
-} from "@/lib/redux/selectors";
-import type { SavedQuestion } from "@/lib/types/userData";
+  useResolvedBookmarks,
+  useResolvedPracticeStatistics,
+} from "@/hooks/use-resolved-user-data";
 
 import { playSound } from "@/lib/playSound";
 import { ProjectBanner } from "@/components/ui/project-banner";
@@ -82,35 +76,8 @@ function Review() {
     QuestionWithData[]
   >([]);
 
-  const isAuthenticated = useAppSelector(selectIsAuthenticated);
-  const reduxBookmarks = useAppSelector(selectUserBookmarks);
-  const reduxStatistics = useAppSelector(selectUserStatistics);
-
-  // localStorage fallback for unauthenticated users
-  const [savedQuestionsLS] = useLocalStorage<SavedQuestions>(
-    "savedQuestions",
-    {},
-  );
-  const [practiceStatisticsLS] = useLocalStorage<PracticeStatistics>(
-    "practiceStatistics",
-    {},
-  );
-
-  // Resolve data sources: authenticated users read from Redux (DB), guests from localStorage
-  const savedQuestions: SavedQuestions = isAuthenticated
-    ? reduxBookmarks.reduce<SavedQuestions>((acc, b) => {
-        const key = b.assessment;
-        if (!acc[key]) acc[key] = [];
-        acc[key].push(
-          b as unknown as import("@/types/savedQuestions").SavedQuestion,
-        );
-        return acc;
-      }, {})
-    : savedQuestionsLS;
-
-  const practiceStatistics: PracticeStatistics = isAuthenticated
-    ? (reduxStatistics as PracticeStatistics)
-    : practiceStatisticsLS;
+  const savedQuestions = useResolvedBookmarks()[0];
+  const practiceStatistics = useResolvedPracticeStatistics();
 
   // Load questions from localStorage based on review type
   const loadQuestionsFromStorage = useCallback(

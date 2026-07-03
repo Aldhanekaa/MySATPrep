@@ -6,21 +6,16 @@ import {
   WorkspaceTrigger,
   WorkspaceContent,
 } from "@/components/ui/workspaces";
-import { useLocalStorage } from "@/lib/useLocalStorage";
-import { SavedQuestions } from "@/types/savedQuestions";
-import { PracticeStatistics } from "@/types/statistics";
+import {
+  useResolvedBookmarks,
+  useResolvedPracticeStatistics,
+} from "@/hooks/use-resolved-user-data";
 import { HomeTab } from "@/components/dashboard";
 import {
   useAssessment,
   assessmentWorkspaces,
   type AssessmentWorkspace,
 } from "@/contexts/assessment-context";
-import { useAppSelector } from "@/lib/redux/hooks";
-import {
-  selectIsAuthenticated,
-  selectUserBookmarks,
-  selectUserStatistics,
-} from "@/lib/redux/selectors";
 
 import ButtonsGroup from "@/components/dashboard/buttons-group";
 
@@ -28,62 +23,19 @@ export default function DashboardPage() {
   const { state, setActiveAssessmentByWorkspace, getAssessmentKey } =
     useAssessment();
 
-  const isAuthenticated = useAppSelector(selectIsAuthenticated);
-  const reduxBookmarks = useAppSelector(selectUserBookmarks);
-  const reduxStatistics = useAppSelector(selectUserStatistics);
+  const practiceStatistics = useResolvedPracticeStatistics();
+  const savedQuestions = useResolvedBookmarks()[0];
 
-  // localStorage fallback for badge counts (used when not authenticated)
-  const [savedQuestionsLS] = useLocalStorage<SavedQuestions>(
-    "savedQuestions",
-    {},
-  );
-  const [practiceStatisticsLS] = useLocalStorage<PracticeStatistics>(
-    "practiceStatistics",
-    {},
-  );
-
-  /**
-   * Count of saved questions for the current assessment.
-   * Authenticated → from Redux bookmarks; unauthenticated → from localStorage.
-   * Available for badge indicators in tab navigation UI.
-   */
   const savedQuestionsCount = React.useMemo(() => {
     const assessmentKey = getAssessmentKey(state.selectedAssessment);
-    if (isAuthenticated) {
-      return reduxBookmarks.filter((b) => b.assessment === assessmentKey)
-        .length;
-    }
-    return (savedQuestionsLS[assessmentKey] || []).length;
-  }, [
-    isAuthenticated,
-    reduxBookmarks,
-    savedQuestionsLS,
-    state.selectedAssessment,
-    getAssessmentKey,
-  ]);
+    return (savedQuestions[assessmentKey] || []).length;
+  }, [savedQuestions, state.selectedAssessment, getAssessmentKey]);
 
-  /**
-   * Count of answered questions for the current assessment.
-   * Authenticated → from Redux statistics; unauthenticated → from localStorage.
-   * Available for badge indicators in tab navigation UI.
-   */
   const answeredQuestionsCount = React.useMemo(() => {
     const assessmentKey = getAssessmentKey(state.selectedAssessment);
-    if (isAuthenticated) {
-      const assessmentStats = (reduxStatistics as PracticeStatistics)[
-        assessmentKey
-      ];
-      return assessmentStats?.answeredQuestionsDetailed?.length ?? 0;
-    }
-    const assessmentStats = practiceStatisticsLS[assessmentKey];
+    const assessmentStats = practiceStatistics[assessmentKey];
     return assessmentStats?.answeredQuestionsDetailed?.length ?? 0;
-  }, [
-    isAuthenticated,
-    reduxStatistics,
-    practiceStatisticsLS,
-    state.selectedAssessment,
-    getAssessmentKey,
-  ]);
+  }, [practiceStatistics, state.selectedAssessment, getAssessmentKey]);
 
   // Suppress unused-variable warnings; counts are available for tab badges
   void savedQuestionsCount;

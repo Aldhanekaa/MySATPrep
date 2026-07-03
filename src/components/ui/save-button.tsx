@@ -13,13 +13,9 @@ import { SavedQuestions, SavedQuestion } from "@/types/savedQuestions";
 import { SavedCollections, SavedCollection } from "@/types/savedCollections";
 import { QuestionById_Data } from "@/types";
 import { playSound } from "@/lib/playSound";
-import { useLocalStorage } from "@/lib/useLocalStorage";
-import { useState, useId, useEffect, useMemo } from "react";
+import { useResolvedCollections } from "@/hooks/use-resolved-user-data";
+import { useState, useId, useEffect } from "react";
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
-import {
-  selectIsAuthenticated,
-  selectUserCollections,
-} from "@/lib/redux/selectors";
 import {
   saveBookmark,
   removeBookmark as syncRemoveBookmark,
@@ -64,28 +60,7 @@ export function SaveButton({
   const id = useId();
   const reduxDispatch = useAppDispatch();
   const reduxState = useAppSelector((s) => s);
-  const isAuthenticated = useAppSelector(selectIsAuthenticated);
-  const reduxCollections = useAppSelector(selectUserCollections);
-
-  // localStorage fallback for unauthenticated users
-  const [savedCollectionsLS, setSavedCollectionsLS] =
-    useLocalStorage<SavedCollections>("savedCollections", {});
-
-  // Resolve collections: authenticated → Redux (DB), unauthenticated → localStorage
-  const savedCollections: SavedCollections = useMemo(() => {
-    if (isAuthenticated && reduxCollections.length > 0) {
-      return reduxCollections.reduce<SavedCollections>((acc, col) => {
-        acc[col.collectionId] = col as SavedCollection;
-        return acc;
-      }, {});
-    }
-    return savedCollectionsLS;
-  }, [isAuthenticated, reduxCollections, savedCollectionsLS]);
-
-  // For writes to localStorage (unauthenticated path only)
-  const setSavedCollections = (value: SavedCollections) => {
-    if (!isAuthenticated) setSavedCollectionsLS(value);
-  };
+  const [savedCollections, setSavedCollections] = useResolvedCollections();
   const [searchTerm, setSearchTerm] = useState("");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [newCollectionName, setNewCollectionName] = useState("");

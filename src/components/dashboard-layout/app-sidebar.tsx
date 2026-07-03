@@ -31,81 +31,71 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSkeleton,
 } from "@/components/ui/sidebar";
 
 import { TeamSwitcher as AssessmentSwitcher } from "@/components/dashboard-layout/assessment-switcher";
 import { useAssessment } from "@/contexts/assessment-context";
-import { useLocalStorage } from "@/lib/useLocalStorage";
-import { SavedQuestions } from "@/types/savedQuestions";
-import { PracticeStatistics } from "@/types/statistics";
+import {
+  useResolvedBookmarks,
+  useResolvedPracticeStatistics,
+} from "@/hooks/use-resolved-user-data";
 import { useAppSelector } from "@/lib/redux/hooks";
 import {
+  selectAuthLoading,
   selectIsAuthenticated,
+  selectSessionChecked,
   selectUser,
-  selectUserBookmarks,
-  selectUserStatistics,
 } from "@/lib/redux/selectors";
 import { AuthModals } from "@/components/auth/AuthModals";
 import { SidebarAuthUser } from "@/components/dashboard-layout/sidebar-auth-user";
 // import { SidebarFooterNews } from "./app-footer-news";
 
+function SidebarAuthLoading() {
+  return (
+    <SidebarMenu>
+      <SidebarMenuItem>
+        <div
+          aria-busy="true"
+          aria-label="Checking account session"
+          className="flex items-center gap-3 rounded-md px-3 py-2"
+        >
+          <div className="size-8 shrink-0 rounded-lg bg-sidebar-accent/60 animate-pulse" />
+          <div className="grid flex-1 gap-2">
+            <SidebarMenuSkeleton className="h-3" />
+            <SidebarMenuSkeleton className="h-2.5 max-w-28" />
+          </div>
+        </div>
+      </SidebarMenuItem>
+    </SidebarMenu>
+  );
+}
+
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { state, getAssessmentKey } = useAssessment();
+  const authLoading = useAppSelector(selectAuthLoading);
+  const sessionChecked = useAppSelector(selectSessionChecked);
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
   const user = useAppSelector(selectUser);
-  const reduxBookmarks = useAppSelector(selectUserBookmarks);
-  const reduxStatistics = useAppSelector(selectUserStatistics);
+  const savedQuestions = useResolvedBookmarks()[0];
+  const practiceStatistics = useResolvedPracticeStatistics();
 
   const [authModal, setAuthModal] = React.useState<"signin" | "signup" | null>(
     null,
   );
 
-  // Load saved questions from localStorage (used for unauthenticated users)
-  const [savedQuestions] = useLocalStorage<SavedQuestions>(
-    "savedQuestions",
-    {},
-  );
-
-  // Load practice statistics from localStorage (used for unauthenticated users)
-  const [practiceStatistics] = useLocalStorage<PracticeStatistics>(
-    "practiceStatistics",
-    {},
-  );
-
-  // Calculate saved questions count — from Redux for authenticated users, localStorage otherwise
   const savedQuestionsCount = React.useMemo(() => {
-    if (isAuthenticated) {
-      const assessmentKey = getAssessmentKey(state.selectedAssessment);
-      return reduxBookmarks.filter((b) => b.assessment === assessmentKey)
-        .length;
-    }
     const assessmentKey = getAssessmentKey(state.selectedAssessment);
-    const assessmentSavedQuestions = savedQuestions[assessmentKey] || [];
-    return assessmentSavedQuestions.length;
-  }, [
-    isAuthenticated,
-    reduxBookmarks,
-    savedQuestions,
-    state.selectedAssessment,
-    getAssessmentKey,
-  ]);
+    return (savedQuestions[assessmentKey] || []).length;
+  }, [savedQuestions, state.selectedAssessment, getAssessmentKey]);
 
-  // Calculate answered questions count — from Redux for authenticated users, localStorage otherwise
   const answeredQuestionsCount = React.useMemo(() => {
     const assessmentKey = getAssessmentKey(state.selectedAssessment);
-    if (isAuthenticated) {
-      const assessmentStats = reduxStatistics[assessmentKey];
-      return assessmentStats?.answeredQuestionsDetailed?.length ?? 0;
-    }
     const assessmentStats = practiceStatistics[assessmentKey];
     return assessmentStats?.answeredQuestionsDetailed?.length ?? 0;
-  }, [
-    isAuthenticated,
-    reduxStatistics,
-    practiceStatistics,
-    state.selectedAssessment,
-    getAssessmentKey,
-  ]);
+  }, [practiceStatistics, state.selectedAssessment, getAssessmentKey]);
+
+  const isCheckingSession = authLoading || !sessionChecked;
 
   const data = {
     user: {
@@ -223,7 +213,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
-        {isAuthenticated && user ? (
+        {isCheckingSession ? (
+          <SidebarAuthLoading />
+        ) : isAuthenticated && user ? (
           <SidebarAuthUser user={data.user} />
         ) : (
           <SidebarMenu>

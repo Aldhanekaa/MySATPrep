@@ -1,12 +1,12 @@
 "use client";
 import { AssessmentWorkspace } from "@/app/dashboard/types";
-import { getPracticeStatistics } from "@/lib/practiceStatistics";
 import {
   primaryClassCdObjectData,
   skillCdsObjectData,
 } from "@/static-data/domains";
 import { useMemo } from "react";
 import { PracticeStatistics } from "@/types/statistics";
+import { useResolvedPracticeStatistics } from "@/hooks/use-resolved-user-data";
 
 import { PolarAngleAxis, PolarGrid, Radar, RadarChart } from "recharts";
 import {
@@ -94,11 +94,12 @@ export default function SummaryCharts({
   statistics?: PracticeStatistics;
 }) {
   const router = useRouter();
+  const fallbackStats = useResolvedPracticeStatistics();
 
-  // Resolve the statistics source: prop (cloud) takes priority, then localStorage
+  // Resolve the statistics source: prop (cloud) takes priority, then resolved hook
   const resolvedStats = useMemo<PracticeStatistics>(
-    () => statistics ?? getPracticeStatistics(),
-    [statistics],
+    () => statistics ?? fallbackStats,
+    [statistics, fallbackStats],
   );
   const summaryData = useMemo(() => {
     const finalData: {

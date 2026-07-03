@@ -7,13 +7,8 @@ import React, {
 } from "react";
 import { Button } from "@/components/ui/button";
 import { AssessmentWorkspace } from "@/app/dashboard/types";
-import { useLocalStorage } from "@/lib/useLocalStorage";
 import { SavedQuestions, SavedQuestion } from "@/types/savedQuestions";
-import { useAppSelector } from "@/lib/redux/hooks";
-import {
-  selectIsAuthenticated,
-  selectUserBookmarks,
-} from "@/lib/redux/selectors";
+import { useResolvedBookmarks } from "@/hooks/use-resolved-user-data";
 import { QuestionById_Data } from "@/types/question";
 import { Card, CardContent } from "@/components/ui/card-v2";
 import {
@@ -226,28 +221,7 @@ const savedTabReducer = (
 };
 
 export function SavedTab({ selectedAssessment }: SavedTabProps) {
-  const isAuthenticated = useAppSelector(selectIsAuthenticated);
-  const reduxBookmarks = useAppSelector(selectUserBookmarks);
-
-  // Load saved questions from localStorage (used for unauthenticated users)
-  const [savedQuestionsLS] = useLocalStorage<SavedQuestions>(
-    "savedQuestions",
-    {},
-  );
-
-  // Build savedQuestions from the appropriate source
-  const savedQuestions: SavedQuestions = React.useMemo(() => {
-    if (isAuthenticated) {
-      // Convert flat Redux bookmarks array to the keyed-by-assessment shape
-      return reduxBookmarks.reduce<SavedQuestions>((acc, bookmark) => {
-        const key = bookmark.assessment;
-        if (!acc[key]) acc[key] = [];
-        acc[key].push(bookmark as SavedQuestion);
-        return acc;
-      }, {});
-    }
-    return savedQuestionsLS;
-  }, [isAuthenticated, reduxBookmarks, savedQuestionsLS]);
+  const [savedQuestions] = useResolvedBookmarks();
 
   // Use reducer for better state management and performance
   const [state, dispatch] = useReducer(savedTabReducer, {

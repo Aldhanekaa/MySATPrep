@@ -43,13 +43,10 @@ import { DraggableDesmosPopup } from "./popups/desmos-popup";
 import { DraggableNotesPopup } from "./popups/notes-popup";
 import { getSubjectByPrimaryClassCd } from "@/static-data/domains";
 import { SaveButton } from "./ui/save-button";
-import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
 import {
-  selectIsAuthenticated,
-  selectUserBookmarks,
-  selectUserStatistics,
-} from "@/lib/redux/selectors";
-import { saveUserStatistics } from "@/lib/utils/dataSync";
+  usePracticeStatisticsState,
+  useResolvedBookmarks,
+} from "@/hooks/use-resolved-user-data";
 
 // Duolingo-styled Input Component
 interface DuolingoInputProps {
@@ -111,17 +108,12 @@ const QuestionProblemCard = React.memo(function QuestionProblemCard({
 }) {
   const router = useRouter();
 
-  // Load saved questions from localStorage
-  const [savedQuestions, setSavedQuestions] = useLocalStorage<SavedQuestions>(
-    "savedQuestions",
-    {},
-  );
+  const [savedQuestions, setSavedQuestions] = useResolvedBookmarks();
 
-  // Load practice statistics from localStorage with setter
   const [practiceStatistics, setPracticeStatistics] =
-    useLocalStorage<PracticeStatistics>("practiceStatistics", {});
+    usePracticeStatisticsState();
 
-  // Load question notes from localStorage
+  // Question notes are device-local (not synced to cloud yet)
   const [questionNotes, setQuestionNotes] = useLocalStorage<QuestionNotes>(
     "questionNotes",
     {},
@@ -503,10 +495,7 @@ const QuestionProblemCard = React.memo(function QuestionProblemCard({
           updatedHistory: updatedHistory[questionId],
         });
       } else {
-        const currentStats = window.localStorage.getItem("practiceStatistics");
-        const parsedStats: PracticeStatistics = currentStats
-          ? JSON.parse(currentStats)
-          : {};
+        const parsedStats: PracticeStatistics = { ...practiceStatistics };
 
         // Save to practiceStatistics when answer visibility is shown
         const updatedStats = { ...parsedStats };
@@ -552,7 +541,6 @@ const QuestionProblemCard = React.memo(function QuestionProblemCard({
 
         updatedStats[assessment] = assessmentStats;
 
-        // Save to localStorage
         setPracticeStatistics(updatedStats);
 
         // Debug logging

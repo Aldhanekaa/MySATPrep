@@ -75,6 +75,7 @@ import { DraggableReferencePopup } from "./popups/reference-popup";
 import { DraggableNotesPopup } from "./popups/notes-popup";
 import { SaveButton } from "./ui/save-button";
 import { playSound } from "@/lib/playSound";
+import { useResolvedBookmarks } from "@/hooks/use-resolved-user-data";
 import { useLocalStorage } from "@/lib/useLocalStorage";
 import { useRouter } from "next/navigation";
 import { LookupRequest } from "@/types";
@@ -85,6 +86,11 @@ import {
   savePracticeSession,
   updatePracticeSession,
 } from "@/lib/utils/dataSync";
+import {
+  selectIsAuthenticated,
+  selectUserStatistics,
+  selectUserSessions,
+} from "@/lib/redux/selectors";
 
 // Duolingo-styled Loading Spinner Component
 interface DuolingoLoadingSpinnerProps {
@@ -1204,21 +1210,20 @@ export default function PracticeRushMultistep({
 
   const reduxDispatch = useAppDispatch();
   const reduxState = useAppSelector((s) => s);
+  const isAuthenticated = useAppSelector(selectIsAuthenticated);
+  const reduxStatistics = useAppSelector(selectUserStatistics);
+  const reduxSessions = useAppSelector(selectUserSessions);
 
   const [state, dispatch] = useReducer(appReducer, initialState);
   const [isGridCollapsed, setIsGridCollapsed] = useState(false);
 
-  // Load question notes from localStorage
+  // Question notes are device-local (not synced to cloud yet)
   const [questionNotes, setQuestionNotes] = useLocalStorage<QuestionNotes>(
     "questionNotes",
     {},
   );
 
-  // Load saved questions from localStorage
-  const [savedQuestions, setSavedQuestions] = useLocalStorage<SavedQuestions>(
-    "savedQuestions",
-    {},
-  );
+  const [savedQuestions, setSavedQuestions] = useResolvedBookmarks();
 
   // Check URL parameters to determine if this is a continue session
   const isContinueSession = useMemo(() => {
@@ -1228,6 +1233,22 @@ export default function PracticeRushMultistep({
     }
     return false;
   }, []);
+
+  const findSessionIndex = useCallback(
+    (sessionId: string) => {
+      if (isAuthenticated) {
+        return reduxSessions.findIndex((s) => s.sessionId === sessionId);
+      }
+      try {
+        const raw = localStorage.getItem("practiceHistory");
+        const sessions: PracticeSession[] = raw ? JSON.parse(raw) : [];
+        return sessions.findIndex((s) => s.sessionId === sessionId);
+      } catch {
+        return -1;
+      }
+    },
+    [isAuthenticated, reduxSessions],
+  );
 
   // Track saving status with ref to avoid re-renders
   const isSavingRef = useRef(false);
@@ -1332,13 +1353,7 @@ export default function PracticeRushMultistep({
       );
 
       // Determine if this session already exists (used to pick save vs update)
-      const existingSessions = localStorage.getItem("practiceHistory");
-      const sessions: PracticeSession[] = existingSessions
-        ? JSON.parse(existingSessions)
-        : [];
-      const existingIndex = sessions.findIndex(
-        (session) => session.sessionId === state.sessionId,
-      );
+      const existingIndex = findSessionIndex(state.sessionId);
 
       // Sync session via dataSync: saves to DB for authenticated users,
       // or writes to localStorage ("practiceHistory") for unauthenticated users.
@@ -1771,13 +1786,7 @@ export default function PracticeRushMultistep({
 
     try {
       // Determine if this session already exists (used to pick save vs update)
-      const existingSessions = localStorage.getItem("practiceHistory");
-      const sessions: PracticeSession[] = existingSessions
-        ? JSON.parse(existingSessions)
-        : [];
-      const existingIndex = sessions.findIndex(
-        (session) => session.sessionId === state.sessionId,
-      );
+      const existingIndex = findSessionIndex(state.sessionId);
 
       // Sync completed session via dataSync: saves to DB for authenticated users,
       // or writes to localStorage ("practiceHistory") for unauthenticated users.
@@ -2216,11 +2225,16 @@ export default function PracticeRushMultistep({
         let otherParams = "";
 
         if (!selections.questionIds) {
-          // load practiceStatistics local storage, and get the current assessment statistics
-          const practiceStatistics = localStorage.getItem("practiceStatistics");
-          const assessmentStatistics: PracticeStatistics = practiceStatistics
-            ? JSON.parse(practiceStatistics)
-            : {};
+          const assessmentStatistics: PracticeStatistics = isAuthenticated
+            ? (reduxStatistics as PracticeStatistics)
+            : (() => {
+                try {
+                  const raw = localStorage.getItem("practiceStatistics");
+                  return raw ? JSON.parse(raw) : {};
+                } catch {
+                  return {};
+                }
+              })();
 
           if (selections.assessment in assessmentStatistics) {
             const currentAssessmentStatistics =
@@ -2994,14 +3008,16 @@ export default function PracticeRushMultistep({
 
             // Sync profile and statistics to DB for authenticated users
             syncSaveUserProfile(updatedProfile, reduxDispatch, reduxState);
-            const currentStats = (() => {
-              try {
-                const raw = localStorage.getItem("practiceStatistics");
-                return raw ? JSON.parse(raw) : {};
-              } catch {
-                return {};
-              }
-            })();
+            const currentStats = isAuthenticated
+              ? (reduxStatistics as PracticeStatistics)
+              : (() => {
+                  try {
+                    const raw = localStorage.getItem("practiceStatistics");
+                    return raw ? JSON.parse(raw) : {};
+                  } catch {
+                    return {};
+                  }
+                })();
             saveUserStatistics(currentStats, reduxDispatch, reduxState);
 
             // currentQuestion.plainQuestion.score_band_range_cd
@@ -3226,15 +3242,9 @@ export default function PracticeRushMultistep({
 
     try {
       // Determine if this session already exists (used to pick save vs update)
-      const existingSessions = localStorage.getItem("practiceHistory");
-      const sessions: PracticeSession[] = existingSessions
-        ? JSON.parse(existingSessions)
-        : [];
+      const existingIndex = findSessionIndex(state.sessionId);
 
       // Update or add the abandoned session
-      const existingIndex = sessions.findIndex(
-        (session) => session.sessionId === state.sessionId,
-      );
 
       // Sync abandoned session via dataSync: saves to DB for authenticated users,
       // or writes to localStorage ("practiceHistory") for unauthenticated users.

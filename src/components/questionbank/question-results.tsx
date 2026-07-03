@@ -47,15 +47,8 @@ import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
 import { GlassFilter } from "../ui/liquid-radio";
 import QB_List_Render from "./list-render";
 import QB_Single_Render from "./single-render";
-import { useLocalStorage } from "@/lib/useLocalStorage";
-import { SavedQuestions } from "@/types/savedQuestions";
-import { PracticeStatistics } from "@/types";
 import QB_Compact_Render from "./compact-render";
-import { useAppSelector } from "@/lib/redux/hooks";
-import {
-  selectIsAuthenticated,
-  selectUserStatistics,
-} from "@/lib/redux/selectors";
+import { useResolvedPracticeStatistics } from "@/hooks/use-resolved-user-data";
 
 // Tour state interface
 interface TourState {
@@ -121,19 +114,7 @@ export function QuestionResults({
 }: QuestionResultsProps) {
   const id = useId();
 
-  const isAuthenticated = useAppSelector(selectIsAuthenticated);
-  const reduxStatistics = useAppSelector(selectUserStatistics);
-
-  // Load practice statistics from localStorage (fallback for unauthenticated users)
-  const [practiceStatisticsLS] = useLocalStorage<PracticeStatistics>(
-    "practiceStatistics",
-    {},
-  );
-
-  // Resolve statistics: authenticated users use Redux (DB), guests use localStorage
-  const practiceStatistics: PracticeStatistics = isAuthenticated
-    ? (reduxStatistics as PracticeStatistics)
-    : practiceStatisticsLS;
+  const practiceStatistics = useResolvedPracticeStatistics();
 
   // Check if question has been answered before in practice statistics
   const answeredQuestions =
