@@ -15,7 +15,9 @@ import { updateUserPreferences } from "@/lib/db/miscOperations";
 import { logError } from "@/lib/utils/errorLogger";
 import type { UserPreferences } from "@/lib/types/userData";
 
-const VALID_THEMES = ["light", "dark", "system"] as const;
+const VALID_THEMES = ["light", "dark"] as const;
+const VALID_DATA_MODE_PRIORITIES = ["localstorage", "cloud"] as const;
+const VALID_ASSESSMENTS = ["SAT", "PSAT/NMSQT", "PSAT"] as const;
 
 function validatePreferencesPayload(
   body: unknown,
@@ -33,6 +35,30 @@ function validatePreferencesPayload(
     return {
       valid: false,
       error: `theme must be one of: ${VALID_THEMES.join(", ")}`,
+    };
+  }
+
+  if (
+    payload.data_mode_priority !== undefined &&
+    !VALID_DATA_MODE_PRIORITIES.includes(
+      payload.data_mode_priority as (typeof VALID_DATA_MODE_PRIORITIES)[number],
+    )
+  ) {
+    return {
+      valid: false,
+      error: `data_mode_priority must be one of: ${VALID_DATA_MODE_PRIORITIES.join(", ")}`,
+    };
+  }
+
+  if (
+    payload.assessment !== undefined &&
+    !VALID_ASSESSMENTS.includes(
+      payload.assessment as (typeof VALID_ASSESSMENTS)[number],
+    )
+  ) {
+    return {
+      valid: false,
+      error: `assessment must be one of: ${VALID_ASSESSMENTS.join(", ")}`,
     };
   }
 

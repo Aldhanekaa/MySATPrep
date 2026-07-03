@@ -134,7 +134,7 @@ export default function PracticeRushCelebration({
 
   // Calculate average time per question in seconds
   const avgTimeInSeconds = Math.round(
-    sessionData.averageTimePerQuestion / 1000
+    sessionData.averageTimePerQuestion / 1000,
   );
 
   // Use actual XP received from session data, fallback to calculated value for backward compatibility
@@ -268,14 +268,16 @@ export default function PracticeRushCelebration({
               ? accuracyPercentage >= 80
                 ? "🎉"
                 : accuracyPercentage >= 60
-                ? "👏"
-                : ":D"
+                  ? "👏"
+                  : ":D"
               : "💾"}
           </div>
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">
+          <h1 className="text-4xl font-bold text-foreground mb-2">
             {getCelebrationMessage()}
           </h1>
-          <p className="text-xl text-gray-600">{getMotivationalMessage()}</p>
+          <p className="text-xl text-muted-foreground">
+            {getMotivationalMessage()}
+          </p>
         </div>
 
         {/* Statistics Cards */}
@@ -287,19 +289,19 @@ export default function PracticeRushCelebration({
                 xpChangeType === "gained"
                   ? "bg-green-400 border-green-600 hover:border-green-700"
                   : xpChangeType === "lost"
-                  ? "bg-red-400 border-red-600 hover:border-red-700"
-                  : "bg-orange-400 border-orange-600 hover:border-orange-700"
+                    ? "bg-red-400 border-red-600 hover:border-red-700"
+                    : "bg-orange-400 border-orange-600 hover:border-orange-700"
               }`}
             >
-              <div className="bg-white rounded-xl p-4 mx-2 mb-4">
+              <div className="bg-card rounded-xl p-4 mx-2 mb-4">
                 <div className="flex justify-center mb-3">
                   <div
                     className={`rounded-full p-2 ${
                       xpChangeType === "gained"
-                        ? "bg-green-100"
+                        ? "bg-green-100 dark:bg-green-900/40"
                         : xpChangeType === "lost"
-                        ? "bg-red-100"
-                        : "bg-orange-100"
+                          ? "bg-red-100 dark:bg-red-900/40"
+                          : "bg-orange-100 dark:bg-orange-900/40"
                     }`}
                   >
                     <Trophy
@@ -307,8 +309,8 @@ export default function PracticeRushCelebration({
                         xpChangeType === "gained"
                           ? "text-green-500"
                           : xpChangeType === "lost"
-                          ? "text-red-500"
-                          : "text-orange-500"
+                            ? "text-red-500"
+                            : "text-orange-500"
                       }`}
                     />
                   </div>
@@ -318,15 +320,15 @@ export default function PracticeRushCelebration({
                     xpChangeType === "gained"
                       ? "text-green-700"
                       : xpChangeType === "lost"
-                      ? "text-red-700"
-                      : "text-orange-700"
+                        ? "text-red-700"
+                        : "text-orange-700"
                   }`}
                 >
                   {xpChangeType === "gained"
                     ? "+"
                     : xpChangeType === "lost"
-                    ? ""
-                    : ""}
+                      ? ""
+                      : ""}
                   {Math.abs(displayXP)}
                 </p>
                 <p
@@ -334,8 +336,8 @@ export default function PracticeRushCelebration({
                     xpChangeType === "gained"
                       ? "text-green-600"
                       : xpChangeType === "lost"
-                      ? "text-red-600"
-                      : "text-orange-600"
+                        ? "text-red-600"
+                        : "text-orange-600"
                   }`}
                 >
                   {totalAnswered} questions answered
@@ -346,8 +348,8 @@ export default function PracticeRushCelebration({
                 {xpChangeType === "gained"
                   ? "GAINED"
                   : xpChangeType === "lost"
-                  ? "LOST"
-                  : "TOTAL"}
+                    ? "LOST"
+                    : "TOTAL"}
               </p>
             </div>
           </div>
@@ -355,9 +357,9 @@ export default function PracticeRushCelebration({
           {/* Speed */}
           <div className="relative">
             <div className="bg-blue-400 rounded-2xl py-4 px-2 text-center shadow-lg border-b-4 border-blue-600 transform transition-all duration-200 hover:shadow-xl hover:border-blue-700">
-              <div className="bg-white rounded-xl p-4 mx-2 mb-4">
+              <div className="bg-card rounded-xl p-4 mx-2 mb-4">
                 <div className="flex justify-center mb-3">
-                  <div className="bg-blue-100 rounded-full p-2">
+                  <div className="bg-blue-100 dark:bg-blue-900/40 rounded-full p-2">
                     <Clock className="h-8 w-8 text-blue-500" />
                   </div>
                 </div>
@@ -377,9 +379,9 @@ export default function PracticeRushCelebration({
           {/* Progress */}
           <div className="relative">
             <div className="bg-green-400 rounded-2xl py-4 px-2 text-center shadow-lg border-b-4 border-green-600 transform transition-all duration-200 hover:shadow-xl hover:border-green-700">
-              <div className="bg-white rounded-xl p-4 mx-2 mb-4">
+              <div className="bg-card rounded-xl p-4 mx-2 mb-4">
                 <div className="flex justify-center mb-3">
-                  <div className="bg-green-100 rounded-full p-2">
+                  <div className="bg-green-100 dark:bg-green-900/40 rounded-full p-2">
                     <Target className="h-8 w-8 text-green-500" />
                   </div>
                 </div>
@@ -404,13 +406,13 @@ export default function PracticeRushCelebration({
             className={cn(
               "relative h-full rounded-3xl",
               "transition-all duration-300",
-              "h-full w-full"
+              "h-full w-full",
             )}
           >
             <CardHeader>
               <CardHeading className="py-2">
                 <CardTitle>
-                  <div className="text-lg  space-x-2 font-semibold text-gray-900 mb-4 flex items-start justify-center pt-5">
+                  <div className="text-lg  space-x-2 font-semibold text-foreground mb-4 flex items-start justify-center pt-5">
                     <Zap className="h-5 w-5 mt-2 text-yellow-500" />
                     <div>
                       <p> Your Practice Session Statistics</p>
@@ -451,7 +453,7 @@ export default function PracticeRushCelebration({
                                 indicator="dot"
                                 labelKey="eee"
                                 hideLabel
-                                className=" w-[14rem] bg-white"
+                                className=" w-[14rem] bg-background"
                               />
                             }
                           />
@@ -512,7 +514,7 @@ export default function PracticeRushCelebration({
                         </BarChart>
                       </Chart>
                     </div>
-                  )
+                  ),
               )}
             </CardContent>
           </Card>
@@ -522,42 +524,48 @@ export default function PracticeRushCelebration({
             className={cn(
               "relative h-full rounded-3xl",
               "transition-all duration-300",
-              "h-full w-full"
+              "h-full w-full",
             )}
           >
             <CardHeader>
               <CardHeading>
-                <h3 className="text-lg space-x-2 font-semibold text-gray-900 mb-4 flex items-center justify-center pt-5">
+                <h3 className="text-lg space-x-2 font-semibold text-foreground mb-4 flex items-center justify-center pt-5">
                   <Zap className="h-5 w-5 text-yellow-500" />
                   <p> Session Summary</p>
                 </h3>
               </CardHeading>
             </CardHeader>
-            <CardContent className="bg-white rounded-xl p-6 rounded-b-4xl overflow-hidden">
+            <CardContent className="bg-card rounded-xl p-6 rounded-b-4xl overflow-hidden">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                <div className="bg-gray-50 rounded-lg p-3">
-                  <p className="text-gray-600 font-medium">Assessment:</p>
-                  <p className="font-semibold text-gray-900">
+                <div className="bg-muted rounded-lg p-3">
+                  <p className="text-muted-foreground font-medium">
+                    Assessment:
+                  </p>
+                  <p className="font-semibold text-foreground">
                     {sessionData.practiceSelections.assessment}
                   </p>
                 </div>
-                <div className="bg-gray-50 rounded-lg p-3">
-                  <p className="text-gray-600 font-medium">Domains:</p>
-                  <p className="font-semibold text-gray-900">
+                <div className="bg-muted rounded-lg p-3">
+                  <p className="text-muted-foreground font-medium">Domains:</p>
+                  <p className="font-semibold text-foreground">
                     {sessionData.practiceSelections.domains
                       .map((d) => d.text)
                       .join(", ")}
                   </p>
                 </div>
-                <div className="bg-gray-50 rounded-lg p-3">
-                  <p className="text-gray-600 font-medium">Difficulty:</p>
-                  <p className="font-semibold text-gray-900">
+                <div className="bg-muted rounded-lg p-3">
+                  <p className="text-muted-foreground font-medium">
+                    Difficulty:
+                  </p>
+                  <p className="font-semibold text-foreground">
                     {sessionData.practiceSelections.difficulties.join(", ")}
                   </p>
                 </div>
-                <div className="bg-gray-50 rounded-lg p-3">
-                  <p className="text-gray-600 font-medium">Session Status:</p>
-                  <p className="font-semibold text-gray-900 capitalize">
+                <div className="bg-muted rounded-lg p-3">
+                  <p className="text-muted-foreground font-medium">
+                    Session Status:
+                  </p>
+                  <p className="font-semibold text-foreground capitalize">
                     {sessionData.status.replace("_", " ")}
                   </p>
                 </div>

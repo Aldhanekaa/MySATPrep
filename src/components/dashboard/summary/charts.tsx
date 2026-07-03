@@ -6,6 +6,7 @@ import {
   skillCdsObjectData,
 } from "@/static-data/domains";
 import { useMemo } from "react";
+import { PracticeStatistics } from "@/types/statistics";
 
 import { PolarAngleAxis, PolarGrid, Radar, RadarChart } from "recharts";
 import {
@@ -86,10 +87,19 @@ interface SummaryData {
 }
 export default function SummaryCharts({
   selectedAssessment,
+  statistics,
 }: {
   selectedAssessment: AssessmentWorkspace | undefined;
+  /** Pass Redux statistics for authenticated users; omit to fall back to localStorage. */
+  statistics?: PracticeStatistics;
 }) {
   const router = useRouter();
+
+  // Resolve the statistics source: prop (cloud) takes priority, then localStorage
+  const resolvedStats = useMemo<PracticeStatistics>(
+    () => statistics ?? getPracticeStatistics(),
+    [statistics],
+  );
   const summaryData = useMemo(() => {
     const finalData: {
       [key: string]: { [primaryClassCd: string]: SummaryData };
@@ -110,9 +120,8 @@ export default function SummaryCharts({
       "R&W": [],
     };
 
-    const stats = getPracticeStatistics();
     const selectedStats = selectedAssessment
-      ? stats[selectedAssessment.name]
+      ? resolvedStats[selectedAssessment.name]
       : null;
 
     if (selectedStats && "statistics" in selectedStats) {
@@ -195,7 +204,7 @@ export default function SummaryCharts({
     // console.log("finalDataReturn", finalDataReturn);
 
     return finalDataReturn;
-  }, [selectedAssessment]);
+  }, [selectedAssessment, resolvedStats]);
 
   const answeredQuestionsDataSummary = useMemo(() => {
     let skills: {
@@ -219,9 +228,8 @@ export default function SummaryCharts({
       };
     } = {};
 
-    const stats = getPracticeStatistics();
     const selectedStats = selectedAssessment
-      ? stats[selectedAssessment.name]
+      ? resolvedStats[selectedAssessment.name]
       : null;
 
     if (selectedStats && "statistics" in selectedStats) {
@@ -301,7 +309,7 @@ export default function SummaryCharts({
     }
 
     return undefined;
-  }, [selectedAssessment]);
+  }, [selectedAssessment, resolvedStats]);
 
   // console.log("SUMMARY DATA", summaryData, chartData);
   return (
@@ -583,12 +591,12 @@ export default function SummaryCharts({
                         return (
                           <div key={index} className="space-y-2">
                             <div className="flex items-center justify-between text-sm">
-                              <span className="font-medium text-gray-700">
+                              <span className="font-medium text-foreground">
                                 {skillCdsObjectData[skill.text]?.text ||
                                   skill.text}
                               </span>
                               <div className="flex items-center gap-2">
-                                <span className="text-gray-600">
+                                <span className="text-muted-foreground">
                                   {skill.correctAnswers}/
                                   {skill.correctAnswers +
                                     skill.incorrectAnswers}

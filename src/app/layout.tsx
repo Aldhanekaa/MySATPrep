@@ -18,6 +18,7 @@ import { AuthSessionProvider } from "@/components/auth/AuthSessionProvider";
 import { SessionInitializer } from "@/components/auth/SessionInitializer";
 import { MigrationChecker } from "@/components/auth/MigrationChecker";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { ThemeApplier } from "@/components/ThemeApplier";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -193,6 +194,7 @@ export default function RootLayout({
           <AssessmentProvider>
             <MathJaxContext version={3} config={config}>
               <ReduxProvider>
+                <ThemeApplier />
                 <SessionInitializer />
                 <MigrationChecker />
                 <AuthSessionProvider>{children}</AuthSessionProvider>

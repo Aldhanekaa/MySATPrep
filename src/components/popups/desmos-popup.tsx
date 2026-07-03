@@ -129,7 +129,7 @@ export function DraggableDesmosPopup({
 
       // Re-enable pointer events on iframe when resizing stops
       const iframe = document.querySelector(
-        'iframe[title="Desmos Graphing Calculator"]'
+        'iframe[title="Desmos Graphing Calculator"]',
       ) as HTMLIFrameElement;
       if (iframe) {
         iframe.style.pointerEvents = "auto";
@@ -142,7 +142,7 @@ export function DraggableDesmosPopup({
 
       // Re-enable pointer events on iframe when resizing stops
       const iframe = document.querySelector(
-        'iframe[title="Desmos Graphing Calculator"]'
+        'iframe[title="Desmos Graphing Calculator"]',
       ) as HTMLIFrameElement;
       if (iframe) {
         iframe.style.pointerEvents = "auto";
@@ -178,13 +178,13 @@ export function DraggableDesmosPopup({
 
   const handleResizeMouseDown = (
     e: React.MouseEvent,
-    direction: "se" | "ne"
+    direction: "se" | "ne",
   ) => {
     e.stopPropagation();
 
     // Disable pointer events on iframe during resize
     const iframe = document.querySelector(
-      'iframe[title="Desmos Graphing Calculator"]'
+      'iframe[title="Desmos Graphing Calculator"]',
     ) as HTMLIFrameElement;
     if (iframe) {
       iframe.style.pointerEvents = "none";
@@ -208,7 +208,7 @@ export function DraggableDesmosPopup({
   return (
     <div
       ref={popupRef}
-      className="fixed flex flex-col bg-white rounded-lg shadow-2xl border-black border-4 overflow-hidden z-50"
+      className="fixed flex flex-col bg-background rounded-lg shadow-2xl border-border border-2 overflow-hidden z-50"
       style={{
         left: `${popupState.position.x}px`,
         top: `${popupState.position.y}px`,
@@ -218,7 +218,7 @@ export function DraggableDesmosPopup({
     >
       {/* Header */}
       <div
-        className="bg-black border-b border-black text-white cursor-move flex justify-between items-center"
+        className="bg-foreground/90 border-b border-border text-background cursor-move flex justify-between items-center"
         onMouseDown={handleMouseDown}
         onTouchStart={(e) => {
           if (e.touches.length === 1) {
@@ -235,7 +235,7 @@ export function DraggableDesmosPopup({
         onMouseEnter={() => {
           // Disable pointer events on iframe when hovering resize handle
           const iframe = document.querySelector(
-            'iframe[title="Desmos Graphing Calculator"]'
+            'iframe[title="Desmos Graphing Calculator"]',
           ) as HTMLIFrameElement;
           if (iframe) {
             iframe.style.pointerEvents = "none";
@@ -244,7 +244,7 @@ export function DraggableDesmosPopup({
         onMouseLeave={() => {
           // Re-enable pointer events on iframe when leaving resize handle
           const iframe = document.querySelector(
-            'iframe[title="Desmos Graphing Calculator"]'
+            'iframe[title="Desmos Graphing Calculator"]',
           ) as HTMLIFrameElement;
           if (iframe) {
             iframe.style.pointerEvents = "auto";
@@ -255,7 +255,7 @@ export function DraggableDesmosPopup({
           variant="ghost"
           size="sm"
           onClick={onClose}
-          className=" h-8 w-8 p-0 hover:bg-neutral-800 hover:text-white cursor-pointer"
+          className=" h-8 w-8 p-0 hover:bg-foreground/10 hover:text-background cursor-pointer"
         >
           <X className="h-4 w-4" />
         </Button>
@@ -263,9 +263,9 @@ export function DraggableDesmosPopup({
         <Button
           variant="ghost"
           size="sm"
-          className=" h-8 w-8 p-0 cursor-move hover:bg-neutral-900 hover:text-white "
+          className=" h-8 w-8 p-0 cursor-move hover:bg-foreground/10 hover:text-background "
         >
-          <GripHorizontal className="h-4 w-4 text-white b" />
+          <GripHorizontal className="h-4 w-4 text-background" />
         </Button>
         <div></div>
       </div>
@@ -291,7 +291,7 @@ export function DraggableDesmosPopup({
           onMouseEnter={() => {
             // Disable pointer events on iframe when hovering resize handle
             const iframe = document.querySelector(
-              'iframe[title="Desmos Graphing Calculator"]'
+              'iframe[title="Desmos Graphing Calculator"]',
             ) as HTMLIFrameElement;
             if (iframe) {
               iframe.style.pointerEvents = "none";
@@ -300,7 +300,7 @@ export function DraggableDesmosPopup({
           onMouseLeave={() => {
             // Re-enable pointer events on iframe when leaving resize handle
             const iframe = document.querySelector(
-              'iframe[title="Desmos Graphing Calculator"]'
+              'iframe[title="Desmos Graphing Calculator"]',
             ) as HTMLIFrameElement;
             if (iframe) {
               iframe.style.pointerEvents = "auto";

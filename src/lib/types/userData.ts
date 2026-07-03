@@ -53,7 +53,9 @@ export interface VocabularyProgress {
 
 // User preferences
 export interface UserPreferences {
-  theme?: "light" | "dark" | "system";
+  theme?: "light" | "dark";
+  data_mode_priority?: "localstorage" | "cloud";
+  assessment?: "SAT" | "PSAT/NMSQT" | "PSAT";
   soundEnabled?: boolean;
   notifications?: boolean;
   [key: string]: any;

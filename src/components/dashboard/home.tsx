@@ -1,6 +1,6 @@
 "use client";
 import React from "react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 
 import { AssessmentWorkspace } from "@/app/dashboard/types";
 import { ActivityCard } from "../ui/activity-card";
@@ -11,139 +11,172 @@ import { PracticeStatistics } from "@/types/statistics";
 import { getSessionHistory, PracticeSession } from "@/types/session";
 import { Metric } from "../ui/activity-card";
 import SummaryCharts from "./summary/charts";
+import { useAppSelector } from "@/lib/redux/hooks";
+import {
+  selectUserProfile,
+  selectUserStatistics,
+  selectUserPreferences,
+  selectUserSessions,
+  selectIsAuthenticated,
+} from "@/lib/redux/selectors";
+
+// ── Pure helpers (outside component for stable references) ──────────────────
+
+function calculateTotalTimeSpent(history: PracticeSession[]): number {
+  return history.reduce((total, s) => total + (s.totalTimeSpent || 0), 0);
+}
+
+function calculateStreakDays(history: PracticeSession[]): number {
+  if (history.length === 0) return 0;
+
+  const sorted = [...history].sort(
+    (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+  );
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  let streak = 0;
+  const current = new Date(today);
+
+  for (let i = 0; i < 365; i++) {
+    const dayStart = new Date(current);
+    const dayEnd = new Date(current);
+    dayEnd.setHours(23, 59, 59, 999);
+
+    const hasSession = sorted.some((s) => {
+      const d = new Date(s.timestamp);
+      return d >= dayStart && d <= dayEnd;
+    });
+
+    if (hasSession) {
+      streak++;
+      current.setDate(current.getDate() - 1);
+    } else {
+      break;
+    }
+  }
+
+  return streak;
+}
 
 interface HomeTabProps {
   selectedAssessment?: AssessmentWorkspace;
 }
 
 export function HomeTab({ selectedAssessment }: HomeTabProps) {
-  const [userProfile, setUserProfile] = useState<UserProfileWithHistory | null>(
-    null
-  );
-  const [practiceStats, setPracticeStats] = useState<PracticeStatistics | null>(
-    null
-  );
-  const [practiceHistory, setPracticeHistory] = useState<PracticeSession[]>([]);
+  // ── Redux state ────────────────────────────────────────────────────────────
+  const isAuthenticated = useAppSelector(selectIsAuthenticated);
+  const reduxProfile = useAppSelector(selectUserProfile);
+  const reduxStatistics = useAppSelector(selectUserStatistics);
+  const reduxPreferences = useAppSelector(selectUserPreferences);
+  const reduxSessions = useAppSelector(selectUserSessions);
+
+  // ── Local-storage fallback state (used when not authenticated) ─────────────
+  const [localProfile, setLocalProfile] =
+    useState<UserProfileWithHistory | null>(null);
+  const [localStats, setLocalStats] = useState<PracticeStatistics | null>(null);
+  const [localHistory, setLocalHistory] = useState<PracticeSession[]>([]);
+
   const [activityMetrics, setActivityMetrics] = useState<Metric[]>([]);
   const [streakDays, setStreakDays] = useState<number>(0);
 
-  // Calculate total time spent from practice history
-  const calculateTotalTimeSpent = (history: PracticeSession[]): number => {
-    return history.reduce((total, session) => {
-      return total + (session.totalTimeSpent || 0);
-    }, 0);
-  };
+  // ── Resolved data: prefer Redux (cloud) when authenticated ─────────────────
+  // Redux initialises statistics as {} and sessions as [] — never null —
+  // so we can't use ?? to fall back. Check for actual content instead.
+  const reduxHasProfile = isAuthenticated && reduxProfile !== null;
+  const reduxHasStats =
+    isAuthenticated && Object.keys(reduxStatistics).length > 0;
+  const reduxHasSessions =
+    isAuthenticated &&
+    (reduxSessions as unknown as PracticeSession[]).length > 0;
 
-  // Calculate streak days based on practice sessions within 24 hours
-  const calculateStreakDays = (history: PracticeSession[]): number => {
-    if (history.length === 0) return 0;
+  const userProfile = reduxHasProfile ? reduxProfile : localProfile;
+  const practiceStats = reduxHasStats
+    ? (reduxStatistics as PracticeStatistics)
+    : localStats;
+  const practiceHistory: PracticeSession[] = reduxHasSessions
+    ? (reduxSessions as unknown as PracticeSession[])
+    : localHistory;
 
-    // Sort sessions by timestamp (most recent first)
-    const sortedSessions = [...history].sort(
-      (a, b) =>
-        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-    );
+  // The assessment key to show stats for:
+  //   1. Use the user's saved preference if available
+  //   2. Fall back to the workspace selected in the UI
+  //   3. Final fallback: "SAT"
+  const resolvedAssessmentKey: string = useMemo(() => {
+    if (reduxPreferences?.assessment) return reduxPreferences.assessment;
+    if (selectedAssessment?.name) return selectedAssessment.name;
+    return "SAT";
+  }, [reduxPreferences?.assessment, selectedAssessment?.name]);
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0); // Start of today
-
-    let streak = 0;
-    const currentDay = new Date(today);
-
-    // Check each day going backwards from today
-    for (let dayOffset = 0; dayOffset < 365; dayOffset++) {
-      // Check up to a year back
-      const dayStart = new Date(currentDay);
-      const dayEnd = new Date(currentDay);
-      dayEnd.setHours(23, 59, 59, 999); // End of the day
-
-      // Check if there's at least one session on this day
-      const hasSessionOnDay = sortedSessions.some((session) => {
-        const sessionDate = new Date(session.timestamp);
-        return sessionDate >= dayStart && sessionDate <= dayEnd;
-      });
-
-      if (hasSessionOnDay) {
-        streak++;
-        // Move to previous day
-        currentDay.setDate(currentDay.getDate() - 1);
-      } else {
-        // Streak is broken
-        break;
-      }
-    }
-
-    return streak;
-  };
-
-  // Load user profile and practice statistics on component mount
+  // ── Load localStorage data as fallback (always, shown until Redux is ready) ─
   useEffect(() => {
     try {
-      const profile = getUserProfile();
-      const stats = getPracticeStatistics();
-      const history = getSessionHistory();
-
-      setUserProfile(profile);
-      setPracticeStats(stats);
-      setPracticeHistory(history);
-
-      // Calculate metrics for ActivityCard
-      const totalTimeSpentMs = calculateTotalTimeSpent(history);
-      const totalTimeSpentMinutes = Math.round(totalTimeSpentMs / (1000 * 60)); // Convert to minutes
-
-      // Calculate streak days based on practice sessions
-      const calculatedStreakDays = calculateStreakDays(history);
-      setStreakDays(calculatedStreakDays);
-
-      const calculatedMetrics: Metric[] = [
-        {
-          label: "Total XP",
-          value: profile.totalXP.toString(),
-          trend: Math.round(Math.min(100, (profile.totalXP / 1000) * 100)), // Round percentage
-          unit: "XP",
-          color: "#FF2D55",
-          // icon: "⭐",
-          prefix: "",
-        },
-        {
-          label: "Practice Time",
-          value: totalTimeSpentMinutes.toString(),
-          trend: Math.round(Math.min(100, (totalTimeSpentMinutes / 60) * 100)), // Round percentage
-          unit: "min",
-          color: "#2CD758",
-          // icon: "⏰",
-          prefix: "~",
-        },
-        {
-          label: "Success Rate",
-          value:
-            profile.questionsAnswered > 0
-              ? Math.round(
-                  (profile.correctAnswers / profile.questionsAnswered) * 100
-                ).toString()
-              : "0",
-          trend:
-            profile.questionsAnswered > 0
-              ? Math.round(
-                  (profile.correctAnswers / profile.questionsAnswered) * 100
-                )
-              : 0,
-          unit: "%",
-          color: "#007AFF",
-          // icon: "🎯",
-          prefix: "",
-        },
-      ];
-
-      setActivityMetrics(calculatedMetrics);
-    } catch (error) {
-      console.error("Error loading user data:", error);
+      setLocalProfile(getUserProfile());
+      setLocalStats(getPracticeStatistics());
+      setLocalHistory(getSessionHistory());
+    } catch (err) {
+      console.error("Error loading local user data:", err);
     }
   }, []);
+
+  // ── Recompute ActivityCard metrics whenever resolved data changes ──────────
+  useEffect(() => {
+    const profile = userProfile;
+    const history = practiceHistory;
+    if (!profile) return;
+
+    const totalTimeMs = calculateTotalTimeSpent(history);
+    const totalTimeMin = Math.round(totalTimeMs / (1000 * 60));
+    const streak = calculateStreakDays(history);
+    setStreakDays(streak);
+
+    setActivityMetrics([
+      {
+        label: "Total XP",
+        value: profile.totalXP.toString(),
+        trend: Math.round(Math.min(100, (profile.totalXP / 1000) * 100)),
+        unit: "XP",
+        color: "#FF2D55",
+        prefix: "",
+      },
+      {
+        label: "Practice Time",
+        value: totalTimeMin.toString(),
+        trend: Math.round(Math.min(100, (totalTimeMin / 60) * 100)),
+        unit: "min",
+        color: "#2CD758",
+        prefix: "~",
+      },
+      {
+        label: "Success Rate",
+        value:
+          profile.questionsAnswered > 0
+            ? Math.round(
+                (profile.correctAnswers / profile.questionsAnswered) * 100,
+              ).toString()
+            : "0",
+        trend:
+          profile.questionsAnswered > 0
+            ? Math.round(
+                (profile.correctAnswers / profile.questionsAnswered) * 100,
+              )
+            : 0,
+        unit: "%",
+        color: "#007AFF",
+        prefix: "",
+      },
+    ]);
+  }, [userProfile, practiceHistory]);
   return (
     <div className="space-y-4 grid grid-cols-7">
       <div className="px-4 col-span-7 md:col-span-4 xl:col-span-5 space-y-4">
-        <SummaryCharts selectedAssessment={selectedAssessment} />
+        <SummaryCharts
+          selectedAssessment={selectedAssessment}
+          statistics={
+            reduxHasStats ? (reduxStatistics as PracticeStatistics) : undefined
+          }
+        />
 
         {/* User Profile Information */}
         {userProfile && (
@@ -175,7 +208,7 @@ export function HomeTab({ selectedAssessment }: HomeTabProps) {
                     ? `${Math.round(
                         (userProfile.correctAnswers /
                           userProfile.questionsAnswered) *
-                          100
+                          100,
                       )}%`
                     : "N/A"}
                 </span>
@@ -184,27 +217,25 @@ export function HomeTab({ selectedAssessment }: HomeTabProps) {
           </div>
         )}
 
-        {/* Practice Statistics */}
-        {practiceStats &&
-          selectedAssessment &&
-          practiceStats[selectedAssessment.name] && (
-            <div className="space-y-3 p-4 border rounded-lg bg-muted/50">
-              <h3 className="text-md font-medium">
-                Assessment Progress - {selectedAssessment.name}
-              </h3>
-              <div className="text-sm">
-                <div>
-                  <span className="text-muted-foreground">
-                    Questions Answered:
-                  </span>
-                  <span className="ml-2 font-semibold">
-                    {practiceStats[selectedAssessment.name].answeredQuestions
-                      ?.length || 0}
-                  </span>
-                </div>
+        {/* Practice Statistics for the resolved assessment */}
+        {practiceStats && practiceStats[resolvedAssessmentKey] && (
+          <div className="space-y-3 p-4 border rounded-lg bg-muted/50">
+            <h3 className="text-md font-medium">
+              Assessment Progress — {resolvedAssessmentKey}
+            </h3>
+            <div className="text-sm">
+              <div>
+                <span className="text-muted-foreground">
+                  Questions Answered:
+                </span>
+                <span className="ml-2 font-semibold">
+                  {practiceStats[resolvedAssessmentKey].answeredQuestions
+                    ?.length || 0}
+                </span>
               </div>
             </div>
-          )}
+          </div>
+        )}
 
         {/* Practice History */}
         {practiceHistory.length > 0 && (

@@ -6,19 +6,11 @@
 
 import { betterAuth } from "better-auth";
 import { Pool } from "pg";
-import { readFileSync } from "fs";
-import { join } from "path";
 import { env } from "./config/env";
 
-// Load DigitalOcean's CA certificate so Node.js trusts their managed PostgreSQL
-// TLS chain. The cert is bundled in the repo root as ca-certificate.crt.
-const caCertPath =
-  process.env.NODE_EXTRA_CA_CERTS ?? join(process.cwd(), "ca-certificate.crt");
-const ca = readFileSync(caCertPath, "utf-8");
-
-// Strip SSL-related params from the connection string. When sslmode/channel_binding
-// are present in the URL, pg's connection-string parser overrides the `ssl` option
-// below, preventing the custom CA cert from being used for certificate verification.
+// Strip SSL-related params that conflict with the `ssl` option object in pg.
+// When sslmode/channel_binding are present in the URL, pg's connection-string
+// parser overrides the `ssl` option, preventing proper certificate verification.
 function stripSslParams(url: string): string {
   return url
     .replace(/[?&]sslmode=[^&]*/g, "")
@@ -28,21 +20,35 @@ function stripSslParams(url: string): string {
     .replace(/[?&]$/, "");
 }
 
-// Create PostgreSQL connection pool
+/**
+ * Application query pool — uses the Neon pooler endpoint (PgBouncer).
+ * This is the pool used for all user-facing DB queries. The pooler can
+ * handle many concurrent connections without exhausting Postgres limits.
+ */
 const pool = new Pool({
-  connectionString: stripSslParams(env.DATABASE_URL_UNPOOLED),
-  ssl: {
-    rejectUnauthorized: true,
-    ca, // trust DigitalOcean's CA explicitly
-  },
-  max: 5,
-  idleTimeoutMillis: 10000,
-  connectionTimeoutMillis: 10000,
+  connectionString: stripSslParams(env.POSTGRES_URL),
+  ssl: { rejectUnauthorized: false },
+  max: 10,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 15000,
+});
+
+/**
+ * Unpooled connection for better-auth.
+ * better-auth uses prepared statements and SET commands that are incompatible
+ * with PgBouncer's transaction-mode pooling, so it needs a direct connection.
+ */
+const authPool = new Pool({
+  connectionString: stripSslParams(env.POSTGRES_URL_NON_POOLING),
+  ssl: { rejectUnauthorized: false },
+  max: 3,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 15000,
 });
 
 // Configure Better Auth
 export const auth = betterAuth({
-  database: pool,
+  database: authPool,
   advanced: {
     database: {
       // Generate RFC 4122 UUIDs so better-auth's user IDs are compatible with
@@ -74,5 +80,5 @@ export const auth = betterAuth({
 export type Session = typeof auth.$Infer.Session.session;
 export type User = typeof auth.$Infer.Session.user;
 
-// Export the pool for direct database access
+// Export the app query pool for direct database access
 export { pool };

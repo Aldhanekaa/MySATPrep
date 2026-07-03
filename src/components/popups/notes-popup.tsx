@@ -27,7 +27,7 @@ export function DraggableNotesPopup({
 }: DraggableNotesPopupProps) {
   const [popupState, dispatchPopup] = useReducer(
     popupReducer,
-    popupInitialState
+    popupInitialState,
   );
   const popupRef = useRef<HTMLDivElement>(null);
   const [noteText, setNoteText] = useState<string>("");
@@ -200,7 +200,7 @@ export function DraggableNotesPopup({
 
   const handleResizeMouseDown = (
     e: React.MouseEvent,
-    direction: "se" | "ne"
+    direction: "se" | "ne",
   ) => {
     e.stopPropagation();
     dispatchPopup({
@@ -221,7 +221,7 @@ export function DraggableNotesPopup({
   return (
     <div
       ref={popupRef}
-      className="fixed flex flex-col bg-white rounded-lg shadow-2xl border-black border-4 overflow-hidden z-50"
+      className="fixed flex flex-col bg-background rounded-lg shadow-2xl border-border border-2 overflow-hidden z-50"
       style={{
         left: `${popupState.position.x}px`,
         top: `${popupState.position.y}px`,
@@ -231,7 +231,7 @@ export function DraggableNotesPopup({
     >
       {/* Header */}
       <div
-        className="bg-black border-b border-black text-white cursor-move flex justify-between items-center px-3 py-2"
+        className="bg-foreground/90 border-b border-border text-background cursor-move flex justify-between items-center px-3 py-2"
         onMouseDown={handleMouseDown}
         onTouchStart={(e) => {
           if (e.touches.length === 1) {
@@ -253,7 +253,7 @@ export function DraggableNotesPopup({
             playSound("popup-confirm-down.wav");
             onClose();
           }}
-          className="h-8 w-8 p-0 hover:bg-neutral-800 hover:text-white cursor-pointer"
+          className="h-8 w-8 p-0 hover:bg-foreground/10 hover:text-background cursor-pointer"
         >
           <X className="h-4 w-4" />
         </Button>
@@ -266,7 +266,7 @@ export function DraggableNotesPopup({
         <Button
           variant="ghost"
           size="sm"
-          className="h-8 w-8 p-0 cursor-move hover:bg-neutral-900 hover:text-white"
+          className="h-8 w-8 p-0 cursor-move hover:bg-foreground/10 hover:text-background"
         >
           <GripHorizontal className="h-4 w-4 text-white" />
         </Button>
@@ -276,7 +276,7 @@ export function DraggableNotesPopup({
       <div className="relative h-full flex flex-col">
         <div className="flex-1 p-4 overflow-hidden flex flex-col">
           <div className="mb-3">
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-muted-foreground">
               Question {questionId} - Personal Note
             </p>
           </div>
@@ -289,14 +289,14 @@ export function DraggableNotesPopup({
               onChange={(e) => setNoteText(e.target.value)}
               onFocus={() => playSound("button-pressed.wav")}
               placeholder="Write your note here... (tips, reminders, observations, etc.)"
-              className="flex-1 w-full px-3 py-3 border-2 border-gray-300 rounded-xl resize-none focus:outline-none focus:border-black focus:ring-0 bg-white hover:shadow-md focus:shadow-lg transition-all duration-200 text-sm"
+              className="flex-1 w-full px-3 py-3 border-2 border-border rounded-xl resize-none focus:outline-none focus:border-foreground focus:ring-0 bg-background text-foreground hover:shadow-md focus:shadow-lg transition-all duration-200 text-sm placeholder:text-muted-foreground"
             />
-            <div className="text-xs text-gray-500 mt-2">
+            <div className="text-xs text-muted-foreground mt-2">
               {noteText.length} characters • Auto-saved
             </div>
           </div>
 
-          <div className="text-xs text-gray-500 mt-3">
+          <div className="text-xs text-muted-foreground mt-3">
             Notes are saved automatically and stored locally on this device.
           </div>
         </div>

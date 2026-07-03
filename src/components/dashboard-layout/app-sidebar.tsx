@@ -16,6 +16,7 @@ import {
   LandmarkIcon,
   LogInIcon,
   RabbitIcon,
+  SettingsIcon,
   TrendingUpIcon,
 } from "lucide-react";
 
@@ -150,6 +151,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         title: "Export Import Data",
         url: "/dashboard/export-import",
         icon: ArrowDownUpIcon,
+      },
+      {
+        title: "Preferences",
+        url: "/dashboard/preferences",
+        icon: SettingsIcon,
       },
     ],
 
