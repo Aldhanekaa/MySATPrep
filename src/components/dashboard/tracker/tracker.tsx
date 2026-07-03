@@ -69,7 +69,7 @@ type QuestionsAction =
 // Reducer function
 function questionsReducer(
   state: QuestionsState,
-  action: QuestionsAction
+  action: QuestionsAction,
 ): QuestionsState {
   switch (action.type) {
     case "FETCH_START":
@@ -137,7 +137,7 @@ export default function Tracker() {
         `/api/get-questions?assessment=${assessmentTextId}&domains=${[
           ...mathDomains,
           ...rwDomains,
-        ].join(",")}`
+        ].join(",")}`,
       );
       const fetchData = await fetchResponse.json();
 
@@ -184,7 +184,7 @@ export default function Tracker() {
 
       // Helper function to transform questions for a specific subject
       const transformSubjectQuestions = (
-        subjectQuestions: PlainQuestionType[]
+        subjectQuestions: PlainQuestionType[],
       ): Task[] => {
         // Get practice statistics for answered questions
         const activeAssessmentId = state.activeAssessmentId || "99";
@@ -193,14 +193,14 @@ export default function Tracker() {
             ?.textId || "";
         const assessmentStats = practiceStatistics[assessmentTextId];
         const answeredQuestionIds = new Set(
-          assessmentStats?.answeredQuestions || []
+          assessmentStats?.answeredQuestions || [],
         );
 
         // Get detailed answered questions for correct/incorrect status
         const answeredQuestionsDetailed =
           assessmentStats?.answeredQuestionsDetailed || [];
         const answeredQuestionsMap = new Map(
-          answeredQuestionsDetailed.map((q) => [q.questionId, q])
+          answeredQuestionsDetailed.map((q) => [q.questionId, q]),
         );
 
         // Group questions by primaryClassCd first
@@ -213,7 +213,7 @@ export default function Tracker() {
             acc[primaryClassCd].push(question);
             return acc;
           },
-          {} as Record<string, PlainQuestionType[]>
+          {} as Record<string, PlainQuestionType[]>,
         );
 
         // Convert to tasks format: primaryClassCd → skillCd → questionId
@@ -235,7 +235,7 @@ export default function Tracker() {
                 acc[skillCd].push(question);
                 return acc;
               },
-              {} as Record<string, PlainQuestionType[]>
+              {} as Record<string, PlainQuestionType[]>,
             );
 
             // Create subtasks for each skill within this primary class
@@ -247,7 +247,7 @@ export default function Tracker() {
 
                 // Calculate answered questions for this skill
                 const answeredInSkill = skillQuestions.filter((q) =>
-                  answeredQuestionIds.has(q.questionId)
+                  answeredQuestionIds.has(q.questionId),
                 ).length;
                 const correctInSkill = skillQuestions.filter((q) => {
                   const detail = answeredQuestionsMap.get(q.questionId);
@@ -265,7 +265,7 @@ export default function Tracker() {
                     descriptionParts.push(
                       `(${correctInSkill} correct, ${
                         answeredInSkill - correctInSkill
-                      } incorrect)`
+                      } incorrect)`,
                     );
                   } else {
                     descriptionParts.push(`(${answeredInSkill} answered)`);
@@ -280,8 +280,8 @@ export default function Tracker() {
                     answeredInSkill === totalInSkill
                       ? "completed"
                       : answeredInSkill > 0
-                      ? "in-progress"
-                      : "pending",
+                        ? "in-progress"
+                        : "pending",
                   priority: "medium",
                   href: `/questionbank?assessment=${assessmentTextId}&subject=${
                     primaryClassInfo?.subject || ""
@@ -290,7 +290,7 @@ export default function Tracker() {
                   // Add individual questions as nested data (can be expanded later if needed)
                   questions: skillQuestions.map((question) => {
                     const questionDetail = answeredQuestionsMap.get(
-                      question.questionId
+                      question.questionId,
                     );
                     let status = "pending";
 
@@ -312,13 +312,13 @@ export default function Tracker() {
                     };
                   }),
                 };
-              }
+              },
             );
 
             // Calculate overall progress for this primary class
             const totalQuestionsInDomain = primaryClassQuestions.length;
             const answeredQuestionsInDomain = primaryClassQuestions.filter(
-              (q) => answeredQuestionIds.has(q.questionId)
+              (q) => answeredQuestionIds.has(q.questionId),
             ).length;
             const domainProgress = `${answeredQuestionsInDomain}/${totalQuestionsInDomain}`;
 
@@ -332,14 +332,14 @@ export default function Tracker() {
                 answeredQuestionsInDomain === totalQuestionsInDomain
                   ? "completed"
                   : answeredQuestionsInDomain > 0
-                  ? "in-progress"
-                  : "pending",
+                    ? "in-progress"
+                    : "pending",
               priority: "high",
               level: 0,
               dependencies: [domainProgress],
               subtasks: skillSubtasks,
             };
-          }
+          },
         );
       };
 
@@ -377,24 +377,24 @@ export default function Tracker() {
       "";
     const assessmentStats = practiceStatistics[assessmentTextId];
     const answeredQuestionIds = new Set(
-      assessmentStats?.answeredQuestions || []
+      assessmentStats?.answeredQuestions || [],
     );
 
     // Get detailed answered questions for correct/incorrect stats
     const answeredQuestionsDetailed =
       assessmentStats?.answeredQuestionsDetailed || [];
     const correctAnswers = answeredQuestionsDetailed.filter(
-      (q) => q.isCorrect
+      (q) => q.isCorrect,
     ).length;
     const incorrectAnswers = answeredQuestionsDetailed.filter(
-      (q) => !q.isCorrect
+      (q) => !q.isCorrect,
     ).length;
 
     console.log(
-      ` answeredQuestionsDetailed ${answeredQuestionsDetailed.length}`
+      ` answeredQuestionsDetailed ${answeredQuestionsDetailed.length}`,
     );
     console.log(
-      ` answeredQuestionIds ${assessmentStats?.answeredQuestions.length}`
+      ` answeredQuestionIds ${assessmentStats?.answeredQuestions.length}`,
     );
     // Count total questions by difficulty
     const totalByDifficulty = questionsState.allQuestions.reduce(
@@ -403,7 +403,7 @@ export default function Tracker() {
         acc[difficulty] = (acc[difficulty] || 0) + 1;
         return acc;
       },
-      {} as Record<QuestionDifficulty, number>
+      {} as Record<QuestionDifficulty, number>,
     );
 
     // Count answered questions by difficulty
@@ -415,7 +415,7 @@ export default function Tracker() {
         }
         return acc;
       },
-      {} as Record<QuestionDifficulty, number>
+      {} as Record<QuestionDifficulty, number>,
     );
 
     // Calculate statistics for each difficulty
@@ -451,11 +451,15 @@ export default function Tracker() {
         questionsState.allQuestions.length > 0
           ? Math.round(
               (answeredQuestionIds.size / questionsState.allQuestions.length) *
-                100
+                100,
             )
           : 0,
     };
-  }, [questionsState.allQuestions, state.activeAssessmentId, practiceStatistics]);
+  }, [
+    questionsState.allQuestions,
+    state.activeAssessmentId,
+    practiceStatistics,
+  ]);
   // Show loading state for the entire component
   if (questionsState.loading) {
     return (
@@ -470,7 +474,7 @@ export default function Tracker() {
               variant="accent"
               className={cn(
                 "rounded-3xl sticky top-16",
-                "transition-all duration-300"
+                "transition-all duration-300",
               )}
             >
               <CardHeader>
@@ -504,8 +508,8 @@ export default function Tracker() {
                     <div className="space-y-4">
                       {[1, 2, 3].map((i) => (
                         <div key={i} className="animate-pulse">
-                          <div className="h-4 bg-gray-200 rounded mb-2"></div>
-                          <div className="h-3 bg-gray-100 rounded w-3/4"></div>
+                          <div className="h-4 bg-muted rounded mb-2"></div>
+                          <div className="h-3 bg-muted/60 rounded w-3/4"></div>
                         </div>
                       ))}
                     </div>
@@ -521,8 +525,8 @@ export default function Tracker() {
                     <div className="space-y-4">
                       {[1, 2, 3].map((i) => (
                         <div key={i} className="animate-pulse">
-                          <div className="h-4 bg-gray-200 rounded mb-2"></div>
-                          <div className="h-3 bg-gray-100 rounded w-3/4"></div>
+                          <div className="h-4 bg-muted rounded mb-2"></div>
+                          <div className="h-3 bg-muted/60 rounded w-3/4"></div>
                         </div>
                       ))}
                     </div>
@@ -548,7 +552,7 @@ export default function Tracker() {
             variant="accent"
             className={cn(
               "rounded-3xl sticky top-16",
-              "transition-all duration-300"
+              "transition-all duration-300",
             )}
           >
             <CardHeader>
@@ -585,7 +589,7 @@ export default function Tracker() {
                   </p>
                   <button
                     onClick={fetchInitialData}
-                    className="px-4 py-2 bg-blue-500 text-white text-sm rounded-lg hover:bg-blue-600 transition-colors"
+                    className="px-4 py-2 bg-blue-500 text-white text-sm rounded-lg hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-500 transition-colors"
                   >
                     Try Again
                   </button>
@@ -619,20 +623,20 @@ export default function Tracker() {
 
                     {/* Correct/Incorrect Cards */}
                     <div className="grid grid-cols-2 gap-3">
-                      <Card className="p-4 text-center border-neutral-300 bg-white">
+                      <Card className="p-4 text-center border-border bg-card">
                         <div className="text-sm text-muted-foreground mb-1">
                           Correct
                         </div>
-                        <div className="text-2xl font-bold text-green-600">
+                        <div className="text-2xl font-bold text-green-600 dark:text-green-400">
                           {difficultyStats.correctAnswers}
                         </div>
                       </Card>
 
-                      <Card className="p-4 text-center border-neutral-300 bg-white">
+                      <Card className="p-4 text-center border-border bg-card">
                         <div className="text-sm text-muted-foreground mb-1">
                           Incorrect
                         </div>
-                        <div className="text-2xl font-bold text-red-600">
+                        <div className="text-2xl font-bold text-red-600 dark:text-red-400">
                           {difficultyStats.incorrectAnswers}
                         </div>
                       </Card>
@@ -652,10 +656,10 @@ export default function Tracker() {
                               <p
                                 className={`text-xs ${
                                   difficulty === "E"
-                                    ? " text-green-700"
+                                    ? "text-green-600 dark:text-green-400"
                                     : difficulty === "M"
-                                    ? " text-yellow-600"
-                                    : "text-red-500"
+                                      ? "text-yellow-600 dark:text-yellow-400"
+                                      : "text-red-500 dark:text-red-400"
                                 }`}
                               >
                                 {label}
@@ -675,7 +679,7 @@ export default function Tracker() {
                             />
                           </div>
                         </div>
-                      )
+                      ),
                     )}
                   </div>
 
@@ -759,7 +763,7 @@ export default function Tracker() {
                 </p>
                 <button
                   onClick={fetchInitialData}
-                  className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                  className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-500 transition-colors"
                 >
                   Retry
                 </button>

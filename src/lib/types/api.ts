@@ -45,6 +45,7 @@ export interface MigrationSummary {
   preferencesMigrated: boolean;
   notesMigrated: boolean;
   answerHistoryMigrated: boolean;
+  practicePerformanceMigrated: boolean;
 }
 
 // User data fetch response

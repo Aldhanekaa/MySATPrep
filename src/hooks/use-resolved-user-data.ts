@@ -10,6 +10,7 @@ import {
   selectUserBookmarks,
   selectUserCollections,
   selectUserProfile,
+  selectVocabPracticePerformance,
 } from "@/lib/redux/selectors";
 import {
   updateVocabulary,
@@ -18,12 +19,16 @@ import {
 import {
   saveVocabulary,
   saveUserStatistics,
+  debouncedSavePracticePerformance,
 } from "@/lib/utils/dataSync";
 import type { PracticeStatistics } from "@/types/statistics";
-import type { VocabsData } from "@/types/vocabulary";
+import type { VocabsData, PracticePerformanceData } from "@/types/vocabulary";
 import type { VocabularyProgress } from "@/lib/types/userData";
 import type { SavedQuestions, SavedQuestion } from "@/types/savedQuestions";
-import type { SavedCollections, SavedCollection } from "@/types/savedCollections";
+import type {
+  SavedCollections,
+  SavedCollection,
+} from "@/types/savedCollections";
 import type { UserProfileWithHistory } from "@/types/userProfile";
 
 import type { SavedQuestion as ReduxSavedQuestion } from "@/lib/types/userData";
@@ -89,9 +94,7 @@ export function useResolvedPracticeStatistics(): PracticeStatistics {
     {},
   );
 
-  return isAuthenticated
-    ? (reduxStatistics as PracticeStatistics)
-    : localStats;
+  return isAuthenticated ? (reduxStatistics as PracticeStatistics) : localStats;
 }
 
 /**
@@ -135,13 +138,7 @@ export function usePracticeStatisticsState(): [
         setLocalStats(newValue);
       }
     },
-    [
-      isAuthenticated,
-      practiceStatistics,
-      dispatch,
-      reduxState,
-      setLocalStats,
-    ],
+    [isAuthenticated, practiceStatistics, dispatch, reduxState, setLocalStats],
   );
 
   return [practiceStatistics, setPracticeStatistics];
@@ -247,9 +244,7 @@ export function useResolvedVocabsData(): [
 
   const vocabsData = useMemo(
     () =>
-      isAuthenticated
-        ? vocabularyToVocabsData(reduxVocabulary)
-        : localData,
+      isAuthenticated ? vocabularyToVocabsData(reduxVocabulary) : localData,
     [isAuthenticated, reduxVocabulary, localData],
   );
 
@@ -268,4 +263,73 @@ export function useResolvedVocabsData(): [
   );
 
   return [vocabsData, setVocabsData];
+}
+
+const DEFAULT_PRACTICE_PERFORMANCE: PracticePerformanceData = {
+  attempts: [],
+  wordPerformance: {},
+  lastUpdated: 0,
+  totalQuizzesTaken: 0,
+  overallAccuracy: 0,
+  strongWords: [],
+  weakWords: [],
+  improvingWords: [],
+};
+
+/**
+ * Returns [practicePerformance, setPracticePerformance].
+ *
+ * Authenticated users: reads from Redux (`vocabPracticePerformance` field),
+ * writes go through dataSync → PUT /api/user/vocab-practice-performance + Redux.
+ *
+ * Unauthenticated users: reads/writes localStorage ("practicePerformanceData").
+ *
+ * The setter is debounced at 500 ms to coalesce rapid per-answer updates.
+ */
+export function useResolvedPracticePerformanceData(): [
+  PracticePerformanceData,
+  (
+    value:
+      | PracticePerformanceData
+      | ((val: PracticePerformanceData) => PracticePerformanceData),
+  ) => void,
+] {
+  const isAuthenticated = useAppSelector(selectIsAuthenticated);
+  const reduxPerformance = useAppSelector(selectVocabPracticePerformance);
+  const dispatch = useAppDispatch();
+  const reduxState = useAppSelector((s) => s);
+
+  const [localData, setLocalData] = useLocalStorage<PracticePerformanceData>(
+    "practicePerformanceData",
+    DEFAULT_PRACTICE_PERFORMANCE,
+  );
+
+  const practicePerformance = useMemo(
+    () =>
+      isAuthenticated
+        ? (reduxPerformance ?? DEFAULT_PRACTICE_PERFORMANCE)
+        : localData,
+    [isAuthenticated, reduxPerformance, localData],
+  );
+
+  const setPracticePerformance = useCallback(
+    (
+      value:
+        | PracticePerformanceData
+        | ((val: PracticePerformanceData) => PracticePerformanceData),
+    ) => {
+      const newValue =
+        value instanceof Function ? value(practicePerformance) : value;
+
+      if (isAuthenticated) {
+        // Use debounced save — practice components call this on every answer
+        debouncedSavePracticePerformance(newValue, dispatch, reduxState);
+      } else {
+        setLocalData(newValue);
+      }
+    },
+    [isAuthenticated, practicePerformance, dispatch, reduxState, setLocalData],
+  );
+
+  return [practicePerformance, setPracticePerformance];
 }

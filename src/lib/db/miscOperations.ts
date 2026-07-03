@@ -1,8 +1,9 @@
 /**
- * Vocabulary, Preferences, Question Notes, and Answer History Database Operations
+ * Vocabulary, Preferences, Question Notes, Answer History, and
+ * Vocab Practice Performance Database Operations
  *
  * CRUD operations for vocabulary progress, user preferences, question notes,
- * and answer history using parameterized queries.
+ * answer history, and vocabulary quiz performance data using parameterized queries.
  *
  * Validates: Requirements 7.8, 7.9, 8.10, 1.1, 1.7
  */
@@ -10,6 +11,7 @@
 import { pool } from "@/lib/auth";
 import type { VocabularyProgress, UserPreferences } from "@/lib/types/userData";
 import type { QuestionNotes } from "@/types/questionNotes";
+import type { PracticePerformanceData } from "@/types/vocabulary";
 
 /**
  * Answer history shape — keyed by questionId, each entry stores an array
@@ -183,4 +185,55 @@ export async function updateAnswerHistory(
   );
 
   return result.rows[0].historyData;
+}
+
+// ─── Vocab Practice Performance ───────────────────────────────────────────────
+
+const EMPTY_PRACTICE_PERFORMANCE: PracticePerformanceData = {
+  attempts: [],
+  wordPerformance: {},
+  lastUpdated: 0,
+  totalQuizzesTaken: 0,
+  overallAccuracy: 0,
+  strongWords: [],
+  weakWords: [],
+  improvingWords: [],
+};
+
+/**
+ * Fetch vocabulary practice performance for a user.
+ * Returns a default empty object if no record exists yet.
+ */
+export async function getVocabPracticePerformance(
+  userId: string,
+): Promise<PracticePerformanceData> {
+  const result = await pool.query<{ performanceData: PracticePerformanceData }>(
+    `SELECT performance_data AS "performanceData"
+     FROM vocab_practice_performance
+     WHERE user_id = $1
+     LIMIT 1`,
+    [userId],
+  );
+
+  return result.rows[0]?.performanceData ?? EMPTY_PRACTICE_PERFORMANCE;
+}
+
+/**
+ * Insert or update vocabulary practice performance for a user.
+ */
+export async function updateVocabPracticePerformance(
+  userId: string,
+  data: PracticePerformanceData,
+): Promise<PracticePerformanceData> {
+  const result = await pool.query<{ performanceData: PracticePerformanceData }>(
+    `INSERT INTO vocab_practice_performance (user_id, performance_data)
+     VALUES ($1, $2)
+     ON CONFLICT (user_id) DO UPDATE SET
+       performance_data = EXCLUDED.performance_data,
+       updated_at       = CURRENT_TIMESTAMP
+     RETURNING performance_data AS "performanceData"`,
+    [userId, JSON.stringify(data)],
+  );
+
+  return result.rows[0].performanceData;
 }

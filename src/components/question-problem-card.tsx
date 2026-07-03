@@ -739,8 +739,8 @@ const QuestionProblemCard = React.memo(function QuestionProblemCard({
                     variant="default"
                     className={`flex cursor-pointer items-center gap-1 md:gap-2 font-bold py-2 md:py-3 px-3 md:px-6 rounded-xl md:rounded-2xl border-b-4 shadow-md hover:shadow-lg transform transition-all duration-200 active:translate-y-0.5 active:border-b-2 text-xs md:text-sm ${
                       hasNote
-                        ? "bg-gray-600 hover:bg-gray-700 text-white border-gray-800 hover:border-gray-900"
-                        : "bg-gray-600 hover:bg-gray-700 text-white border-gray-800 hover:border-gray-900"
+                        ? "bg-gray-600 hover:bg-gray-700 dark:bg-neutral-600 dark:hover:bg-neutral-500 text-white border-gray-800 dark:border-neutral-700 hover:border-gray-900"
+                        : "bg-gray-600 hover:bg-gray-700 dark:bg-neutral-600 dark:hover:bg-neutral-500 text-white border-gray-800 dark:border-neutral-700 hover:border-gray-900"
                     }`}
                     onClick={() => {
                       playSound("button-pressed.wav");
@@ -1002,8 +1002,8 @@ const QuestionProblemCard = React.memo(function QuestionProblemCard({
                       <span
                         className={`text-sm font-medium ${
                           questionStats.isCorrect
-                            ? "text-green-700"
-                            : "text-red-700"
+                            ? "text-green-700 dark:text-green-400"
+                            : "text-red-700 dark:text-red-400"
                         }`}
                       >
                         Your answer is{" "}
@@ -1047,8 +1047,8 @@ const QuestionProblemCard = React.memo(function QuestionProblemCard({
                     {checkAnswerCorrectness(selectedAnswer) && (
                       <div className="p-2 rounded-lg border-2 border-green-500 bg-green-500/10">
                         <div className="flex items-center gap-2">
-                          <CheckCircle className="h-4 w-4 text-green-600" />
-                          <span className="text-sm font-medium text-green-700">
+                          <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+                          <span className="text-sm font-medium text-green-700 dark:text-green-400">
                             Looks correct! Press Enter to submit.
                           </span>
                         </div>
@@ -1084,8 +1084,8 @@ const QuestionProblemCard = React.memo(function QuestionProblemCard({
                       <span
                         className={`text-sm font-medium ${
                           questionStats.isCorrect
-                            ? "text-green-700"
-                            : "text-red-700"
+                            ? "text-green-700 dark:text-green-400"
+                            : "text-red-700 dark:text-red-400"
                         }`}
                       >
                         Your previous answer was{" "}
@@ -1117,8 +1117,8 @@ const QuestionProblemCard = React.memo(function QuestionProblemCard({
                     <span
                       className={`text-sm font-medium ${
                         questionStats.isCorrect
-                          ? "text-green-700"
-                          : "text-red-700"
+                          ? "text-green-700 dark:text-green-400"
+                          : "text-red-700 dark:text-red-400"
                       }`}
                     >
                       Your answer is{" "}
@@ -1134,8 +1134,8 @@ const QuestionProblemCard = React.memo(function QuestionProblemCard({
                   question.problem.correct_answer && (
                     <div className="mt-2 p-3 rounded-lg border-2 border-green-500 bg-green-500/10">
                       <div className="flex items-center gap-2">
-                        <CheckCircle className="h-5 w-5 text-green-600" />
-                        <span className="text-sm font-medium text-green-700">
+                        <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
+                        <span className="text-sm font-medium text-green-700 dark:text-green-400">
                           Correct answer
                           {question.problem.correct_answer.length > 1
                             ? "s"
@@ -1152,8 +1152,8 @@ const QuestionProblemCard = React.memo(function QuestionProblemCard({
                   question.problem.correct_answer && (
                     <div className="mt-2 p-3 rounded-lg border-2 border-green-500 bg-green-500/10">
                       <div className="flex items-center gap-2">
-                        <CheckCircle className="h-5 w-5 text-green-600" />
-                        <span className="text-sm font-medium text-green-700">
+                        <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
+                        <span className="text-sm font-medium text-green-700 dark:text-green-400">
                           Correct answer
                           {question.problem.correct_answer.length > 1
                             ? "s"
@@ -1214,7 +1214,7 @@ const QuestionProblemCard = React.memo(function QuestionProblemCard({
 
       {/* Share Modal */}
       {isShareModalOpen && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/20">
+        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/20 dark:bg-black/50">
           <div className="bg-background rounded-2xl border-2 border-b-4 border-border shadow-2xl p-6 max-w-md w-full mx-4">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-xl font-bold text-foreground">
@@ -1276,7 +1276,7 @@ const QuestionProblemCard = React.memo(function QuestionProblemCard({
                     playSound("button-pressed.wav");
                     router.push(`/question/${question.question.questionId}`);
                   }}
-                  className="w-full px-4 py-2 rounded-xl border-2 border-b-4 font-bold transition-all duration-200 bg-gray-500 hover:bg-gray-600 border-gray-700 text-white"
+                  className="w-full px-4 py-2 rounded-xl border-2 border-b-4 font-bold transition-all duration-200 bg-gray-500 hover:bg-gray-600 dark:bg-neutral-600 dark:hover:bg-neutral-500 border-gray-700 dark:border-neutral-700 text-white"
                 >
                   🔗 View Question Page
                 </Button>

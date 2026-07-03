@@ -56,6 +56,7 @@ export {
   fetchSessions,
   fetchBookmarksAndCollections,
   fetchVocabulary,
+  fetchVocabPracticePerformance,
   fetchAnswerHistory,
   fetchNotes,
 } from "./slices/userDataSlice";

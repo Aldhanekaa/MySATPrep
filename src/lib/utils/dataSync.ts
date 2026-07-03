@@ -22,6 +22,7 @@ import type {
   UserPreferences,
 } from "@/lib/types/userData";
 import type { QuestionNotes } from "@/types/questionNotes";
+import type { PracticePerformanceData } from "@/types/vocabulary";
 import {
   updateUserProfile,
   updateUserStatistics,
@@ -37,6 +38,8 @@ import {
   updatePreferencesThunk,
   batchUpdateUserData,
   setNotes,
+  updateVocabPracticePerformance,
+  updateVocabPracticePerformanceThunk,
   type BatchUpdatePayload,
 } from "@/lib/redux/slices/userDataSlice";
 import { saveUserProfile as saveProfileToLocalStorage } from "@/lib/userProfile";
@@ -452,6 +455,43 @@ export function saveVocabulary(
   }
 }
 
+// ─── Vocab Practice Performance ──────────────────────────────────────────────
+
+/**
+ * Saves vocabulary quiz practice performance data.
+ * Authenticated → PUT /api/user/vocab-practice-performance + Redux update.
+ * Unauthenticated → localStorage ("practicePerformanceData" key).
+ */
+export function savePracticePerformance(
+  data: PracticePerformanceData,
+  dispatch: AppDispatch,
+  state: RootState,
+): void {
+  if (isAuthenticated(state)) {
+    // Optimistically update Redux so the UI stays snappy
+    dispatch(updateVocabPracticePerformance(data));
+    withRetry(
+      () =>
+        dispatch(
+          updateVocabPracticePerformanceThunk(data),
+        ) as unknown as Promise<unknown>,
+    ).catch(() => {
+      showNetworkError(
+        "Failed to save vocab practice performance. Please check your connection.",
+      );
+    });
+  } else {
+    try {
+      localStorage.setItem("practicePerformanceData", JSON.stringify(data));
+    } catch (error) {
+      console.error(
+        "[dataSync] Failed to save practicePerformanceData to localStorage:",
+        error,
+      );
+    }
+  }
+}
+
 // ─── Preferences ──────────────────────────────────────────────────────────────
 
 /**
@@ -527,6 +567,16 @@ export const debouncedSaveUserStatistics = debounce(
 export const debouncedSaveVocabulary = debounce(
   (data: VocabularyProgress, dispatch: AppDispatch, state: RootState) =>
     saveVocabulary(data, dispatch, state),
+  500,
+);
+
+/**
+ * Debounced version of savePracticePerformance (500 ms).
+ * Coalesces rapid per-answer updates into a single API call.
+ */
+export const debouncedSavePracticePerformance = debounce(
+  (data: PracticePerformanceData, dispatch: AppDispatch, state: RootState) =>
+    savePracticePerformance(data, dispatch, state),
   500,
 );
 

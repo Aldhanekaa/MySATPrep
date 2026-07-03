@@ -106,6 +106,32 @@ export const VocabularyProgressSchema = z.record(z.string(), z.unknown());
 
 export const UserPreferencesSchema = z.record(z.string(), z.unknown());
 
+// ─── Vocab Practice Performance ───────────────────────────────────────────────
+
+const WordPerformanceSchema = z.object({
+  word: z.string(),
+  totalAttempts: z.number().int().min(0),
+  correctAttempts: z.number().int().min(0),
+  incorrectAttempts: z.number().int().min(0),
+  lastAttemptTimestamp: z.number(),
+  averageTimeSpent: z.number(),
+  strugglingAreas: z.array(z.string()).optional(),
+  masteryLevel: z.enum(["struggling", "learning", "proficient", "mastered"]),
+  consecutiveCorrect: z.number().int().min(0),
+  consecutiveIncorrect: z.number().int().min(0),
+});
+
+export const PracticePerformanceSchema = z.object({
+  attempts: z.array(z.unknown()),
+  wordPerformance: z.record(z.string(), WordPerformanceSchema),
+  lastUpdated: z.number(),
+  totalQuizzesTaken: z.number().int().min(0),
+  overallAccuracy: z.number().min(0).max(100),
+  strongWords: z.array(z.string()),
+  weakWords: z.array(z.string()),
+  improvingWords: z.array(z.string()),
+});
+
 // ─── Question Notes ───────────────────────────────────────────────────────────
 
 const QuestionNoteSchema = z.object({
@@ -148,8 +174,9 @@ export const MigrationPayloadSchema = z.object({
   collections: CollectionsSchema.optional(),
   vocabulary: VocabularyProgressSchema.optional().nullable(),
   preferences: UserPreferencesSchema.optional().nullable(),
-  questionNotes: QuestionNotesSchema.optional().nullable(), // NEW
-  answerHistory: AnswerHistorySchema.optional().nullable(), // NEW
+  questionNotes: QuestionNotesSchema.optional().nullable(),
+  answerHistory: AnswerHistorySchema.optional().nullable(),
+  practicePerformance: PracticePerformanceSchema.optional().nullable(),
 });
 
 export type ValidatedMigrationPayload = z.infer<typeof MigrationPayloadSchema>;

@@ -19,6 +19,7 @@ import type {
 } from "@/lib/types/userData";
 import type { MigrationSummary } from "@/lib/types/api";
 import type { QuestionNotes } from "@/types/questionNotes";
+import type { PracticePerformanceData } from "@/types/vocabulary";
 
 // ─── Async Thunks ────────────────────────────────────────────────────────────
 
@@ -554,6 +555,15 @@ export const migrateLocalStorageData = createAsyncThunk<MigrationSummary, void>(
       }
     })();
 
+    const practicePerformance = (() => {
+      try {
+        const raw = localStorage.getItem("practicePerformanceData");
+        return raw ? JSON.parse(raw) : null;
+      } catch {
+        return null;
+      }
+    })();
+
     const payload = {
       ...(profile ? { profile } : {}),
       ...(statistics ? { statistics } : {}),
@@ -562,6 +572,7 @@ export const migrateLocalStorageData = createAsyncThunk<MigrationSummary, void>(
       collections: collections ?? [],
       ...(vocabulary ? { vocabulary } : {}),
       ...(preferences ? { preferences } : {}),
+      ...(practicePerformance ? { practicePerformance } : {}),
     };
 
     try {
@@ -629,8 +640,6 @@ export const syncLocalStorageData = createAsyncThunk<
       vocabulary,
       preferences,
     } = state.userData;
-
-    // ── Read localStorage data ─────────────────────────────────────────────
     const localProfile = (() => {
       try {
         const raw = localStorage.getItem("userProfile");
@@ -703,6 +712,15 @@ export const syncLocalStorageData = createAsyncThunk<
       try {
         const raw = localStorage.getItem("userPreferences");
         return raw ? JSON.parse(raw) : null;
+      } catch {
+        return null;
+      }
+    })();
+
+    const localPracticePerformance = (() => {
+      try {
+        const raw = localStorage.getItem("practicePerformanceData");
+        return raw ? (JSON.parse(raw) as PracticePerformanceData) : null;
       } catch {
         return null;
       }
@@ -870,6 +888,77 @@ export const syncLocalStorageData = createAsyncThunk<
         ? { ...(preferences ?? {}), ...(localPreferences ?? {}) }
         : null;
 
+    // Practice performance: merge attempts (dedupe by timestamp+word), take
+    // the more recent wordPerformance entry per word, keep aggregate stats from
+    // whichever dataset has the higher totalQuizzesTaken.
+    const reduxPerformance = state.userData.vocabPracticePerformance;
+    const mergedPracticePerformance = (() => {
+      if (!reduxPerformance && !localPracticePerformance) return null;
+      const db = reduxPerformance ?? {
+        attempts: [],
+        wordPerformance: {},
+        lastUpdated: 0,
+        totalQuizzesTaken: 0,
+        overallAccuracy: 0,
+        strongWords: [],
+        weakWords: [],
+        improvingWords: [],
+      };
+      const ls = localPracticePerformance ?? {
+        attempts: [],
+        wordPerformance: {},
+        lastUpdated: 0,
+        totalQuizzesTaken: 0,
+        overallAccuracy: 0,
+        strongWords: [],
+        weakWords: [],
+        improvingWords: [],
+      };
+
+      // Dedupe attempts by (word + timestamp)
+      const attemptMap = new Map<string, (typeof db.attempts)[0]>();
+      for (const a of [...db.attempts, ...ls.attempts]) {
+        const key = `${a.word}::${a.timestamp}`;
+        if (!attemptMap.has(key)) attemptMap.set(key, a);
+      }
+
+      // Per-word: keep the entry with the higher totalAttempts
+      const wordPerformance: PracticePerformanceData["wordPerformance"] = {};
+      const allWords = new Set([
+        ...Object.keys(db.wordPerformance),
+        ...Object.keys(ls.wordPerformance),
+      ]);
+      for (const word of allWords) {
+        const dbWord = db.wordPerformance[word];
+        const lsWord = ls.wordPerformance[word];
+        if (!dbWord) {
+          wordPerformance[word] = lsWord;
+        } else if (!lsWord) {
+          wordPerformance[word] = dbWord;
+        } else {
+          wordPerformance[word] =
+            (dbWord.totalAttempts ?? 0) >= (lsWord.totalAttempts ?? 0)
+              ? dbWord
+              : lsWord;
+        }
+      }
+
+      // Aggregate stats: take higher totalQuizzesTaken set
+      const winner =
+        (db.totalQuizzesTaken ?? 0) >= (ls.totalQuizzesTaken ?? 0) ? db : ls;
+
+      return {
+        attempts: Array.from(attemptMap.values()),
+        wordPerformance,
+        lastUpdated: Math.max(db.lastUpdated ?? 0, ls.lastUpdated ?? 0),
+        totalQuizzesTaken: winner.totalQuizzesTaken,
+        overallAccuracy: winner.overallAccuracy,
+        strongWords: winner.strongWords,
+        weakWords: winner.weakWords,
+        improvingWords: winner.improvingWords,
+      } satisfies PracticePerformanceData;
+    })();
+
     // ── Build sync payload ──────────────────────────────────────────────────
     const payload = {
       ...(mergedProfile ? { profile: mergedProfile } : {}),
@@ -881,6 +970,9 @@ export const syncLocalStorageData = createAsyncThunk<
       collections: mergedCollections,
       ...(mergedVocabulary ? { vocabulary: mergedVocabulary } : {}),
       ...(mergedPreferences ? { preferences: mergedPreferences } : {}),
+      ...(mergedPracticePerformance
+        ? { practicePerformance: mergedPracticePerformance }
+        : {}),
     };
 
     try {
@@ -1106,6 +1198,74 @@ export const fetchNotes = createAsyncThunk<QuestionNotes | null, void>(
   },
 );
 
+/**
+ * Fetches vocabulary practice performance from the server on demand.
+ * Dispatched when the user visits the vocab practice or wordbank page.
+ */
+export const fetchVocabPracticePerformance = createAsyncThunk<
+  PracticePerformanceData | null,
+  void
+>("userData/fetchVocabPracticePerformance", async (_, { rejectWithValue }) => {
+  try {
+    const response = await fetch("/api/user/vocab-practice-performance", {
+      method: "GET",
+      credentials: "include",
+    });
+    if (response.status === 401) return rejectWithValue("Unauthorized");
+    if (!response.ok)
+      throw new Error(
+        `Failed to fetch vocab practice performance: ${response.status}`,
+      );
+    const json = await response.json();
+    return (json.data?.performance ?? null) as PracticePerformanceData | null;
+  } catch (error) {
+    return rejectWithValue(
+      error instanceof Error
+        ? error.message
+        : "Failed to fetch vocab practice performance",
+    );
+  }
+});
+
+/**
+ * Updates vocabulary practice performance in the backend.
+ */
+export const updateVocabPracticePerformanceThunk = createAsyncThunk<
+  PracticePerformanceData,
+  PracticePerformanceData
+>(
+  "userData/updateVocabPracticePerformance",
+  async (performanceData, { rejectWithValue }) => {
+    try {
+      const response = await fetch("/api/user/vocab-practice-performance", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(performanceData),
+      });
+
+      if (response.status === 401) throw new Error("Unauthorized");
+
+      if (!response.ok) {
+        const json = await response.json().catch(() => ({}));
+        throw new Error(
+          json.error ??
+            `Failed to update vocab practice performance: ${response.status}`,
+        );
+      }
+
+      const json = await response.json();
+      return json.data.performance as PracticePerformanceData;
+    } catch (error) {
+      return rejectWithValue(
+        error instanceof Error
+          ? error.message
+          : "Failed to update vocab practice performance",
+      );
+    }
+  },
+);
+
 // Initial user data state
 const initialState: UserDataState = {
   profile: null,
@@ -1117,6 +1277,7 @@ const initialState: UserDataState = {
   preferences: null,
   answerHistory: null,
   questionNotes: null,
+  vocabPracticePerformance: null,
   loading: {
     profile: false,
     statistics: false,
@@ -1126,6 +1287,7 @@ const initialState: UserDataState = {
     vocabulary: false,
     answerHistory: false,
     questionNotes: false,
+    vocabPracticePerformance: false,
   },
   error: null,
 };
@@ -1340,6 +1502,25 @@ const userDataSlice = createSlice({
       state.loading.questionNotes = false;
     },
 
+    // Set vocab practice performance
+    setVocabPracticePerformance: (
+      state,
+      action: PayloadAction<PracticePerformanceData | null>,
+    ) => {
+      state.vocabPracticePerformance = action.payload;
+      state.loading.vocabPracticePerformance = false;
+    },
+
+    // Update vocab practice performance (full replace — performance data is
+    // always computed fresh by the practice components and stored whole)
+    updateVocabPracticePerformance: (
+      state,
+      action: PayloadAction<PracticePerformanceData>,
+    ) => {
+      state.vocabPracticePerformance = action.payload;
+      state.loading.vocabPracticePerformance = false;
+    },
+
     // Set loading state for a specific data type
     setDataLoading: (
       state,
@@ -1367,6 +1548,7 @@ const userDataSlice = createSlice({
       state.preferences = null;
       state.answerHistory = null;
       state.questionNotes = null;
+      state.vocabPracticePerformance = null;
       state.loading = {
         profile: false,
         statistics: false,
@@ -1376,6 +1558,7 @@ const userDataSlice = createSlice({
         vocabulary: false,
         answerHistory: false,
         questionNotes: false,
+        vocabPracticePerformance: false,
       };
       state.error = null;
     },
@@ -1413,6 +1596,7 @@ const userDataSlice = createSlice({
           vocabulary: false,
           answerHistory: false,
           questionNotes: false,
+          vocabPracticePerformance: false,
         };
         state.error = null;
       })
@@ -1426,6 +1610,7 @@ const userDataSlice = createSlice({
           vocabulary: false,
           answerHistory: false,
           questionNotes: false,
+          vocabPracticePerformance: false,
         };
         state.error = action.payload as string;
       });
@@ -1726,6 +1911,44 @@ const userDataSlice = createSlice({
         state.error = action.payload as string;
       });
 
+    // ── fetchVocabPracticePerformance ────────────────────────────────────────
+    builder
+      .addCase(fetchVocabPracticePerformance.pending, (state) => {
+        state.loading.vocabPracticePerformance = true;
+        state.error = null;
+      })
+      .addCase(fetchVocabPracticePerformance.fulfilled, (state, action) => {
+        state.vocabPracticePerformance = action.payload;
+        state.loading.vocabPracticePerformance = false;
+        state.error = null;
+      })
+      .addCase(fetchVocabPracticePerformance.rejected, (state, action) => {
+        state.loading.vocabPracticePerformance = false;
+        state.error = action.payload as string;
+      });
+
+    // ── updateVocabPracticePerformanceThunk ──────────────────────────────────
+    builder
+      .addCase(updateVocabPracticePerformanceThunk.pending, (state) => {
+        state.loading.vocabPracticePerformance = true;
+        state.error = null;
+      })
+      .addCase(
+        updateVocabPracticePerformanceThunk.fulfilled,
+        (state, action) => {
+          state.vocabPracticePerformance = action.payload;
+          state.loading.vocabPracticePerformance = false;
+          state.error = null;
+        },
+      )
+      .addCase(
+        updateVocabPracticePerformanceThunk.rejected,
+        (state, action) => {
+          state.loading.vocabPracticePerformance = false;
+          state.error = action.payload as string;
+        },
+      );
+
     // ── batchUpdateUserData ──────────────────────────────────────────────────
     builder
       .addCase(batchUpdateUserData.pending, (state) => {
@@ -1795,6 +2018,8 @@ export const {
   mergeAnswerHistory,
   setNotes,
   mergeNotes,
+  setVocabPracticePerformance,
+  updateVocabPracticePerformance,
   setDataLoading,
   setDataError,
   clearUserData,

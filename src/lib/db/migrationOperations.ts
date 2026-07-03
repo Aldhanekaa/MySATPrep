@@ -34,6 +34,7 @@ export async function migrateUserData(
     preferencesMigrated: false,
     notesMigrated: false,
     answerHistoryMigrated: false,
+    practicePerformanceMigrated: false,
   };
 
   try {
@@ -191,6 +192,17 @@ export async function migrateUserData(
         [userId, JSON.stringify(data.answerHistory)],
       );
       summary.answerHistoryMigrated = true;
+    }
+
+    // ── Vocab Practice Performance ────────────────────────────────────────────
+    if (data.practicePerformance) {
+      await client.query(
+        `INSERT INTO vocab_practice_performance (user_id, performance_data)
+         VALUES ($1, $2)
+         ON CONFLICT (user_id) DO NOTHING`,
+        [userId, JSON.stringify(data.practicePerformance)],
+      );
+      summary.practicePerformanceMigrated = true;
     }
 
     await client.query("COMMIT");

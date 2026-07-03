@@ -1,8 +1,10 @@
 "use client";
 
 import React, { useReducer, useEffect, useMemo, useState } from "react";
-import { useLocalStorage } from "@/lib/useLocalStorage";
-import { useResolvedVocabsData } from "@/hooks/use-resolved-user-data";
+import {
+  useResolvedVocabsData,
+  useResolvedPracticePerformanceData,
+} from "@/hooks/use-resolved-user-data";
 import {
   vocabs_database,
   VocabsData,
@@ -221,23 +223,14 @@ export default function VocabsDefinePractice({
 
   const [vocabsData, setVocabsData] = useResolvedVocabsData();
 
-  // Practice performance tracking
+  // Practice performance tracking — authenticated: cloud (Redux/API), unauthenticated: localStorage
   const [practicePerformance, setPracticePerformance] =
-    useLocalStorage<PracticePerformanceData>("practicePerformanceData", {
-      attempts: [],
-      wordPerformance: {},
-      lastUpdated: Date.now(),
-      totalQuizzesTaken: 0,
-      overallAccuracy: 0,
-      strongWords: [],
-      weakWords: [],
-      improvingWords: [],
-    });
+    useResolvedPracticePerformanceData();
 
   // Get learned vocabulary words
   const learnedWords = useMemo(() => {
     return vocabs_database.filter((word) =>
-      vocabsData.learntVocabs.includes(word.word)
+      vocabsData.learntVocabs.includes(word.word),
     );
   }, [vocabsData.learntVocabs]);
 
@@ -282,7 +275,7 @@ export default function VocabsDefinePractice({
     // Shuffle each category separately
     Object.keys(categorizedWords).forEach((key) => {
       categorizedWords[key as keyof typeof categorizedWords].sort(
-        () => Math.random() - 0.5
+        () => Math.random() - 0.5,
       );
     });
 
@@ -349,7 +342,7 @@ export default function VocabsDefinePractice({
   const calculateMasteryLevel = (
     correctAttempts: number,
     totalAttempts: number,
-    consecutiveCorrect: number
+    consecutiveCorrect: number,
   ): WordPerformance["masteryLevel"] => {
     if (totalAttempts === 0) return "learning";
 
@@ -365,7 +358,7 @@ export default function VocabsDefinePractice({
   const updateWordPerformance = (
     word: string,
     isCorrect: boolean,
-    timeSpent: number
+    timeSpent: number,
   ) => {
     setPracticePerformance((prevData) => {
       const updatedData = { ...prevData };
@@ -412,7 +405,7 @@ export default function VocabsDefinePractice({
       wordPerf.masteryLevel = calculateMasteryLevel(
         wordPerf.correctAttempts,
         wordPerf.totalAttempts,
-        wordPerf.consecutiveCorrect
+        wordPerf.consecutiveCorrect,
       );
 
       // Update word performance in data
@@ -436,7 +429,7 @@ export default function VocabsDefinePractice({
       // Update overall statistics
       updatedData.lastUpdated = Date.now();
       const totalCorrect = updatedData.attempts.filter(
-        (a) => a.isCorrect
+        (a) => a.isCorrect,
       ).length;
       updatedData.overallAccuracy = totalCorrect / updatedData.attempts.length;
 
@@ -445,7 +438,7 @@ export default function VocabsDefinePractice({
       updatedData.strongWords = allWords
         .filter(
           (w) =>
-            w.masteryLevel === "mastered" || w.masteryLevel === "proficient"
+            w.masteryLevel === "mastered" || w.masteryLevel === "proficient",
         )
         .map((w) => w.word);
 
@@ -455,7 +448,7 @@ export default function VocabsDefinePractice({
 
       updatedData.improvingWords = allWords
         .filter(
-          (w) => w.masteryLevel === "learning" && w.consecutiveCorrect > 0
+          (w) => w.masteryLevel === "learning" && w.consecutiveCorrect > 0,
         )
         .map((w) => w.word);
 
@@ -511,13 +504,13 @@ export default function VocabsDefinePractice({
         // Fallback to simple evaluation if AI fails
         isCorrect = evaluateDefinition(
           defineState.userDefinition,
-          currentQuestion.word.definition
+          currentQuestion.word.definition,
         );
         aiMessage = "Unable to get AI feedback. Using basic evaluation.";
       }
 
       const timeSpent = Math.round(
-        (Date.now() - defineState.questionStartTime) / 1000
+        (Date.now() - defineState.questionStartTime) / 1000,
       );
 
       // Update define state with AI response
@@ -542,14 +535,14 @@ export default function VocabsDefinePractice({
       // Fallback to simple evaluation if AI request fails
       const isCorrect = evaluateDefinition(
         defineState.userDefinition,
-        currentQuestion.word.definition
+        currentQuestion.word.definition,
       );
 
       const fallbackMessage =
         "Unable to connect to AI service. Using basic evaluation.";
 
       const timeSpent = Math.round(
-        (Date.now() - defineState.questionStartTime) / 1000
+        (Date.now() - defineState.questionStartTime) / 1000,
       );
 
       // Update define state with fallback response
@@ -593,10 +586,10 @@ export default function VocabsDefinePractice({
       "with",
     ]);
     const meaningfulUserWords = userWords.filter(
-      (word) => !commonWords.has(word) && word.length > 2
+      (word) => !commonWords.has(word) && word.length > 2,
     );
     const meaningfulCorrectWords = correctWords.filter(
-      (word) => !commonWords.has(word) && word.length > 2
+      (word) => !commonWords.has(word) && word.length > 2,
     );
 
     let matches = 0;
@@ -604,7 +597,7 @@ export default function VocabsDefinePractice({
       if (
         meaningfulCorrectWords.some(
           (correctWord) =>
-            correctWord.includes(word) || word.includes(correctWord)
+            correctWord.includes(word) || word.includes(correctWord),
         )
       ) {
         matches++;
@@ -691,7 +684,7 @@ export default function VocabsDefinePractice({
   // Define complete screen
   if (defineState.isDefineComplete) {
     const percentage = Math.round(
-      (defineState.score / defineQuestions.length) * 100
+      (defineState.score / defineQuestions.length) * 100,
     );
 
     return (
@@ -717,8 +710,8 @@ export default function VocabsDefinePractice({
               {percentage >= 80
                 ? "Excellent definitions! You really understand these words!"
                 : percentage >= 60
-                ? "Good job! Keep practicing to improve your definitions!"
-                : "Keep studying! Practice writing definitions to master these words!"}
+                  ? "Good job! Keep practicing to improve your definitions!"
+                  : "Keep studying! Practice writing definitions to master these words!"}
             </p>
           </div>
 

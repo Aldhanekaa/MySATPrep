@@ -1,8 +1,10 @@
 "use client";
 
 import React, { useReducer, useEffect, useMemo, useState } from "react";
-import { useLocalStorage } from "@/lib/useLocalStorage";
-import { useResolvedVocabsData } from "@/hooks/use-resolved-user-data";
+import {
+  useResolvedVocabsData,
+  useResolvedPracticePerformanceData,
+} from "@/hooks/use-resolved-user-data";
 import {
   vocabs_database,
   VocabsData,
@@ -226,18 +228,9 @@ export default function VocabsFormaSentencePractice({
 
   const [vocabsData, setVocabsData] = useResolvedVocabsData();
 
-  // Practice performance tracking
+  // Practice performance tracking — authenticated: cloud (Redux/API), unauthenticated: localStorage
   const [practicePerformance, setPracticePerformance] =
-    useLocalStorage<PracticePerformanceData>("practicePerformanceData", {
-      attempts: [],
-      wordPerformance: {},
-      lastUpdated: Date.now(),
-      totalQuizzesTaken: 0,
-      overallAccuracy: 0,
-      strongWords: [],
-      weakWords: [],
-      improvingWords: [],
-    });
+    useResolvedPracticePerformanceData();
 
   // Get learned vocabulary words
   const learnedWords = useMemo(() => {

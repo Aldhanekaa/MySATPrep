@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import VocabsMainPage from "@/components/dashboard/vocabs/vocabs";
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
-import { fetchVocabulary, fetchVocabPracticePerformance } from "@/lib/redux";
+import { fetchVocabPracticePerformance, fetchVocabulary } from "@/lib/redux";
 import {
   selectIsAuthenticated,
   selectUserDataLoading,
 } from "@/lib/redux/selectors";
+import VocabsPracticePage_Main from "./practice";
 
 function Spinner() {
   return (
@@ -35,7 +35,14 @@ function Spinner() {
   );
 }
 
-export default function VocabsPageClient() {
+/**
+ * Client wrapper for the vocab practice page.
+ *
+ * Lazily fetches vocabulary progress and practice performance data from the
+ * server for authenticated users on first render. Falls back gracefully for
+ * unauthenticated users (localStorage is used by the hooks directly).
+ */
+export default function VocabsPracticePageClient() {
   const dispatch = useAppDispatch();
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
   const loading = useAppSelector(selectUserDataLoading);
@@ -44,14 +51,15 @@ export default function VocabsPageClient() {
   useEffect(() => {
     if (!isAuthenticated) return;
     if (fetchedRef.current) return;
-    if (loading.vocabulary) return;
 
     fetchedRef.current = true;
+    // Fetch both vocabulary (learntVocabs) and practice performance in parallel
     dispatch(fetchVocabulary());
     dispatch(fetchVocabPracticePerformance());
-  }, [isAuthenticated, loading.vocabulary, dispatch]);
+  }, [isAuthenticated, dispatch]);
 
-  const isLoading = isAuthenticated && loading.vocabulary;
+  const isLoading =
+    isAuthenticated && (loading.vocabulary || loading.vocabPracticePerformance);
 
   if (isLoading) {
     return (
@@ -59,15 +67,15 @@ export default function VocabsPageClient() {
         className="flex flex-col items-center justify-center min-h-[calc(100vh-12rem)] gap-4"
         role="status"
         aria-live="polite"
-        aria-label="Loading vocabulary"
+        aria-label="Loading vocabulary practice"
       >
         <Spinner />
         <p className="text-sm text-muted-foreground animate-pulse">
-          Loading your vocabulary…
+          Loading your practice data…
         </p>
       </div>
     );
   }
 
-  return <VocabsMainPage />;
+  return <VocabsPracticePage_Main />;
 }

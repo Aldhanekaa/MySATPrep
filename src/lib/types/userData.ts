@@ -11,6 +11,7 @@ import type {
   PracticeSession,
   PlainQuestionType,
 } from "@/types";
+import type { PracticePerformanceData } from "@/types/vocabulary";
 
 // Saved question with database fields
 export interface SavedQuestion {
@@ -82,6 +83,7 @@ export interface UserData {
   preferences: UserPreferences | null;
   answerHistory: AnswerHistory | null;
   questionNotes: QuestionNotes | null;
+  vocabPracticePerformance: PracticePerformanceData | null;
 }
 
 // User data state for Redux
@@ -95,6 +97,7 @@ export interface UserDataState {
   preferences: UserPreferences | null;
   answerHistory: AnswerHistory | null;
   questionNotes: QuestionNotes | null;
+  vocabPracticePerformance: PracticePerformanceData | null;
   loading: {
     profile: boolean;
     statistics: boolean;
@@ -104,6 +107,7 @@ export interface UserDataState {
     vocabulary: boolean;
     answerHistory: boolean;
     questionNotes: boolean;
+    vocabPracticePerformance: boolean;
   };
   error: string | null;
 }

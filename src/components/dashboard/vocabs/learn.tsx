@@ -320,20 +320,17 @@ export default function LearnVocab() {
     setSentenceError(null);
 
     setVocabsData((prevData) => {
-      const updatedData = { ...prevData };
-
-      // Add word to learnt list if not already there
-      if (!updatedData.learntVocabs.includes(word)) {
-        updatedData.learntVocabs.push(word);
-      }
-
-      // Add sentence to the array of sentences for this word
-      if (!updatedData.userSentences[word]) {
-        updatedData.userSentences[word] = [];
-      }
-      updatedData.userSentences[word].push(sentence);
-
-      return updatedData;
+      const existingSentences = prevData.userSentences[word] ?? [];
+      return {
+        ...prevData,
+        learntVocabs: prevData.learntVocabs.includes(word)
+          ? prevData.learntVocabs
+          : [...prevData.learntVocabs, word],
+        userSentences: {
+          ...prevData.userSentences,
+          [word]: [...existingSentences, sentence],
+        },
+      };
     });
 
     // Clear the input after submission
@@ -358,26 +355,28 @@ export default function LearnVocab() {
     const word = learnState.currentVocab.word;
 
     setVocabsData((prevData) => {
-      const updatedData = { ...prevData };
+      const remaining = (prevData.userSentences[word] ?? []).filter(
+        (_, index) => index !== deletingIndex,
+      );
 
-      // Remove the sentence at the specified index
-      if (updatedData.userSentences[word]) {
-        updatedData.userSentences[word] = updatedData.userSentences[
-          word
-        ].filter((_, index) => index !== deletingIndex);
-
-        // If no sentences left, remove the word from userSentences
-        if (updatedData.userSentences[word].length === 0) {
-          delete updatedData.userSentences[word];
-
-          // Also remove from learnt vocabs if no sentences exist
-          updatedData.learntVocabs = updatedData.learntVocabs.filter(
-            (learntWord) => learntWord !== word,
-          );
-        }
+      const updatedSentences = { ...prevData.userSentences };
+      if (remaining.length === 0) {
+        // Remove the key entirely with destructuring instead of delete
+        const { [word]: _removed, ...rest } = updatedSentences;
+        return {
+          ...prevData,
+          learntVocabs: prevData.learntVocabs.filter((w) => w !== word),
+          userSentences: rest,
+        };
       }
 
-      return updatedData;
+      return {
+        ...prevData,
+        userSentences: {
+          ...updatedSentences,
+          [word]: remaining,
+        },
+      };
     });
 
     console.log(`Deleted sentence ${deletingIndex} for word: ${word}`);
@@ -576,10 +575,10 @@ export default function LearnVocab() {
                 }
               }}
               className={cn(
-                "w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:border-transparent",
+                "w-full px-4 py-2 border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:border-transparent",
                 sentenceError
                   ? "border-red-300 focus:ring-red-500"
-                  : "border-gray-300 focus:ring-blue-500",
+                  : "border-border focus:ring-blue-500",
               )}
             />
             {sentenceError && (
@@ -641,7 +640,7 @@ export default function LearnVocab() {
           <div className="max-w-2xl mx-auto mb-6 mt-10">
             <button
               onClick={() => setShowPreviousSentences(!showPreviousSentences)}
-              className="flex items-center justify-center mx-auto p-3 bg-gray-100 dark:bg-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors duration-200 mb-3"
+              className="flex items-center justify-center mx-auto p-3 bg-muted rounded-lg hover:bg-muted/70 dark:hover:bg-muted/50 transition-colors duration-200 mb-3"
             >
               <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mr-2">
                 View previous sentences ({currentWordSentences.length})

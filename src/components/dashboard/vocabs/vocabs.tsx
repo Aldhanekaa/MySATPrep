@@ -10,11 +10,13 @@ import {
   CardTitle,
 } from "@/components/ui/card-v2";
 import { cn } from "@/lib/utils";
-import { vocabs_database, PracticePerformanceData } from "@/types/vocabulary";
+import { vocabs_database } from "@/types/vocabulary";
 import { partOfSpeechType } from "@/types/dictionaryapi";
-import { useLocalStorage } from "@/lib/useLocalStorage";
 import Link from "next/link";
-import { useResolvedVocabsData } from "@/hooks/use-resolved-user-data";
+import {
+  useResolvedVocabsData,
+  useResolvedPracticePerformanceData,
+} from "@/hooks/use-resolved-user-data";
 
 // Search and Filter reducer
 type SearchState = {
@@ -73,21 +75,9 @@ export default function VocabsMainPage() {
 
   const [vocabsData] = useResolvedVocabsData();
 
-  // practicePerformanceData is vocab-quiz-specific and not yet in the DB schema —
-  // it always comes from localStorage for now.
-  const [practiceData] = useLocalStorage<PracticePerformanceData>(
-    "practicePerformanceData",
-    {
-      attempts: [],
-      wordPerformance: {},
-      lastUpdated: 0,
-      totalQuizzesTaken: 0,
-      overallAccuracy: 0,
-      strongWords: [],
-      weakWords: [],
-      improvingWords: [],
-    },
-  );
+  // practicePerformanceData — authenticated users read from Redux (cloud),
+  // unauthenticated users fall back to localStorage.
+  const [practiceData] = useResolvedPracticePerformanceData();
 
   // Calculate vocabulary statistics
   const vocabStats = useMemo(() => {
@@ -301,20 +291,20 @@ export default function VocabsMainPage() {
 
                     {/* Learned/Total Cards */}
                     <div className="grid grid-cols-2 gap-3">
-                      <Card className="p-4 text-center border-neutral-300 bg-white">
+                      <Card className="p-4 text-center border-border bg-card">
                         <div className="text-sm text-muted-foreground mb-1">
                           Learned
                         </div>
-                        <div className="text-2xl font-bold text-green-600">
+                        <div className="text-2xl font-bold text-green-600 dark:text-green-400">
                           {vocabStats.totalLearned}
                         </div>
                       </Card>
 
-                      <Card className="p-4 text-center border-neutral-300 bg-white">
+                      <Card className="p-4 text-center border-border bg-card">
                         <div className="text-sm text-muted-foreground mb-1">
                           Remaining
                         </div>
-                        <div className="text-2xl font-bold text-orange-600">
+                        <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
                           {vocabStats.remaining}
                         </div>
                       </Card>
@@ -371,7 +361,7 @@ export default function VocabsMainPage() {
                       Mastery Level Breakdown
                     </h3>
                     <div className="grid grid-cols-2 gap-2 text-sm">
-                      <div className="flex items-center justify-between p-2 bg-red-50 rounded">
+                      <div className="flex items-center justify-between p-2 bg-red-50 dark:bg-red-950/40 rounded">
                         <div className="flex items-center gap-2">
                           <span className="w-2 h-2 bg-red-500 rounded-full"></span>
                           <span>Struggling</span>
@@ -380,7 +370,7 @@ export default function VocabsMainPage() {
                           {vocabStats.masteryStats.struggling}
                         </span>
                       </div>
-                      <div className="flex items-center justify-between p-2 bg-orange-50 rounded">
+                      <div className="flex items-center justify-between p-2 bg-orange-50 dark:bg-orange-950/40 rounded">
                         <div className="flex items-center gap-2">
                           <span className="w-2 h-2 bg-orange-500 rounded-full"></span>
                           <span>Learning</span>
@@ -389,7 +379,7 @@ export default function VocabsMainPage() {
                           {vocabStats.masteryStats.learning}
                         </span>
                       </div>
-                      <div className="flex items-center justify-between p-2 bg-blue-50 rounded">
+                      <div className="flex items-center justify-between p-2 bg-blue-50 dark:bg-blue-950/40 rounded">
                         <div className="flex items-center gap-2">
                           <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
                           <span>Proficient</span>
@@ -398,7 +388,7 @@ export default function VocabsMainPage() {
                           {vocabStats.masteryStats.proficient}
                         </span>
                       </div>
-                      <div className="flex items-center justify-between p-2 bg-green-50 rounded">
+                      <div className="flex items-center justify-between p-2 bg-green-50 dark:bg-green-950/40 rounded">
                         <div className="flex items-center gap-2">
                           <span className="w-2 h-2 bg-green-500 rounded-full"></span>
                           <span>Mastered</span>
@@ -408,9 +398,9 @@ export default function VocabsMainPage() {
                         </span>
                       </div>
                     </div>
-                    <div className="flex items-center justify-between p-2 bg-gray-50 rounded text-sm">
+                    <div className="flex items-center justify-between p-2 bg-muted rounded text-sm">
                       <div className="flex items-center gap-2">
-                        <span className="w-2 h-2 bg-gray-400 rounded-full"></span>
+                        <span className="w-2 h-2 bg-muted-foreground/60 rounded-full"></span>
                         <span>Not Practiced</span>
                       </div>
                       <span className="font-semibold">
@@ -445,8 +435,8 @@ export default function VocabsMainPage() {
             {/* CTA Card for Learning - Duolingo Style */}
             <Card
               className={cn(
-                "rounded-3xl mt-6 border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-emerald-50",
-                "transition-all duration-300 hover:shadow-lg hover:border-blue-300 hover:scale-[1.02]",
+                "rounded-3xl mt-6 border-2 border-blue-200 dark:border-blue-900 bg-gradient-to-br from-blue-50 to-emerald-50 dark:from-blue-950/50 dark:to-emerald-950/50",
+                "transition-all duration-300 hover:shadow-lg hover:border-blue-300 dark:hover:border-blue-700 hover:scale-[1.02]",
               )}
             >
               <CardContent className="p-6">
@@ -455,11 +445,11 @@ export default function VocabsMainPage() {
                     <BookOpen className="text-white w-8 h-8" />
                   </div>
 
-                  <h3 className="text-xl font-bold text-gray-800 mb-2">
+                  <h3 className="text-xl font-bold text-foreground mb-2">
                     Practice every word individually
                   </h3>
 
-                  <p className="text-gray-600 text-sm mb-6">
+                  <p className="text-muted-foreground text-sm mb-6">
                     Master all {vocabs_database.length} SAT vocabulary words
                     with bite-sized lessons
                   </p>
@@ -471,7 +461,7 @@ export default function VocabsMainPage() {
                     </button>
                   </Link>
 
-                  <p className="text-xs text-gray-500 mt-3">
+                  <p className="text-xs text-muted-foreground mt-3">
                     🔥 Keep your streak alive! Start today
                   </p>
                 </div>
@@ -482,19 +472,19 @@ export default function VocabsMainPage() {
 
         <div className="col-span-12 xl:col-span-6">
           <div className="relative w-full mb-4">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
             <input
               type="text"
               placeholder="Search words and definitions..."
               value={searchState.query}
               onChange={handleSearchChange}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full pl-10 pr-4 py-2 border border-border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
 
           {/* Difficulty Filter */}
           <div className="mb-4">
-            <h5 className="text-sm font-medium text-gray-700 mb-2">
+            <h5 className="text-sm font-medium text-foreground mb-2">
               Difficulty Level
             </h5>
             <div className="flex flex-wrap gap-2">
@@ -504,7 +494,7 @@ export default function VocabsMainPage() {
                   "px-3 py-1 rounded-full text-sm font-medium transition-colors",
                   searchState.difficultyFilter === "all"
                     ? "bg-blue-500 text-white"
-                    : "bg-gray-200 text-gray-700 hover:bg-gray-300",
+                    : "bg-muted text-muted-foreground hover:bg-muted/70",
                 )}
               >
                 All
@@ -515,7 +505,7 @@ export default function VocabsMainPage() {
                   "px-3 py-1 rounded-full text-sm font-medium transition-colors",
                   searchState.difficultyFilter === "easy"
                     ? "bg-green-500 text-white"
-                    : "bg-gray-200 text-gray-700 hover:bg-gray-300",
+                    : "bg-muted text-muted-foreground hover:bg-muted/70",
                 )}
               >
                 Easy
@@ -526,7 +516,7 @@ export default function VocabsMainPage() {
                   "px-3 py-1 rounded-full text-sm font-medium transition-colors",
                   searchState.difficultyFilter === "medium"
                     ? "bg-yellow-500 text-white"
-                    : "bg-gray-200 text-gray-700 hover:bg-gray-300",
+                    : "bg-muted text-muted-foreground hover:bg-muted/70",
                 )}
               >
                 Medium
@@ -537,7 +527,7 @@ export default function VocabsMainPage() {
                   "px-3 py-1 rounded-full text-sm font-medium transition-colors",
                   searchState.difficultyFilter === "hard"
                     ? "bg-red-500 text-white"
-                    : "bg-gray-200 text-gray-700 hover:bg-gray-300",
+                    : "bg-muted text-muted-foreground hover:bg-muted/70",
                 )}
               >
                 Hard
@@ -547,7 +537,7 @@ export default function VocabsMainPage() {
 
           {/* Part of Speech Filter */}
           <div className="mb-4">
-            <h5 className="text-sm font-medium text-gray-700 mb-2">
+            <h5 className="text-sm font-medium text-foreground mb-2">
               Part of Speech
             </h5>
             <div className="flex flex-wrap gap-2">
@@ -557,7 +547,7 @@ export default function VocabsMainPage() {
                   "px-3 py-1 rounded-full text-sm font-medium transition-colors",
                   searchState.partOfSpeechFilter === "all"
                     ? "bg-blue-500 text-white"
-                    : "bg-gray-200 text-gray-700 hover:bg-gray-300",
+                    : "bg-muted text-muted-foreground hover:bg-muted/70",
                 )}
               >
                 All
@@ -568,7 +558,7 @@ export default function VocabsMainPage() {
                   "px-3 py-1 rounded-full text-sm font-medium transition-colors",
                   searchState.partOfSpeechFilter === "noun"
                     ? "bg-purple-500 text-white"
-                    : "bg-gray-200 text-gray-700 hover:bg-gray-300",
+                    : "bg-muted text-muted-foreground hover:bg-muted/70",
                 )}
               >
                 Noun
@@ -579,7 +569,7 @@ export default function VocabsMainPage() {
                   "px-3 py-1 rounded-full text-sm font-medium transition-colors",
                   searchState.partOfSpeechFilter === "verb"
                     ? "bg-indigo-500 text-white"
-                    : "bg-gray-200 text-gray-700 hover:bg-gray-300",
+                    : "bg-muted text-muted-foreground hover:bg-muted/70",
                 )}
               >
                 Verb
@@ -590,7 +580,7 @@ export default function VocabsMainPage() {
                   "px-3 py-1 rounded-full text-sm font-medium transition-colors",
                   searchState.partOfSpeechFilter === "adjective"
                     ? "bg-pink-500 text-white"
-                    : "bg-gray-200 text-gray-700 hover:bg-gray-300",
+                    : "bg-muted text-muted-foreground hover:bg-muted/70",
                 )}
               >
                 Adjective
@@ -601,7 +591,7 @@ export default function VocabsMainPage() {
                   "px-3 py-1 rounded-full text-sm font-medium transition-colors",
                   searchState.partOfSpeechFilter === "adverb"
                     ? "bg-teal-500 text-white"
-                    : "bg-gray-200 text-gray-700 hover:bg-gray-300",
+                    : "bg-muted text-muted-foreground hover:bg-muted/70",
                 )}
               >
                 Adverb
@@ -611,7 +601,7 @@ export default function VocabsMainPage() {
 
           {/* Mastery Level Filter */}
           <div className="mb-4">
-            <h5 className="text-sm font-medium text-gray-700 mb-2">
+            <h5 className="text-sm font-medium text-foreground mb-2">
               Mastery Level
             </h5>
             <div className="flex flex-wrap gap-2">
@@ -621,7 +611,7 @@ export default function VocabsMainPage() {
                   "px-3 py-1 rounded-full text-sm font-medium transition-colors",
                   searchState.masteryFilter === "all"
                     ? "bg-blue-500 text-white"
-                    : "bg-gray-200 text-gray-700 hover:bg-gray-300",
+                    : "bg-muted text-muted-foreground hover:bg-muted/70",
                 )}
               >
                 All
@@ -631,8 +621,8 @@ export default function VocabsMainPage() {
                 className={cn(
                   "px-3 py-1 rounded-full text-sm font-medium transition-colors",
                   searchState.masteryFilter === "not-practiced"
-                    ? "bg-gray-500 text-white"
-                    : "bg-gray-200 text-gray-700 hover:bg-gray-300",
+                    ? "bg-secondary-foreground text-background"
+                    : "bg-muted text-muted-foreground hover:bg-muted/70",
                 )}
               >
                 Not Practiced
@@ -643,7 +633,7 @@ export default function VocabsMainPage() {
                   "px-3 py-1 rounded-full text-sm font-medium transition-colors",
                   searchState.masteryFilter === "struggling"
                     ? "bg-red-500 text-white"
-                    : "bg-gray-200 text-gray-700 hover:bg-gray-300",
+                    : "bg-muted text-muted-foreground hover:bg-muted/70",
                 )}
               >
                 Struggling
@@ -654,7 +644,7 @@ export default function VocabsMainPage() {
                   "px-3 py-1 rounded-full text-sm font-medium transition-colors",
                   searchState.masteryFilter === "learning"
                     ? "bg-orange-500 text-white"
-                    : "bg-gray-200 text-gray-700 hover:bg-gray-300",
+                    : "bg-muted text-muted-foreground hover:bg-muted/70",
                 )}
               >
                 Learning
@@ -665,7 +655,7 @@ export default function VocabsMainPage() {
                   "px-3 py-1 rounded-full text-sm font-medium transition-colors",
                   searchState.masteryFilter === "proficient"
                     ? "bg-blue-500 text-white"
-                    : "bg-gray-200 text-gray-700 hover:bg-gray-300",
+                    : "bg-muted text-muted-foreground hover:bg-muted/70",
                 )}
               >
                 Proficient
@@ -676,7 +666,7 @@ export default function VocabsMainPage() {
                   "px-3 py-1 rounded-full text-sm font-medium transition-colors",
                   searchState.masteryFilter === "mastered"
                     ? "bg-green-500 text-white"
-                    : "bg-gray-200 text-gray-700 hover:bg-gray-300",
+                    : "bg-muted text-muted-foreground hover:bg-muted/70",
                 )}
               >
                 Mastered
@@ -684,7 +674,7 @@ export default function VocabsMainPage() {
             </div>
           </div>
 
-          <p className="text-sm text-gray-500 mb-4">
+          <p className="text-sm text-muted-foreground mb-4">
             Showing {filteredVocabs.length} of {vocabs_database.length} words
           </p>
 
@@ -701,16 +691,15 @@ export default function VocabsMainPage() {
                   <div
                     className={cn(
                       "p-4 rounded-lg border-2 cursor-pointer transition-all duration-200 hover:shadow-md",
-                      // Add subtle border color based on mastery level
                       masteryLevel === "mastered" &&
-                        "border-green-200 bg-green-50/50",
+                        "border-green-200 dark:border-green-800 bg-green-50/50 dark:bg-green-950/30",
                       masteryLevel === "proficient" &&
-                        "border-blue-200 bg-blue-50/50",
+                        "border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/30",
                       masteryLevel === "learning" &&
-                        "border-orange-200 bg-orange-50/50",
+                        "border-orange-200 dark:border-orange-800 bg-orange-50/50 dark:bg-orange-950/30",
                       masteryLevel === "struggling" &&
-                        "border-red-200 bg-red-50/50",
-                      !masteryLevel && "border-gray-200 bg-white",
+                        "border-red-200 dark:border-red-800 bg-red-50/50 dark:bg-red-950/30",
+                      !masteryLevel && "border-border bg-card",
                     )}
                   >
                     <div className="flex items-center justify-between mb-2">
@@ -720,13 +709,13 @@ export default function VocabsMainPage() {
                           className={cn(
                             "text-xs px-2 py-1 rounded-full font-medium",
                             masteryLevel === "mastered" &&
-                              "bg-green-100 text-green-800",
+                              "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200",
                             masteryLevel === "proficient" &&
-                              "bg-blue-100 text-blue-800",
+                              "bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200",
                             masteryLevel === "learning" &&
-                              "bg-orange-100 text-orange-800",
+                              "bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200",
                             masteryLevel === "struggling" &&
-                              "bg-red-100 text-red-800",
+                              "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200",
                           )}
                         >
                           {masteryLevel.charAt(0).toUpperCase() +
@@ -738,11 +727,11 @@ export default function VocabsMainPage() {
                       {vocab.definition}
                     </p>
                     <div className="flex items-center justify-between">
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-muted-foreground">
                         {vocab.part_of_speech}
                       </p>
                       {wordPerformance && (
-                        <div className="text-xs text-gray-400">
+                        <div className="text-xs text-muted-foreground">
                           {wordPerformance.correctAttempts}/
                           {wordPerformance.totalAttempts} correct
                         </div>

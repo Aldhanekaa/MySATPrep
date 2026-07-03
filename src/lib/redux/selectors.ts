@@ -107,6 +107,12 @@ export const selectAnswerHistory = (state: RootState) =>
   state.userData.answerHistory;
 
 /**
+ * Selects vocab practice performance data for the user.
+ */
+export const selectVocabPracticePerformance = (state: RootState) =>
+  state.userData.vocabPracticePerformance;
+
+/**
  * Selects question notes data for the user.
  */
 export const selectQuestionNotes = (state: RootState) =>

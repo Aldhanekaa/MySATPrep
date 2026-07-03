@@ -240,7 +240,7 @@ interface TrackerCardProps {
 // Custom comparison function for React.memo
 const arePropsEqual = (
   prevProps: TrackerCardProps,
-  nextProps: TrackerCardProps
+  nextProps: TrackerCardProps,
 ) => {
   // Compare tasks array by reference first
   if (prevProps.tasks === nextProps.tasks) {
@@ -288,7 +288,7 @@ const TrackerCard = memo(function TrackerCard({
   // Use state with initialization only - don't sync with props changes automatically
   const [tasks, setTasks] = useState<Task[]>(() => initialTasks || exampleData);
   const [expandedTasks, setExpandedTasks] = useState<string[]>(
-    () => initialExpandedTasks || ["1"]
+    () => initialExpandedTasks || ["1"],
   );
   const [expandedSubtasks, setExpandedSubtasks] = useState<{
     [key: string]: boolean;
@@ -343,7 +343,7 @@ const TrackerCard = memo(function TrackerCard({
       typeof window !== "undefined"
         ? window.matchMedia("(prefers-reduced-motion: reduce)").matches
         : false,
-    []
+    [],
   );
 
   // Toggle task expansion - memoized callback
@@ -372,12 +372,12 @@ const TrackerCard = memo(function TrackerCard({
           "Previous subtask expanded:",
           prev,
           "New subtask expanded:",
-          newExpanded
+          newExpanded,
         );
         return newExpanded;
       });
     },
-    []
+    [],
   );
 
   // Toggle questions expansion - memoized callback
@@ -394,12 +394,12 @@ const TrackerCard = memo(function TrackerCard({
           "Previous questions expanded:",
           prev,
           "New questions expanded:",
-          newExpanded
+          newExpanded,
         );
         return newExpanded;
       });
     },
-    []
+    [],
   );
 
   // Toggle task status - memoized callback
@@ -432,7 +432,7 @@ const TrackerCard = memo(function TrackerCard({
           };
         }
         return task;
-      })
+      }),
     );
   }, []);
 
@@ -462,7 +462,7 @@ const TrackerCard = memo(function TrackerCard({
 
             // Calculate if task should be auto-completed when all subtasks are done
             const allSubtasksCompleted = updatedSubtasks.every(
-              (s) => s.status === "completed"
+              (s) => s.status === "completed",
             );
 
             return {
@@ -472,10 +472,10 @@ const TrackerCard = memo(function TrackerCard({
             };
           }
           return task;
-        })
+        }),
       );
     },
-    []
+    [],
   );
 
   // Animation variants with reduced motion support - memoized for performance
@@ -501,7 +501,7 @@ const TrackerCard = memo(function TrackerCard({
         transition: { duration: 0.15 },
       },
     }),
-    [prefersReducedMotion]
+    [prefersReducedMotion],
   );
 
   const subtaskListVariants = useMemo(
@@ -530,7 +530,7 @@ const TrackerCard = memo(function TrackerCard({
         },
       },
     }),
-    [prefersReducedMotion]
+    [prefersReducedMotion],
   );
 
   const subtaskVariants = useMemo(
@@ -555,7 +555,7 @@ const TrackerCard = memo(function TrackerCard({
         transition: { duration: 0.15 },
       },
     }),
-    [prefersReducedMotion]
+    [prefersReducedMotion],
   );
 
   const subtaskDetailsVariants = useMemo(
@@ -574,7 +574,7 @@ const TrackerCard = memo(function TrackerCard({
         },
       },
     }),
-    []
+    [],
   );
 
   // Status badge animation variants
@@ -588,7 +588,7 @@ const TrackerCard = memo(function TrackerCard({
         },
       },
     }),
-    [prefersReducedMotion]
+    [prefersReducedMotion],
   );
 
   return (
@@ -775,7 +775,7 @@ const TrackerCard = memo(function TrackerCard({
                                         e.stopPropagation();
                                         toggleSubtaskStatus(
                                           task.id,
-                                          subtask.id
+                                          subtask.id,
                                         );
                                       }}
                                       whileTap={{ scale: 0.9 }}
@@ -826,7 +826,7 @@ const TrackerCard = memo(function TrackerCard({
                                       onClick={() =>
                                         toggleSubtaskExpansion(
                                           task.id,
-                                          subtask.id
+                                          subtask.id,
                                         )
                                       }
                                     >
@@ -849,7 +849,7 @@ const TrackerCard = memo(function TrackerCard({
                                                 (dep, idx) => (
                                                   <motion.span
                                                     key={idx}
-                                                    className="bg-neutral-50 rounded px-1.5 py-0.5 text-[10px] font-medium shadow-sm"
+                                                    className="bg-secondary/40 text-secondary-foreground rounded px-1.5 py-0.5 text-[10px] font-medium shadow-sm"
                                                     initial={{
                                                       opacity: 0,
                                                       scale: 0.9,
@@ -871,7 +871,7 @@ const TrackerCard = memo(function TrackerCard({
                                                   >
                                                     {dep}
                                                   </motion.span>
-                                                )
+                                                ),
                                               )}
                                             </div>
                                           )}
@@ -903,10 +903,10 @@ const TrackerCard = memo(function TrackerCard({
                                                   e.stopPropagation();
                                                   toggleQuestionsExpansion(
                                                     task.id,
-                                                    subtask.id
+                                                    subtask.id,
                                                   );
                                                 }}
-                                                className="text-xs bg-blue-50 text-blue-600 hover:bg-blue-100 rounded px-2 py-1 font-medium transition-colors"
+                                                className="text-xs bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-950 dark:text-blue-400 dark:hover:bg-blue-900 rounded px-2 py-1 font-medium transition-colors"
                                               >
                                                 {expandedQuestions[
                                                   `${task.id}-${subtask.id}-questions`
@@ -928,7 +928,7 @@ const TrackerCard = memo(function TrackerCard({
                                               onClick={(e) =>
                                                 e.stopPropagation()
                                               }
-                                              className="text-xs bg-green-50 text-green-600 hover:bg-green-100 rounded px-2 py-1 font-medium transition-colors inline-flex items-center gap-1"
+                                              className="text-xs bg-green-50 text-green-600 hover:bg-green-100 dark:bg-green-950 dark:text-green-400 dark:hover:bg-green-900 rounded px-2 py-1 font-medium transition-colors inline-flex items-center gap-1"
                                             >
                                               <span>View Skill</span>
                                               <svg
@@ -982,7 +982,7 @@ const TrackerCard = memo(function TrackerCard({
                                                     >
                                                       {tool}
                                                     </motion.span>
-                                                  )
+                                                  ),
                                                 )}
                                               </div>
                                             </div>
@@ -1005,11 +1005,11 @@ const TrackerCard = memo(function TrackerCard({
                                                       className={`flex items-center gap-2 text-[10px] p-1.5 rounded hover:bg-muted/40 transition-colors ${
                                                         question.status ===
                                                         "completed"
-                                                          ? "bg-green-50/50"
+                                                          ? "bg-green-50/50 dark:bg-green-950/40"
                                                           : question.status ===
-                                                            "incorrect"
-                                                          ? "bg-red-50/50"
-                                                          : "bg-muted/20"
+                                                              "incorrect"
+                                                            ? "bg-red-50/50 dark:bg-red-950/40"
+                                                            : "bg-muted/20"
                                                       }`}
                                                       initial={{
                                                         opacity: 0,
@@ -1027,7 +1027,7 @@ const TrackerCard = memo(function TrackerCard({
                                                       {/* Status icon */}
                                                       {question.status ===
                                                       "completed" ? (
-                                                        <CheckCircle2 className="h-2.5 w-2.5 text-green-600 flex-shrink-0" />
+                                                        <CheckCircle2 className="h-2.5 w-2.5 text-green-600 dark:text-green-400 flex-shrink-0" />
                                                       ) : question.status ===
                                                         "incorrect" ? (
                                                         <CircleX className="h-2.5 w-2.5 text-red-500 flex-shrink-0" />
@@ -1037,14 +1037,14 @@ const TrackerCard = memo(function TrackerCard({
                                                       {question.href ? (
                                                         <Link
                                                           href={question.href}
-                                                          className={`flex-1 hover:text-blue-600 hover:underline transition-colors ${
+                                                          className={`flex-1 hover:text-blue-600 dark:hover:text-blue-400 hover:underline transition-colors ${
                                                             question.status ===
                                                             "completed"
                                                               ? "text-muted-foreground line-through"
                                                               : question.status ===
-                                                                "incorrect"
-                                                              ? "text-red-600"
-                                                              : ""
+                                                                  "incorrect"
+                                                                ? "text-red-600 dark:text-red-400"
+                                                                : ""
                                                           }`}
                                                           onClick={(e) =>
                                                             e.stopPropagation()
@@ -1059,9 +1059,9 @@ const TrackerCard = memo(function TrackerCard({
                                                             "completed"
                                                               ? "text-muted-foreground line-through"
                                                               : question.status ===
-                                                                "incorrect"
-                                                              ? "text-red-600"
-                                                              : ""
+                                                                  "incorrect"
+                                                                ? "text-red-600 dark:text-red-400"
+                                                                : ""
                                                           }`}
                                                         >
                                                           {question.title}
@@ -1071,17 +1071,17 @@ const TrackerCard = memo(function TrackerCard({
                                                         className={`px-1 py-0.5 rounded text-[8px] font-medium ${
                                                           question.difficulty ===
                                                           "E"
-                                                            ? "bg-green-100 text-green-700"
+                                                            ? "bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-400"
                                                             : question.difficulty ===
-                                                              "M"
-                                                            ? "bg-yellow-100 text-yellow-700"
-                                                            : "bg-red-100 text-red-700"
+                                                                "M"
+                                                              ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-950 dark:text-yellow-400"
+                                                              : "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-400"
                                                         }`}
                                                       >
                                                         {question.difficulty}
                                                       </span>
                                                     </motion.div>
-                                                  )
+                                                  ),
                                                 )}
                                               </div>
                                             </div>
@@ -1105,7 +1105,6 @@ const TrackerCard = memo(function TrackerCard({
       </motion.div>
     </div>
   );
-},
-arePropsEqual);
+}, arePropsEqual);
 
 export default TrackerCard;
