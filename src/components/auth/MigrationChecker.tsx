@@ -9,7 +9,8 @@
  *  1. Fetches /api/user/data to check whether the database is empty.
  *  2. Checks localStorage for any existing user data.
  *  3. Shows MigrationPrompt when DB is empty AND localStorage has data.
- *  4. Skips the prompt when DB already has data or localStorage is empty.
+ *  4. Shows SyncPrompt when DB already has data but localStorage differs.
+ *  5. Skips both prompts when localStorage is empty or data is identical.
  *
  * Validates: Requirements 11.1, 11.2, 11.6
  */
@@ -19,7 +20,11 @@ import { useSelector, useDispatch } from "react-redux";
 import { toast } from "sonner";
 import type { RootState, AppDispatch } from "@/lib/redux/store";
 import { MigrationPrompt } from "./MigrationPrompt";
-import { migrateLocalStorageData } from "@/lib/redux/slices/userDataSlice";
+import { SyncPrompt } from "./SyncPrompt";
+import {
+  migrateLocalStorageData,
+  syncLocalStorageData,
+} from "@/lib/redux/slices/userDataSlice";
 import { selectIsUserDataLoading } from "@/lib/redux/selectors";
 import type { MigrationSummary } from "@/lib/types/api";
 
@@ -101,6 +106,161 @@ function isDatabaseEmpty(data: {
   return true;
 }
 
+/**
+ * Reads the localStorage data payload (same shape as the migration endpoint)
+ * and compares it against the fetched DB data. Returns true if localStorage
+ * contains data that isn't already reflected in the database.
+ *
+ * The check is intentional shallow/structural — we're not doing a deep-equal
+ * of every field, just detecting whether there's something meaningful in
+ * localStorage that the DB doesn't have (e.g. more bookmarks, sessions, etc.).
+ */
+function localStorageDiffersFromDb(dbData: {
+  profile: unknown;
+  statistics: unknown;
+  sessions: { sessionId?: string }[];
+  bookmarks: { questionId?: string }[];
+  collections: { collectionId?: string }[];
+  vocabulary: unknown;
+  preferences: unknown;
+}): boolean {
+  if (typeof window === "undefined") return false;
+
+  try {
+    // ── Bookmarks ─────────────────────────────────────────────────────────────
+    const rawBookmarks = localStorage.getItem("savedQuestions");
+    if (rawBookmarks) {
+      const parsed = JSON.parse(rawBookmarks);
+      const localBookmarks: { questionId?: string }[] = Array.isArray(parsed)
+        ? parsed
+        : (Object.values(parsed).flat() as { questionId?: string }[]);
+
+      if (localBookmarks.length > 0) {
+        const dbQuestionIds = new Set(
+          dbData.bookmarks.map((b) => b.questionId).filter(Boolean),
+        );
+        const hasNew = localBookmarks.some(
+          (b) => b.questionId && !dbQuestionIds.has(b.questionId),
+        );
+        if (hasNew) return true;
+      }
+    }
+  } catch {
+    // ignore parse errors
+  }
+
+  try {
+    // ── Sessions ──────────────────────────────────────────────────────────────
+    const rawSessions = localStorage.getItem("practiceHistory");
+    if (rawSessions) {
+      const localSessions: { sessionId?: string }[] = JSON.parse(rawSessions);
+      if (Array.isArray(localSessions) && localSessions.length > 0) {
+        const dbSessionIds = new Set(
+          dbData.sessions.map((s) => s.sessionId).filter(Boolean),
+        );
+        const hasNew = localSessions.some(
+          (s) => s.sessionId && !dbSessionIds.has(s.sessionId),
+        );
+        if (hasNew) return true;
+      }
+    }
+  } catch {
+    // ignore parse errors
+  }
+
+  try {
+    // ── Collections ───────────────────────────────────────────────────────────
+    const rawCollections = localStorage.getItem("savedCollections");
+    if (rawCollections) {
+      const parsed = JSON.parse(rawCollections);
+      const localCollections: { collectionId?: string }[] = Array.isArray(
+        parsed,
+      )
+        ? parsed
+        : Object.entries(parsed).map(([id, col]) => ({
+            ...(col as object),
+            collectionId: id,
+          }));
+
+      if (localCollections.length > 0) {
+        const dbCollectionIds = new Set(
+          dbData.collections.map((c) => c.collectionId).filter(Boolean),
+        );
+        const hasNew = localCollections.some(
+          (c) => c.collectionId && !dbCollectionIds.has(c.collectionId),
+        );
+        if (hasNew) return true;
+      }
+    }
+  } catch {
+    // ignore parse errors
+  }
+
+  try {
+    // ── Profile (compare questionsAnswered as a quick proxy) ──────────────────
+    const rawProfile = localStorage.getItem("userProfile");
+    if (rawProfile && dbData.profile === null) {
+      const localProfile = JSON.parse(rawProfile);
+      if (
+        typeof localProfile === "object" &&
+        localProfile !== null &&
+        (localProfile.questionsAnswered > 0 || localProfile.totalXP > 0)
+      ) {
+        return true;
+      }
+    }
+  } catch {
+    // ignore parse errors
+  }
+
+  try {
+    // ── Statistics (check if there are answeredQuestions not in DB) ───────────
+    const rawStats = localStorage.getItem("practiceStatistics");
+    if (rawStats) {
+      const localStats = JSON.parse(rawStats);
+      if (typeof localStats === "object" && localStats !== null) {
+        const dbStats =
+          typeof dbData.statistics === "object" && dbData.statistics !== null
+            ? (dbData.statistics as Record<
+                string,
+                { answeredQuestions?: string[] }
+              >)
+            : {};
+
+        for (const [assessment, data] of Object.entries(localStats)) {
+          const localAnswered: string[] =
+            (data as { answeredQuestions?: string[] }).answeredQuestions ?? [];
+          const dbAnswered: string[] =
+            dbStats[assessment]?.answeredQuestions ?? [];
+
+          if (localAnswered.length > dbAnswered.length) return true;
+        }
+      }
+    }
+  } catch {
+    // ignore parse errors
+  }
+
+  try {
+    // ── Vocabulary ────────────────────────────────────────────────────────────
+    const rawVocab = localStorage.getItem("vocabsData");
+    if (rawVocab && dbData.vocabulary === null) {
+      const localVocab = JSON.parse(rawVocab);
+      if (
+        typeof localVocab === "object" &&
+        localVocab !== null &&
+        Object.keys(localVocab).length > 0
+      ) {
+        return true;
+      }
+    }
+  } catch {
+    // ignore parse errors
+  }
+
+  return false;
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function MigrationChecker() {
@@ -114,6 +274,7 @@ export function MigrationChecker() {
   const isUserDataLoading = useSelector(selectIsUserDataLoading);
 
   const [showPrompt, setShowPrompt] = useState(false);
+  const [showSyncPrompt, setShowSyncPrompt] = useState(false);
 
   // Track the last user ID for which we ran the check to avoid re-checking
   // when components re-render without the auth state actually changing.
@@ -157,16 +318,31 @@ export function MigrationChecker() {
           preferences: userData.preferences,
         });
 
-        if (!dbEmpty) {
-          // Requirement 11.6 – DB has data, skip prompt
+        if (dbEmpty) {
+          // DB has no data — show the initial import prompt if localStorage has data
+          if (!localStorageHasData()) return;
+          setShowPrompt(true);
           return;
         }
 
-        // Requirement 11.2 – check if localStorage has data
+        // DB already has data — check if localStorage has new/different data
         if (!localStorageHasData()) return;
 
-        // Requirement 11.3 – show import prompt
-        setShowPrompt(true);
+        const differs = localStorageDiffersFromDb({
+          profile: userData.profile,
+          statistics: userData.statistics,
+          sessions: (userData.sessions ?? []) as { sessionId?: string }[],
+          bookmarks: (userData.bookmarks ?? []) as { questionId?: string }[],
+          collections: (userData.collections ?? []) as {
+            collectionId?: string;
+          }[],
+          vocabulary: userData.vocabulary,
+          preferences: userData.preferences,
+        });
+
+        if (differs) {
+          setShowSyncPrompt(true);
+        }
       } catch {
         // Network/parse errors — skip migration check silently
       }
@@ -180,6 +356,7 @@ export function MigrationChecker() {
     if (!isAuthenticated) {
       checkedForUserId.current = null;
       setShowPrompt(false);
+      setShowSyncPrompt(false);
     }
   }, [isAuthenticated]);
 
@@ -193,6 +370,16 @@ export function MigrationChecker() {
     throw new Error(
       (result.payload as string | undefined) ?? "Migration failed",
     );
+  }
+
+  // ── Sync handler (merge local + Redux state, upsert to DB) ─────────────────
+  async function handleSync(): Promise<MigrationSummary> {
+    const result = await dispatch(syncLocalStorageData());
+    if (syncLocalStorageData.fulfilled.match(result)) {
+      toast.success("Your data has been synced successfully!");
+      return result.payload;
+    }
+    throw new Error((result.payload as string | undefined) ?? "Sync failed");
   }
 
   return (
@@ -217,6 +404,11 @@ export function MigrationChecker() {
         isOpen={showPrompt}
         onClose={() => setShowPrompt(false)}
         onMigrate={handleMigrate}
+      />
+      <SyncPrompt
+        isOpen={showSyncPrompt}
+        onClose={() => setShowSyncPrompt(false)}
+        onSync={handleSync}
       />
     </>
   );

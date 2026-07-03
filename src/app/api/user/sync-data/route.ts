@@ -1,22 +1,22 @@
 /**
- * POST /api/user/migrate-data
+ * POST /api/user/sync-data
  *
- * Migrates localStorage data to the database for an authenticated user.
- * Validates incoming data structure, runs all inserts in a single transaction,
- * and returns a summary of what was migrated.
+ * Merges localStorage data with existing database data for an authenticated user.
+ * Unlike migrate-data (which uses ON CONFLICT DO NOTHING), this endpoint performs
+ * a true merge: combines arrays, updates aggregates, and overwrites scalars.
  *
- * Validates: Requirements 6.1, 6.2, 6.10, 6.12, 6.13
+ * Expected payload: merged data that should replace what's in the DB.
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { validateMigrationPayload } from "@/lib/validation/migrationSchema";
-import { migrateUserData } from "@/lib/db/migrationOperations";
+import { syncUserData } from "@/lib/db/syncOperations";
 import { invalidateUserCache } from "@/lib/cache";
 import { logError } from "@/lib/utils/errorLogger";
 
 export async function POST(request: NextRequest) {
-  // Requirement 6.2, 6.12 – verify authentication
+  // Verify authentication
   const session = await auth.api.getSession({ headers: request.headers });
   if (!session?.user?.id) {
     return NextResponse.json(
@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Requirement 6.3, 6.13 – validate incoming data structure
+  // Validate incoming data structure
   const validation = validateMigrationPayload(body);
   if (!validation.valid) {
     return NextResponse.json(
@@ -52,23 +52,22 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    // Requirement 6.4–6.9, 6.11 – run transactional migration
-    const summary = await migrateUserData(userId, validation.data);
+    // Run transactional sync (upserts, not inserts)
+    const summary = await syncUserData(userId, validation.data);
 
     // Bust the LRU cache so the next GET /api/user/data fetches fresh DB rows
     invalidateUserCache(userId);
 
-    // Requirement 6.10 – return summary with counts and boolean flags
     return NextResponse.json(
       {
         success: true,
-        message: "Data migration completed successfully",
+        message: "Data sync completed successfully",
         summary,
       },
       { status: 200 },
     );
   } catch (error) {
-    logError("[POST /api/user/migrate-data]", error, { userId });
+    logError("[POST /api/user/sync-data]", error, { userId });
 
     const isDbError =
       error instanceof Error &&
@@ -86,7 +85,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        error: "Migration failed. All changes have been rolled back.",
+        error: "Sync failed. All changes have been rolled back.",
       },
       { status: 500 },
     );

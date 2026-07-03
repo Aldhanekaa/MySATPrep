@@ -589,6 +589,325 @@ export const migrateLocalStorageData = createAsyncThunk<MigrationSummary, void>(
   },
 );
 
+// ─── Sync (Merge) LocalStorage Data Thunk ─────────────────────────────────────
+
+/**
+ * Merges localStorage data with current Redux state (DB data) and syncs the
+ * result back to the database. Used when the user already has DB data but
+ * their localStorage contains additional progress not yet uploaded.
+ *
+ * Merge strategy:
+ * - Profile: take higher counts (XP, questions answered, correct/incorrect)
+ * - Statistics: union of answeredQuestions arrays
+ * - Sessions: union by sessionId
+ * - Bookmarks: union by questionId
+ * - Collections: union by collectionId, merging questionIds inside each
+ * - Vocabulary: shallow merge (localStorage keys overwrite DB keys)
+ * - Preferences: localStorage wins (user's most recent local choice)
+ */
+export const syncLocalStorageData = createAsyncThunk<
+  MigrationSummary,
+  void,
+  { state: { userData: UserDataState } }
+>(
+  "userData/syncLocalStorageData",
+  async (_, { getState, dispatch, rejectWithValue }) => {
+    const state = getState();
+    const {
+      profile,
+      statistics,
+      sessions,
+      bookmarks,
+      collections,
+      vocabulary,
+      preferences,
+    } = state.userData;
+
+    // ── Read localStorage data ─────────────────────────────────────────────
+    const localProfile = (() => {
+      try {
+        const raw = localStorage.getItem("userProfile");
+        return raw ? JSON.parse(raw) : null;
+      } catch {
+        return null;
+      }
+    })();
+
+    const localStatistics = (() => {
+      try {
+        const raw = localStorage.getItem("practiceStatistics");
+        return raw ? JSON.parse(raw) : null;
+      } catch {
+        return null;
+      }
+    })();
+
+    const localSessions = (() => {
+      try {
+        const raw = localStorage.getItem("practiceHistory");
+        return raw ? JSON.parse(raw) : [];
+      } catch {
+        return [];
+      }
+    })();
+
+    const localBookmarks = (() => {
+      try {
+        const raw = localStorage.getItem("savedQuestions");
+        if (!raw) return [];
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) return parsed;
+        return Object.entries(parsed).flatMap(([assessment, questions]) =>
+          (questions as Record<string, unknown>[]).map((q) => ({
+            ...q,
+            assessment,
+          })),
+        );
+      } catch {
+        return [];
+      }
+    })();
+
+    const localCollections = (() => {
+      try {
+        const raw = localStorage.getItem("savedCollections");
+        if (!raw) return [];
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) return parsed;
+        return Object.entries(parsed).map(([collectionId, col]) => ({
+          ...(col as Record<string, unknown>),
+          collectionId,
+        }));
+      } catch {
+        return [];
+      }
+    })();
+
+    const localVocabulary = (() => {
+      try {
+        const raw = localStorage.getItem("vocabsData");
+        return raw ? JSON.parse(raw) : null;
+      } catch {
+        return null;
+      }
+    })();
+
+    const localPreferences = (() => {
+      try {
+        const raw = localStorage.getItem("userPreferences");
+        return raw ? JSON.parse(raw) : null;
+      } catch {
+        return null;
+      }
+    })();
+
+    // ── Merge logic ─────────────────────────────────────────────────────────
+
+    // Profile: take max of all numeric fields, merge xpHistory by (questionId, timestamp)
+    const mergedProfile = (() => {
+      if (!profile && !localProfile) return null;
+      const dbProfile = (profile ?? {}) as Partial<UserProfileWithHistory>;
+      const lsProfile = (localProfile ?? {}) as Partial<UserProfileWithHistory>;
+
+      const mergedXpHistory = [
+        ...(dbProfile.xpHistory ?? []),
+        ...(lsProfile.xpHistory ?? []),
+      ];
+      // Dedupe by (questionId + timestamp)
+      const xpMap = new Map<string, (typeof mergedXpHistory)[0]>();
+      for (const tx of mergedXpHistory) {
+        const key = `${tx.questionId}::${tx.timestamp}`;
+        if (!xpMap.has(key)) xpMap.set(key, tx);
+      }
+
+      return {
+        totalXP: Math.max(dbProfile.totalXP ?? 0, lsProfile.totalXP ?? 0),
+        level: Math.max(dbProfile.level ?? 0, lsProfile.level ?? 0),
+        questionsAnswered: Math.max(
+          dbProfile.questionsAnswered ?? 0,
+          lsProfile.questionsAnswered ?? 0,
+        ),
+        correctAnswers: Math.max(
+          dbProfile.correctAnswers ?? 0,
+          lsProfile.correctAnswers ?? 0,
+        ),
+        incorrectAnswers: Math.max(
+          dbProfile.incorrectAnswers ?? 0,
+          lsProfile.incorrectAnswers ?? 0,
+        ),
+        lastActivity:
+          (dbProfile.lastActivity ?? "") > (lsProfile.lastActivity ?? "")
+            ? dbProfile.lastActivity
+            : lsProfile.lastActivity,
+        xpHistory: Array.from(xpMap.values()).sort(
+          (a, b) =>
+            new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
+        ),
+        createdAt:
+          dbProfile.createdAt ??
+          lsProfile.createdAt ??
+          new Date().toISOString(),
+      };
+    })();
+
+    // Statistics: merge per-assessment answeredQuestions arrays
+    const mergedStatistics = (() => {
+      const dbStats = statistics ?? {};
+      const lsStats = localStatistics ?? {};
+      const allAssessments = new Set([
+        ...Object.keys(dbStats),
+        ...Object.keys(lsStats),
+      ]);
+
+      const result: Record<string, any> = {};
+      for (const assessment of allAssessments) {
+        const dbData = (dbStats as Record<string, any>)[assessment] ?? {};
+        const lsData = (lsStats as Record<string, any>)[assessment] ?? {};
+
+        const answeredQuestionsSet = new Set([
+          ...(dbData.answeredQuestions ?? []),
+          ...(lsData.answeredQuestions ?? []),
+        ]);
+
+        const detailedMap = new Map();
+        for (const detail of [
+          ...(dbData.answeredQuestionsDetailed ?? []),
+          ...(lsData.answeredQuestionsDetailed ?? []),
+        ]) {
+          const key = detail.questionId;
+          if (
+            !detailedMap.has(key) ||
+            detail.timestamp > (detailedMap.get(key).timestamp ?? "")
+          ) {
+            detailedMap.set(key, detail);
+          }
+        }
+
+        result[assessment] = {
+          answeredQuestions: Array.from(answeredQuestionsSet),
+          answeredQuestionsDetailed: Array.from(detailedMap.values()),
+          statistics: {
+            ...(dbData.statistics ?? {}),
+            ...(lsData.statistics ?? {}),
+          },
+        };
+      }
+      return result;
+    })();
+
+    // Sessions: union by sessionId
+    const mergedSessions = (() => {
+      const sessionMap = new Map();
+      for (const session of [...sessions, ...localSessions]) {
+        if (!sessionMap.has(session.sessionId)) {
+          sessionMap.set(session.sessionId, session);
+        }
+      }
+      return Array.from(sessionMap.values());
+    })();
+
+    // Bookmarks: union by questionId
+    const mergedBookmarks = (() => {
+      const bookmarkMap = new Map();
+      for (const bookmark of [...bookmarks, ...localBookmarks]) {
+        if (!bookmarkMap.has(bookmark.questionId)) {
+          bookmarkMap.set(bookmark.questionId, bookmark);
+        }
+      }
+      return Array.from(bookmarkMap.values());
+    })();
+
+    // Collections: union by collectionId, merge questionIds within each
+    const mergedCollections = (() => {
+      const collectionMap = new Map();
+      for (const collection of [...collections, ...localCollections]) {
+        if (!collectionMap.has(collection.collectionId)) {
+          collectionMap.set(collection.collectionId, collection);
+        } else {
+          // Merge questionIds
+          const existing = collectionMap.get(collection.collectionId);
+          const mergedQuestionIds = new Set([
+            ...(existing.questionIds ?? []),
+            ...(collection.questionIds ?? []),
+          ]);
+          const detailsMap = new Map();
+          for (const detail of [
+            ...(existing.questionDetails ?? []),
+            ...(collection.questionDetails ?? []),
+          ]) {
+            if (!detailsMap.has(detail.questionId)) {
+              detailsMap.set(detail.questionId, detail);
+            }
+          }
+          collectionMap.set(collection.collectionId, {
+            ...existing,
+            ...collection,
+            questionIds: Array.from(mergedQuestionIds),
+            questionDetails: Array.from(detailsMap.values()),
+            updatedAt: new Date().toISOString(),
+          });
+        }
+      }
+      return Array.from(collectionMap.values());
+    })();
+
+    // Vocabulary: shallow merge (local keys win)
+    const mergedVocabulary =
+      vocabulary || localVocabulary
+        ? { ...(vocabulary ?? {}), ...(localVocabulary ?? {}) }
+        : null;
+
+    // Preferences: local preferences win (most recent user choice)
+    const mergedPreferences =
+      preferences || localPreferences
+        ? { ...(preferences ?? {}), ...(localPreferences ?? {}) }
+        : null;
+
+    // ── Build sync payload ──────────────────────────────────────────────────
+    const payload = {
+      ...(mergedProfile ? { profile: mergedProfile } : {}),
+      ...(mergedStatistics && Object.keys(mergedStatistics).length > 0
+        ? { statistics: mergedStatistics }
+        : {}),
+      sessions: mergedSessions,
+      bookmarks: mergedBookmarks,
+      collections: mergedCollections,
+      ...(mergedVocabulary ? { vocabulary: mergedVocabulary } : {}),
+      ...(mergedPreferences ? { preferences: mergedPreferences } : {}),
+    };
+
+    try {
+      const response = await fetch("/api/user/sync-data", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(payload),
+      });
+
+      if (response.status === 401) {
+        throw new Error("Unauthorized");
+      }
+
+      if (!response.ok) {
+        const json = await response.json().catch(() => ({}));
+        throw new Error(json.error ?? `Sync failed: ${response.status}`);
+      }
+
+      const json = await response.json();
+      const summary = json.summary as MigrationSummary;
+
+      // After successful sync, refresh user data from the database
+      dispatch(fetchUserData());
+
+      return summary;
+    } catch (error) {
+      return rejectWithValue(
+        error instanceof Error ? error.message : "Sync failed",
+      );
+    }
+  },
+);
+
 // ─── Batch Update Thunk ───────────────────────────────────────────────────────
 
 /**
