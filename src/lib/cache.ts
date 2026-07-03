@@ -53,17 +53,21 @@ export function invalidateUserCache(userId: string): void {
   preferencesCache.delete(getCacheKey("preferences", userId));
 }
 
-export async function getCachedOrFetch<T extends {}>(
-  cache: LRUCache<string, T>,
+// Sentinel value to cache `null` results — LRUCache ignores actual null values.
+const NULL_SENTINEL = "__NULL__";
+
+export async function getCachedOrFetch<T>(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  cache: LRUCache<string, any>,
   key: string,
-  fetcher: () => Promise<T>,
-): Promise<T> {
+  fetcher: () => Promise<T | null>,
+): Promise<T | null> {
   const cached = cache.get(key);
   if (cached !== undefined) {
-    return cached;
+    return cached === NULL_SENTINEL ? null : (cached as T);
   }
 
   const data = await fetcher();
-  cache.set(key, data);
+  cache.set(key, data === null ? NULL_SENTINEL : data);
   return data;
 }

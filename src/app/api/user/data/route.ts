@@ -19,6 +19,8 @@ import {
   sessionsCache,
   bookmarksCache,
   collectionsCache,
+  vocabularyCache,
+  preferencesCache,
   getCacheKey,
   getCachedOrFetch,
 } from "@/lib/cache";
@@ -37,6 +39,19 @@ import type { PracticeStatistics } from "@/types";
 
 const ASSESSMENTS = ["SAT", "PSAT/NMSQT", "PSAT"] as const;
 
+/** Wraps a promise so it never rejects — returns [value, null] or [null, error]. */
+async function safe<T>(
+  label: string,
+  promise: Promise<T>,
+): Promise<[T, null] | [null, Error]> {
+  try {
+    return [await promise, null];
+  } catch (err) {
+    logError(`[GET /api/user/data] failed to fetch ${label}`, err);
+    return [null, err instanceof Error ? err : new Error(String(err))];
+  }
+}
+
 export async function GET(request: NextRequest) {
   // Verify authentication
   const session = await auth.api.getSession({ headers: request.headers });
@@ -50,66 +65,110 @@ export async function GET(request: NextRequest) {
   const userId = session.user.id;
 
   try {
-    // Fetch all seven data categories in parallel, using the cache layer
+    // Fetch all seven data categories in parallel, isolating failures per-item
     const [
-      profile,
+      [profile, profileErr],
       statisticsResults,
-      sessions,
-      bookmarks,
-      collections,
-      vocabulary,
-      preferences,
+      [sessions, sessionsErr],
+      [bookmarks, bookmarksErr],
+      [collections, collectionsErr],
+      [vocabulary, vocabularyErr],
+      [preferences, preferencesErr],
     ] = await Promise.all([
       // Profile
-      getCachedOrFetch(
-        userProfileCache,
-        getCacheKey("userProfile", userId),
-        () => getUserProfile(userId),
+      safe(
+        "profile",
+        getCachedOrFetch(
+          userProfileCache,
+          getCacheKey("userProfile", userId),
+          () => getUserProfile(userId),
+        ),
       ),
 
       // Statistics — fetch all assessment types and merge
       Promise.all(
         ASSESSMENTS.map((assessment) =>
-          getCachedOrFetch(
-            statisticsCache,
-            getCacheKey("statistics", userId, assessment),
-            () => getPracticeStatistics(userId, assessment),
+          safe(
+            `statistics:${assessment}`,
+            getCachedOrFetch(
+              statisticsCache,
+              getCacheKey("statistics", userId, assessment),
+              () => getPracticeStatistics(userId, assessment),
+            ),
           ),
         ),
       ),
 
       // Sessions
-      getCachedOrFetch(sessionsCache, getCacheKey("sessions", userId), () =>
-        getPracticeSessions(userId),
+      safe(
+        "sessions",
+        getCachedOrFetch(sessionsCache, getCacheKey("sessions", userId), () =>
+          getPracticeSessions(userId),
+        ),
       ),
 
       // Bookmarks
-      getCachedOrFetch(bookmarksCache, getCacheKey("bookmarks", userId), () =>
-        getSavedQuestions(userId),
+      safe(
+        "bookmarks",
+        getCachedOrFetch(bookmarksCache, getCacheKey("bookmarks", userId), () =>
+          getSavedQuestions(userId),
+        ),
       ),
 
       // Collections
-      getCachedOrFetch(
-        collectionsCache,
-        getCacheKey("collections", userId),
-        () => getSavedCollections(userId),
+      safe(
+        "collections",
+        getCachedOrFetch(
+          collectionsCache,
+          getCacheKey("collections", userId),
+          () => getSavedCollections(userId),
+        ),
       ),
 
-      // Vocabulary progress (no dedicated cache bucket — use a small inline key)
-      getVocabularyProgress(userId),
+      // Vocabulary progress
+      safe(
+        "vocabulary",
+        getCachedOrFetch(
+          vocabularyCache,
+          getCacheKey("vocabulary", userId),
+          () => getVocabularyProgress(userId),
+        ),
+      ),
 
       // User preferences
-      getUserPreferences(userId),
+      safe(
+        "preferences",
+        getCachedOrFetch(
+          preferencesCache,
+          getCacheKey("preferences", userId),
+          () => getUserPreferences(userId),
+        ),
+      ),
     ]);
+
+    // Log any per-field errors without failing the whole response
+    const fieldErrors: Record<string, string> = {};
+    if (profileErr) fieldErrors.profile = profileErr.message;
+    if (sessionsErr) fieldErrors.sessions = sessionsErr.message;
+    if (bookmarksErr) fieldErrors.bookmarks = bookmarksErr.message;
+    if (collectionsErr) fieldErrors.collections = collectionsErr.message;
+    if (vocabularyErr) fieldErrors.vocabulary = vocabularyErr.message;
+    if (preferencesErr) fieldErrors.preferences = preferencesErr.message;
 
     // Merge per-assessment statistics into a single object
     const mergedStatistics: PracticeStatistics = statisticsResults.reduce(
-      (acc, stat) => (stat ? { ...acc, ...stat } : acc),
+      (acc, [stat]) => (stat ? { ...acc, ...stat } : acc),
       {} as PracticeStatistics,
     );
 
+    const statsErrors = statisticsResults
+      .map(([, err], i) => (err ? `${ASSESSMENTS[i]}: ${err.message}` : null))
+      .filter(Boolean);
+    if (statsErrors.length > 0) fieldErrors.statistics = statsErrors.join("; ");
+
     return NextResponse.json({
       success: true,
+      ...(Object.keys(fieldErrors).length > 0 && { fieldErrors }),
       data: {
         profile: profile ?? null,
         statistics: mergedStatistics,

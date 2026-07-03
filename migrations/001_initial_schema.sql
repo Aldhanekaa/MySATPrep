@@ -1,18 +1,16 @@
 -- Initial Schema Migration for Better Auth System
 -- Creates all necessary tables for authentication and user data
 --
--- NOTE: Better Auth manages the "user" table (singular, TEXT id).
--- All user_id foreign keys here are TEXT to match "user".id.
+-- NOTE: Better Auth manages the "user" table (singular).
+-- generateId: "uuid" is set in auth.ts, so "user".id is UUID.
+-- All user_id foreign keys here are UUID to match.
 
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- Indexes on the built-in better-auth "user" table (created by better-auth itself)
-CREATE INDEX IF NOT EXISTS idx_users_email ON "user"(email);
-
 -- ── user_profiles ──────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS user_profiles (
-  user_id TEXT PRIMARY KEY REFERENCES "user"(id) ON DELETE CASCADE,
+  user_id UUID PRIMARY KEY REFERENCES "user"(id) ON DELETE CASCADE,
   total_xp INTEGER DEFAULT 0,
   level INTEGER DEFAULT 0,
   questions_answered INTEGER DEFAULT 0,
@@ -30,7 +28,7 @@ CREATE INDEX IF NOT EXISTS idx_user_profiles_total_xp ON user_profiles(total_xp)
 
 -- ── practice_statistics ────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS practice_statistics (
-  user_id TEXT NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
   assessment VARCHAR(50) NOT NULL, -- 'SAT', 'PSAT/NMSQT', 'PSAT'
   answered_questions JSONB DEFAULT '[]'::jsonb,
   answered_questions_detailed JSONB DEFAULT '[]'::jsonb,
@@ -45,7 +43,7 @@ CREATE INDEX IF NOT EXISTS idx_practice_statistics_assessment ON practice_statis
 -- ── practice_sessions ──────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS practice_sessions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id TEXT NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
   session_id VARCHAR(255) UNIQUE NOT NULL,
   session_data JSONB NOT NULL,
   status VARCHAR(50) NOT NULL, -- 'not_started', 'in_progress', 'completed'
@@ -61,7 +59,7 @@ CREATE INDEX IF NOT EXISTS idx_practice_sessions_created_at ON practice_sessions
 -- ── saved_questions ────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS saved_questions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id TEXT NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
   assessment VARCHAR(50) NOT NULL,
   question_id VARCHAR(255) NOT NULL,
   external_id VARCHAR(255),
@@ -79,7 +77,7 @@ CREATE INDEX IF NOT EXISTS idx_saved_questions_timestamp ON saved_questions(time
 -- ── saved_collections ──────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS saved_collections (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id TEXT NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
   collection_id VARCHAR(255) UNIQUE NOT NULL,
   name VARCHAR(255) NOT NULL,
   description TEXT,
@@ -96,7 +94,7 @@ CREATE INDEX IF NOT EXISTS idx_saved_collections_created_at ON saved_collections
 
 -- ── vocabulary_progress ────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS vocabulary_progress (
-  user_id TEXT PRIMARY KEY REFERENCES "user"(id) ON DELETE CASCADE,
+  user_id UUID PRIMARY KEY REFERENCES "user"(id) ON DELETE CASCADE,
   progress_data JSONB DEFAULT '{}'::jsonb,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
@@ -105,7 +103,7 @@ CREATE INDEX IF NOT EXISTS idx_vocabulary_progress_user_id ON vocabulary_progres
 
 -- ── user_preferences ───────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS user_preferences (
-  user_id TEXT PRIMARY KEY REFERENCES "user"(id) ON DELETE CASCADE,
+  user_id UUID PRIMARY KEY REFERENCES "user"(id) ON DELETE CASCADE,
   preferences_data JSONB DEFAULT '{}'::jsonb,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
