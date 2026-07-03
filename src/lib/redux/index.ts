@@ -47,6 +47,8 @@ export {
   updatePreferences,
   setAnswerHistory,
   mergeAnswerHistory,
+  setNotes,
+  mergeNotes,
   setDataLoading,
   setDataError,
   clearUserData,
@@ -55,4 +57,5 @@ export {
   fetchBookmarksAndCollections,
   fetchVocabulary,
   fetchAnswerHistory,
+  fetchNotes,
 } from "./slices/userDataSlice";

@@ -8,15 +8,10 @@
  *  - userData.loading.profile is true (fetchUserData pending)
  *
  * Once both resolve, children are rendered normally.
- *
- * Also kicks off a one-time lazy fetch of answerHistory for the entire
- * dashboard session, so individual pages (tracker, answered) don't each
- * need to dispatch it independently.
  */
 
-import React, { useEffect, useRef } from "react";
-import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
-import { fetchAnswerHistory } from "@/lib/redux";
+import React from "react";
+import { useAppSelector } from "@/lib/redux/hooks";
 import {
   selectAuthLoading,
   selectSessionChecked,
@@ -57,21 +52,10 @@ interface DashboardLoadingGuardProps {
 export function DashboardLoadingGuard({
   children,
 }: DashboardLoadingGuardProps) {
-  const dispatch = useAppDispatch();
   const authLoading = useAppSelector(selectAuthLoading);
   const sessionChecked = useAppSelector(selectSessionChecked);
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
   const userDataLoading = useAppSelector(selectUserDataLoading);
-
-  // Fetch answer history exactly once per dashboard session.
-  // useRef ensures this never fires more than once regardless of re-renders.
-  const answerHistoryFetched = useRef(false);
-  useEffect(() => {
-    if (isAuthenticated && !answerHistoryFetched.current) {
-      answerHistoryFetched.current = true;
-      dispatch(fetchAnswerHistory());
-    }
-  }, [isAuthenticated, dispatch]);
 
   // Show loader ONLY when authenticated AND data is loading:
   //  1. Session hasn't been checked yet (initial auth check in progress)

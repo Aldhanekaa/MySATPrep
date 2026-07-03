@@ -76,7 +76,6 @@ import { DraggableNotesPopup } from "./popups/notes-popup";
 import { SaveButton } from "./ui/save-button";
 import { playSound } from "@/lib/playSound";
 import { useResolvedBookmarks } from "@/hooks/use-resolved-user-data";
-import { useLocalStorage } from "@/lib/useLocalStorage";
 import { useRouter } from "next/navigation";
 import { LookupRequest } from "@/types";
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
@@ -88,6 +87,7 @@ import {
   debouncedSavePreferences,
   debouncedSaveCurrentSession,
   removeCurrentSession,
+  debouncedSaveNotes,
 } from "@/lib/utils/dataSync";
 import {
   selectIsAuthenticated,
@@ -95,8 +95,9 @@ import {
   selectUserSessions,
   selectUiFlag,
   selectUserPreferences,
+  selectQuestionNotes,
 } from "@/lib/redux/selectors";
-import { setUiFlag } from "@/lib/redux/slices/userDataSlice";
+import { setUiFlag, mergeNotes } from "@/lib/redux/slices/userDataSlice";
 
 // Duolingo-styled Loading Spinner Component
 interface DuolingoLoadingSpinnerProps {
@@ -191,10 +192,10 @@ function DuolingoTimer({
 
   const getTimerColor = (ms: number) => {
     const totalSeconds = Math.floor(ms / 1000);
-    if (totalSeconds < 30) return "text-green-600";
-    if (totalSeconds < 60) return "text-yellow-600";
-    if (totalSeconds < 120) return "text-orange-600";
-    return "text-red-600";
+    if (totalSeconds < 30) return "text-green-600 dark:text-green-400";
+    if (totalSeconds < 60) return "text-yellow-600 dark:text-yellow-400";
+    if (totalSeconds < 120) return "text-orange-600 dark:text-orange-400";
+    return "text-red-600 dark:text-red-400";
   };
 
   return (
@@ -202,19 +203,21 @@ function DuolingoTimer({
       <div
         className={`${
           isVisible ? "block" : "hidden"
-        } flex items-center gap-2 bg-white border-2 border-gray-300 rounded-2xl px-4 py-2 shadow-sm`}
+        } flex items-center gap-2 bg-white dark:bg-neutral-800 border-2 border-gray-300 dark:border-neutral-600 rounded-2xl px-4 py-2 shadow-sm`}
       >
         <Clock className={`h-5 w-5 ${getTimerColor(displayTime)}`} />
         <span className={`font-bold text-lg ${getTimerColor(displayTime)}`}>
           {formatTime(displayTime)}
         </span>
         {fixedTime !== undefined && (
-          <span className="text-xs text-gray-500 ml-1">(completed)</span>
+          <span className="text-xs text-gray-500 dark:text-gray-400 ml-1">
+            (completed)
+          </span>
         )}
       </div>
       <button
         onClick={onToggleVisibility}
-        className=" h-12 text-xs text-gray-500 hover:text-gray-700 underline cursor-pointer transition-colors duration-200"
+        className=" h-12 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 underline cursor-pointer transition-colors duration-200"
       >
         {isVisible ? "Hide Timer" : "Show Timer"}
       </button>
@@ -307,12 +310,12 @@ function SuccessFeedback({ isVisible, onContinue }: SuccessFeedbackProps) {
   if (!isVisible || hideSuccessFeedback) return null;
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/20">
-      <div className="bg-green-100 border-4 border-green-200 rounded-3xl p-8 max-w-md w-full mx-4 shadow-2xl">
+    <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/20 dark:bg-black/40">
+      <div className="bg-green-100 dark:bg-green-950 border-4 border-green-200 dark:border-green-800 rounded-3xl p-8 max-w-md w-full mx-4 shadow-2xl">
         <div className="text-center">
           <div className="flex items-center justify-center gap-3 mb-6">
-            <CheckCircle className="h-8 w-8 text-green-600" />
-            <h2 className="text-3xl font-bold text-green-800">
+            <CheckCircle className="h-8 w-8 text-green-600 dark:text-green-400" />
+            <h2 className="text-3xl font-bold text-green-800 dark:text-green-200">
               {randomMessage}
             </h2>
           </div>
@@ -332,11 +335,11 @@ function SuccessFeedback({ isVisible, onContinue }: SuccessFeedbackProps) {
                   playSound("tap-checkbox-unchecked.wav");
                 }
               }}
-              className="border-green-300 data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600"
+              className="border-green-300 dark:border-green-700 data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600"
             />
             <label
               htmlFor="dontShowAgain"
-              className="text-sm text-green-700 cursor-pointer select-none"
+              className="text-sm text-green-700 dark:text-green-300 cursor-pointer select-none"
             >
               Don&apos;t show this again
             </label>
@@ -387,14 +390,16 @@ function ExitConfirmation({
   if (!isVisible) return null;
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/20">
-      <div className="bg-red-50 border-4 border-red-200 rounded-3xl p-8 max-w-md w-full mx-4 shadow-2xl">
+    <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/20 dark:bg-black/40">
+      <div className="bg-red-50 dark:bg-red-950 border-4 border-red-200 dark:border-red-800 rounded-3xl p-8 max-w-md w-full mx-4 shadow-2xl">
         <div className="text-center">
           <div className="flex items-center justify-center gap-3 mb-6">
-            <X className="h-8 w-8 text-red-600" />
-            <h2 className="text-3xl font-bold text-red-800">Exit Practice?</h2>
+            <X className="h-8 w-8 text-red-600 dark:text-red-400" />
+            <h2 className="text-3xl font-bold text-red-800 dark:text-red-200">
+              Exit Practice?
+            </h2>
           </div>
-          <p className="text-lg text-red-700 mb-8">
+          <p className="text-lg text-red-700 dark:text-red-300 mb-8">
             Your progress will be saved, but you&apos;ll lose your current
             streak. Are you sure you want to exit?
           </p>
@@ -453,19 +458,19 @@ function FinishConfirmation({
   if (!isVisible) return null;
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/20">
-      <div className="bg-green-50 border-4 border-green-200 rounded-3xl p-8 max-w-md w-full mx-4 shadow-2xl">
+    <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/20 dark:bg-black/40">
+      <div className="bg-green-50 dark:bg-green-950 border-4 border-green-200 dark:border-green-800 rounded-3xl p-8 max-w-md w-full mx-4 shadow-2xl">
         <div className="text-center">
           <div className="flex items-center justify-center gap-3 mb-6">
-            <CheckCircle className="h-8 w-8 text-green-600" />
-            <h2 className="text-3xl font-bold text-green-800">
+            <CheckCircle className="h-8 w-8 text-green-600 dark:text-green-400" />
+            <h2 className="text-3xl font-bold text-green-800 dark:text-green-200">
               Finish Practice?
             </h2>
           </div>
-          <p className="text-lg text-green-700 mb-4">
+          <p className="text-lg text-green-700 dark:text-green-300 mb-4">
             You&apos;ve answered {questionsAnswered} questions so far.
           </p>
-          <p className="text-lg text-green-700 mb-8">
+          <p className="text-lg text-green-700 dark:text-green-300 mb-8">
             Are you ready to finish this practice session and see your results?
           </p>
           <div className="flex gap-4">
@@ -563,16 +568,16 @@ function ShareModal({
   if (!isVisible) return null;
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/20">
-      <div className="bg-blue-50 border-4 border-blue-200 rounded-3xl p-8 max-w-lg w-full mx-4 shadow-2xl">
+    <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/20 dark:bg-black/40">
+      <div className="bg-blue-50 dark:bg-blue-950 border-4 border-blue-200 dark:border-blue-800 rounded-3xl p-8 max-w-lg w-full mx-4 shadow-2xl">
         <div className="text-center">
           <div className="flex items-center justify-center gap-3 mb-6">
-            <SendIcon className="h-8 w-8 text-blue-600" />
-            <h2 className="text-3xl font-bold text-blue-800">
+            <SendIcon className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+            <h2 className="text-3xl font-bold text-blue-800 dark:text-blue-200">
               Share Practice Session
             </h2>
           </div>
-          <p className="text-lg text-blue-700 mb-6">
+          <p className="text-lg text-blue-700 dark:text-blue-300 mb-6">
             Share this practice session with others! They&apos;ll get the same
             questions and settings.
           </p>
@@ -584,7 +589,7 @@ function ShareModal({
                 type="text"
                 value={shareUrl}
                 readOnly
-                className="flex-1 px-4 py-3 text-sm bg-white border-2 border-blue-300 rounded-2xl font-mono text-blue-800 focus:outline-none focus:border-blue-500 transition-all duration-200"
+                className="flex-1 px-4 py-3 text-sm bg-white dark:bg-neutral-800 border-2 border-blue-300 dark:border-blue-700 rounded-2xl font-mono text-blue-800 dark:text-blue-200 focus:outline-none focus:border-blue-500 transition-all duration-200"
                 placeholder="Generating share link..."
               />
               <Button
@@ -602,17 +607,19 @@ function ShareModal({
 
           {/* Success message */}
           {isCopied && (
-            <div className="mb-6 p-3 bg-green-100 border-2 border-green-300 rounded-2xl">
-              <p className="text-green-800 font-semibold">
+            <div className="mb-6 p-3 bg-green-100 dark:bg-green-900 border-2 border-green-300 dark:border-green-700 rounded-2xl">
+              <p className="text-green-800 dark:text-green-200 font-semibold">
                 ✓ Link copied to clipboard!
               </p>
             </div>
           )}
 
           {/* Practice details */}
-          <div className="mb-6 p-4 bg-white border-2 border-blue-200 rounded-2xl text-left">
-            <h3 className="font-bold text-blue-800 mb-2">Session Details:</h3>
-            <div className="space-y-1 text-sm text-blue-700">
+          <div className="mb-6 p-4 bg-white dark:bg-neutral-800 border-2 border-blue-200 dark:border-blue-700 rounded-2xl text-left">
+            <h3 className="font-bold text-blue-800 dark:text-blue-200 mb-2">
+              Session Details:
+            </h3>
+            <div className="space-y-1 text-sm text-blue-700 dark:text-blue-300">
               <p>
                 <span className="font-semibold">Assessment:</span>{" "}
                 {practiceSelections.assessment}
@@ -685,8 +692,8 @@ const DuolingoInput = React.memo(function DuolingoInput({
           disabled={disabled}
           className={`w-full px-4 py-4 text-lg font-medium border-2 border-b-4 rounded-2xl focus:outline-none transition-all duration-200 shadow-sm ${
             disabled
-              ? "border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed"
-              : "border-gray-300 focus:border-blue-500 focus:border-b-blue-500 focus:ring-0 bg-white hover:shadow-md focus:shadow-lg"
+              ? "border-gray-300 bg-gray-100 dark:bg-neutral-700 dark:border-neutral-600 text-gray-500 dark:text-gray-400 cursor-not-allowed"
+              : "border-gray-300 dark:border-neutral-600 focus:border-blue-500 focus:border-b-blue-500 focus:ring-0 bg-white dark:bg-neutral-800 dark:text-foreground hover:shadow-md focus:shadow-lg"
           }`}
         />
       </div>
@@ -767,7 +774,7 @@ const AnswerOptions = React.memo(function AnswerOptions({
               }}
               className={`relative ${
                 disabledOptions[key]
-                  ? " cursor-not-allowed after:absolute after:inset-0 after:h-0.5 after:w-[102.5%] after:bg-black after:-translate-x-1/2 after:left-1/2 after:top-1/2 after:-translate-y-1/2"
+                  ? " cursor-not-allowed after:absolute after:inset-0 after:h-0.5 after:w-[102.5%] after:bg-black dark:after:bg-white after:-translate-x-1/2 after:left-1/2 after:top-1/2 after:-translate-y-1/2"
                   : isAnswerChecked || isReviewMode
                     ? "cursor-default"
                     : "cursor-pointer"
@@ -792,7 +799,7 @@ const AnswerOptions = React.memo(function AnswerOptions({
                           ? "border-red-500 bg-red-500 text-white"
                           : isSelected
                             ? "border-blue-500 bg-blue-500 text-white"
-                            : "border-gray-300 bg-gray-50 text-gray-600"
+                            : "border-gray-300 bg-gray-50 dark:bg-neutral-700 dark:border-neutral-500 text-gray-600 dark:text-gray-300"
                     }`}
                   >
                     {isCorrectAnswer ? (
@@ -1255,14 +1262,37 @@ export default function PracticeRushMultistep({
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
   const reduxStatistics = useAppSelector(selectUserStatistics);
   const reduxSessions = useAppSelector(selectUserSessions);
+  const reduxNotes = useAppSelector(selectQuestionNotes);
 
   const [state, dispatch] = useReducer(appReducer, initialState);
   const [isGridCollapsed, setIsGridCollapsed] = useState(false);
 
-  // Question notes are device-local (not synced to cloud yet)
-  const [questionNotes, setQuestionNotes] = useLocalStorage<QuestionNotes>(
-    "questionNotes",
-    {},
+  // Question notes: use Redux state for authenticated users (fetched in practice.tsx
+  // before this component mounts), fall back to localStorage for unauthenticated users.
+  // Local state is the working copy; writes go through debouncedSaveNotes which keeps
+  // Redux + localStorage + the API in sync.
+  const [localNotes, setLocalNotes] = useState<QuestionNotes>(() => {
+    if (typeof window === "undefined") return {};
+    try {
+      const raw = localStorage.getItem("questionNotes");
+      return raw ? (JSON.parse(raw) as QuestionNotes) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  // Authoritative notes value: Redux when authenticated (already fetched), local otherwise.
+  const questionNotes: QuestionNotes = isAuthenticated
+    ? (reduxNotes ?? localNotes)
+    : localNotes;
+
+  // Setter that keeps local state, Redux, localStorage, and the API in sync
+  const setQuestionNotes = useCallback(
+    (updated: QuestionNotes) => {
+      setLocalNotes(updated);
+      debouncedSaveNotes(updated, reduxDispatch, reduxState);
+    },
+    [reduxDispatch, reduxState],
   );
 
   const [savedQuestions, setSavedQuestions] = useResolvedBookmarks();
@@ -2951,25 +2981,28 @@ export default function PracticeRushMultistep({
           try {
             const assessmentType =
               practiceSelections.assessment as AssessmentType;
-            addQuestionStatistic({
-              assessment: assessmentType,
-              primaryClassCd: currentQuestion.plainQuestion.primary_class_cd,
-              skillCd: currentQuestion.plainQuestion.skill_cd,
-              questionId: currentQuestion.plainQuestion.questionId,
-              external_id:
-                currentQuestion.plainQuestion.external_id || undefined,
-              ibn: currentQuestion.plainQuestion.ibn || undefined,
-              plainQuestion: currentQuestion.plainQuestion, // Include full plainQuestion data
-              statistic: {
-                time: timeElapsed,
-                answer: state.selectedAnswer,
-                isCorrect: correct,
+            addQuestionStatistic(
+              {
+                assessment: assessmentType,
+                primaryClassCd: currentQuestion.plainQuestion.primary_class_cd,
+                skillCd: currentQuestion.plainQuestion.skill_cd,
+                questionId: currentQuestion.plainQuestion.questionId,
                 external_id:
                   currentQuestion.plainQuestion.external_id || undefined,
                 ibn: currentQuestion.plainQuestion.ibn || undefined,
-                plainQuestion: currentQuestion.plainQuestion, // Include in statistic as well
+                plainQuestion: currentQuestion.plainQuestion, // Include full plainQuestion data
+                statistic: {
+                  time: timeElapsed,
+                  answer: state.selectedAnswer,
+                  isCorrect: correct,
+                  external_id:
+                    currentQuestion.plainQuestion.external_id || undefined,
+                  ibn: currentQuestion.plainQuestion.ibn || undefined,
+                  plainQuestion: currentQuestion.plainQuestion, // Include in statistic as well
+                },
               },
-            });
+              { dispatch: reduxDispatch, state: reduxState },
+            );
 
             // Also save detailed answered question with difficulty
             addAnsweredQuestion(
@@ -2980,6 +3013,7 @@ export default function PracticeRushMultistep({
               timeElapsed,
               currentQuestion.plainQuestion, // Include plainQuestion data
               state.selectedAnswer, // Include the selected answer
+              { dispatch: reduxDispatch, state: reduxState },
             );
 
             // Update user profile and XP based on answer correctness
@@ -3026,7 +3060,10 @@ export default function PracticeRushMultistep({
             dispatch({ type: "ADD_SESSION_XP", payload: sessionXPChange });
 
             // Update practice history immediately with new XP
-            updateSessionXP(state.sessionId, sessionXPChange);
+            updateSessionXP(state.sessionId, sessionXPChange, {
+              dispatch: reduxDispatch,
+              state: reduxState,
+            });
 
             console.log("📊 Updated user profile:", {
               totalXP: updatedProfile.totalXP,
@@ -3344,38 +3381,38 @@ export default function PracticeRushMultistep({
           <React.Fragment>
             <div className="min-h-screen items-center justify-center pt-32 pb-10">
               {effectiveReviewMode && (
-                <div className="mb-6 p-4 bg-blue-100 border-2 border-blue-300 rounded-lg text-center">
-                  <h4 className="text-lg font-bold text-blue-800 mb-1">
+                <div className="mb-6 p-4 bg-blue-100 dark:bg-blue-950 border-2 border-blue-300 dark:border-blue-800 rounded-lg text-center">
+                  <h4 className="text-lg font-bold text-blue-800 dark:text-blue-200 mb-1">
                     📚 Review Mode - Session ID: {state.sessionId}
                   </h4>
-                  <p className="text-sm text-blue-600">
+                  <p className="text-sm text-blue-600 dark:text-blue-400">
                     You are reviewing a completed practice session. All answers
                     are read-only.
                   </p>
 
                   {/* Question Results Grid */}
                   {state.questions && state.questions.length > 0 && (
-                    <div className="mt-4 pt-4 border-t border-blue-100">
+                    <div className="mt-4 pt-4 border-t border-blue-100 dark:border-blue-900">
                       {/* Collapsible Header */}
                       <div
-                        className="flex items-center justify-between cursor-pointer hover:bg-blue-50 rounded-lg p-2 transition-colors"
+                        className="flex items-center justify-between cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/50 rounded-lg p-2 transition-colors"
                         onClick={() => {
                           setIsGridCollapsed(!isGridCollapsed);
                           playSound("button-pressed.wav");
                         }}
                       >
-                        <div className="text-sm font-medium text-blue-900">
+                        <div className="text-sm font-medium text-blue-900 dark:text-blue-200">
                           Question Results (
                           {Object.keys(state.questionAnswers).length} answered)
                         </div>
                         <div className="flex items-center gap-1">
-                          <span className="text-xs text-blue-600">
+                          <span className="text-xs text-blue-600 dark:text-blue-400">
                             {isGridCollapsed ? "Show" : "Hide"}
                           </span>
                           {isGridCollapsed ? (
-                            <ChevronDown className="w-4 h-4 text-blue-600" />
+                            <ChevronDown className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                           ) : (
-                            <ChevronUp className="w-4 h-4 text-blue-600" />
+                            <ChevronUp className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                           )}
                         </div>
                       </div>
@@ -3421,10 +3458,10 @@ export default function PracticeRushMultistep({
                                       : ""
                                   } ${
                                     !isAnswered
-                                      ? "bg-white border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300"
+                                      ? "bg-white dark:bg-neutral-800 border-gray-200 dark:border-neutral-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-neutral-700 hover:border-gray-300 dark:hover:border-neutral-500"
                                       : isCorrect
-                                        ? "bg-green-50 border-green-200 text-green-800 hover:bg-green-100 hover:border-green-300"
-                                        : "bg-red-50 border-red-200 text-red-800 hover:bg-red-100 hover:border-red-300"
+                                        ? "bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800 text-green-800 dark:text-green-200 hover:bg-green-100 dark:hover:bg-green-900 hover:border-green-300 dark:hover:border-green-700"
+                                        : "bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800 text-red-800 dark:text-red-200 hover:bg-red-100 dark:hover:bg-red-900 hover:border-red-300 dark:hover:border-red-700"
                                   }`}
                                   title={`Question ${idx + 1} - ${
                                     question.plainQuestion.difficulty === "E"
@@ -3443,7 +3480,7 @@ export default function PracticeRushMultistep({
                                 >
                                   {/* Status indicator dot */}
                                   <div
-                                    className={`absolute -top-1 -right-1 w-3 h-3 rounded-full border-2 border-white ${
+                                    className={`absolute -top-1 -right-1 w-3 h-3 rounded-full border-2 border-white dark:border-neutral-800 ${
                                       !isAnswered
                                         ? "bg-gray-400"
                                         : isCorrect
@@ -3461,11 +3498,11 @@ export default function PracticeRushMultistep({
                                   <div
                                     className={`inline-flex items-center justify-center rounded text-xs font-bold mb-1 px-1 py-1 ${
                                       question.plainQuestion.difficulty === "E"
-                                        ? "bg-green-200 text-green-800"
+                                        ? "bg-green-200 dark:bg-green-900 text-green-800 dark:text-green-200"
                                         : question.plainQuestion.difficulty ===
                                             "M"
-                                          ? "bg-yellow-200 text-yellow-800"
-                                          : "bg-red-200 text-red-800"
+                                          ? "bg-yellow-200 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200"
+                                          : "bg-red-200 dark:bg-red-900 text-red-800 dark:text-red-200"
                                     }`}
                                   >
                                     {question.plainQuestion.difficulty === "E"
@@ -3477,7 +3514,7 @@ export default function PracticeRushMultistep({
                                   </div>
 
                                   {/* Time spent */}
-                                  <div className="text-xs text-gray-600 mb-1">
+                                  <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">
                                     {Math.floor(timeSpent / (1000 * 60))}m{" "}
                                     {Math.floor(
                                       (timeSpent % (1000 * 60)) / 1000,
@@ -3488,48 +3525,54 @@ export default function PracticeRushMultistep({
                               );
                             })}
                           </div>
-                          <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                          <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
                             <div className="flex flex-wrap items-center justify-center gap-4 mb-2 text-xs">
                               <div className="flex items-center gap-1">
                                 <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                                <span className="text-green-700 font-medium">
+                                <span className="text-green-700 dark:text-green-400 font-medium">
                                   Correct
                                 </span>
                               </div>
                               <div className="flex items-center gap-1">
                                 <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                                <span className="text-red-700 font-medium">
+                                <span className="text-red-700 dark:text-red-400 font-medium">
                                   Incorrect
                                 </span>
                               </div>
                               <div className="flex items-center gap-1">
                                 <div className="w-3 h-3 bg-gray-400 rounded-full"></div>
-                                <span className="text-gray-700 font-medium">
+                                <span className="text-gray-700 dark:text-gray-400 font-medium">
                                   Not Answered
                                 </span>
                               </div>
                             </div>
                             <div className="flex flex-wrap items-center justify-center gap-4 text-xs">
                               <div className="flex items-center gap-1">
-                                <div className="w-5 h-4 bg-green-200 text-green-800 rounded text-xs font-bold flex items-center justify-center">
+                                <div className="w-5 h-4 bg-green-200 dark:bg-green-900 text-green-800 dark:text-green-200 rounded text-xs font-bold flex items-center justify-center">
                                   E
                                 </div>
-                                <span className="text-blue-700">Easy</span>
+                                <span className="text-blue-700 dark:text-blue-400">
+                                  Easy
+                                </span>
                               </div>
                               <div className="flex items-center gap-1">
-                                <div className="w-5 h-4 bg-yellow-200 text-yellow-800 rounded text-xs font-bold flex items-center justify-center">
+                                <div className="w-5 h-4 bg-yellow-200 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 rounded text-xs font-bold flex items-center justify-center">
                                   M
                                 </div>
-                                <span className="text-blue-700">Medium</span>
+                                <span className="text-blue-700 dark:text-blue-400">
+                                  Medium
+                                </span>
                               </div>
                               <div className="flex items-center gap-1">
-                                <div className="w-5 h-4 bg-red-200 text-red-800 rounded text-xs font-bold flex items-center justify-center">
+                                <div className="w-5 h-4 bg-red-200 dark:bg-red-900 text-red-800 dark:text-red-200 rounded text-xs font-bold flex items-center justify-center">
                                   H
                                 </div>
-                                <span className="text-blue-700">Hard</span>
+                                <span className="text-blue-700 dark:text-blue-400">
+                                  Hard
+                                </span>
                               </div>
                             </div>
-                            <div className="mt-2 text-xs text-blue-600 text-center font-medium">
+                            <div className="mt-2 text-xs text-blue-600 dark:text-blue-400 text-center font-medium">
                               Click on any question to jump to it
                             </div>
                           </div>
@@ -3592,14 +3635,14 @@ export default function PracticeRushMultistep({
                           {currentQuestion.plainQuestion.primary_class_cd_desc}{" "}
                           - {currentQuestion.plainQuestion.skill_desc}
                           {state.isSavingSession && (
-                            <span className="ml-2 text-blue-600 text-xs">
+                            <span className="ml-2 text-blue-600 dark:text-blue-400 text-xs">
                               • Saving...
                             </span>
                           )}
                           {state.questionAnswers[
                             currentQuestion.plainQuestion.questionId
                           ] && (
-                            <span className="ml-2 text-orange-600 text-xs font-semibold">
+                            <span className="ml-2 text-orange-600 dark:text-orange-400 text-xs font-semibold">
                               • REVIEWING
                             </span>
                           )}
@@ -3629,7 +3672,7 @@ export default function PracticeRushMultistep({
                           disabled={state.currentQuestionStep === 0}
                           className={`group font-bold py-3 px-3 rounded-xl border-2 border-b-4 shadow-lg transform transition-all duration-200 ${
                             state.currentQuestionStep === 0
-                              ? "bg-gray-300 text-gray-500 border-gray-400 cursor-not-allowed"
+                              ? "bg-gray-300 dark:bg-neutral-700 text-gray-500 dark:text-neutral-400 border-gray-400 dark:border-neutral-600 cursor-not-allowed"
                               : "cursor-pointer bg-blue-500 hover:bg-blue-600 text-white border-blue-700 hover:border-blue-800 hover:shadow-xl active:translate-y-0.5 active:border-b-2"
                           }`}
                           onClick={() => {
@@ -3675,7 +3718,7 @@ export default function PracticeRushMultistep({
                             !state.questionAnswers[
                               currentQuestion?.plainQuestion.questionId || ""
                             ]
-                              ? "bg-gray-300 text-gray-500 border-gray-400 cursor-not-allowed"
+                              ? "bg-gray-300 dark:bg-neutral-700 text-gray-500 dark:text-neutral-400 border-gray-400 dark:border-neutral-600 cursor-not-allowed"
                               : "cursor-pointer bg-blue-500 hover:bg-blue-600 text-white border-blue-700 hover:border-blue-800 hover:shadow-xl active:translate-y-0.5 active:border-b-2"
                           }`}
                           onClick={() => {
@@ -3725,7 +3768,7 @@ export default function PracticeRushMultistep({
                       <TooltipTrigger asChild>
                         <Button
                           variant={"outline"}
-                          className="cursor-pointer group bg-white hover:bg-gray-50 text-gray-700 font-bold py-3 px-6 rounded-2xl border-2 border-b-4 border-gray-300 hover:border-gray-400 shadow-md hover:shadow-lg transform transition-all duration-200 active:translate-y-0.5 active:border-b-2"
+                          className="cursor-pointer group bg-white dark:bg-neutral-800 hover:bg-gray-50 dark:hover:bg-neutral-700 text-gray-700 dark:text-gray-200 font-bold py-3 px-6 rounded-2xl border-2 border-b-4 border-gray-300 dark:border-neutral-600 hover:border-gray-400 dark:hover:border-neutral-500 shadow-md hover:shadow-lg transform transition-all duration-200 active:translate-y-0.5 active:border-b-2"
                           onClick={() => {
                             dispatch({ type: "TOGGLE_REFERENCE_POPUP" });
                             playSound("button-pressed.wav");
@@ -3829,7 +3872,7 @@ export default function PracticeRushMultistep({
                       <TooltipTrigger asChild>
                         <Button
                           variant="default"
-                          className="justify-center items-center cursor-pointer bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-6 rounded-2xl border-b-4 border-gray-800 hover:border-gray-900 shadow-md hover:shadow-lg transform transition-all duration-200 active:translate-y-0.5 active:border-b-2"
+                          className="justify-center items-center cursor-pointer bg-gray-600 hover:bg-gray-700 dark:bg-neutral-600 dark:hover:bg-neutral-500 text-white font-bold py-3 px-6 rounded-2xl border-b-4 border-gray-800 dark:border-neutral-700 hover:border-gray-900 dark:hover:border-neutral-600 shadow-md hover:shadow-lg transform transition-all duration-200 active:translate-y-0.5 active:border-b-2"
                           onClick={() => {
                             dispatch({ type: "TOGGLE_NOTES_POPUP" });
                             playSound("button-pressed.wav");
@@ -4087,14 +4130,14 @@ export default function PracticeRushMultistep({
                         {state.questionAnswers[
                           currentQuestion.plainQuestion.questionId
                         ] && (
-                          <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-4">
+                          <div className="bg-orange-50 dark:bg-orange-950 border border-orange-200 dark:border-orange-800 rounded-lg p-4 mb-4">
                             <div className="flex items-center gap-2 mb-2">
                               <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
-                              <span className="text-orange-700 font-semibold">
+                              <span className="text-orange-700 dark:text-orange-300 font-semibold">
                                 Question Review
                               </span>
                             </div>
-                            <p className="text-orange-600 text-sm">
+                            <p className="text-orange-600 dark:text-orange-400 text-sm">
                               You are reviewing a previously answered question.
                               Your original answer and the explanation are shown
                               below.
@@ -4112,25 +4155,27 @@ export default function PracticeRushMultistep({
                           <span
                             className={`${
                               state.isAnswerCorrect
-                                ? "text-green-600"
-                                : "text-red-600"
+                                ? "text-green-600 dark:text-green-400"
+                                : "text-red-600 dark:text-red-400"
                             }`}
                           >
                             {state.selectedAnswer}
                           </span>
                           {state.isAnswerCorrect ? (
-                            <span className="ml-2 text-green-600 text-sm">
+                            <span className="ml-2 text-green-600 dark:text-green-400 text-sm">
                               ✓ Correct
                             </span>
                           ) : (
-                            <span className="ml-2 text-red-600 text-sm">
+                            <span className="ml-2 text-red-600 dark:text-red-400 text-sm">
                               ✗ Incorrect
                             </span>
                           )}
                         </Label>
                         <Label className="text-lg font-semibold">
                           Correct Answer:{" "}
-                          <span className={"text-green-600"}>
+                          <span
+                            className={"text-green-600 dark:text-green-400"}
+                          >
                             {currentQuestion.correct_answer.join(", ")}
                           </span>
                         </Label>
@@ -4147,7 +4192,7 @@ export default function PracticeRushMultistep({
                   } h-full `}
                 >
                   {practiceSelections?.subject !== "reading-writing" ? (
-                    <div className="border-2 border-gray-200 shadow-lg overflow-hidden rounded-lg">
+                    <div className="border-2 border-gray-200 dark:border-neutral-700 shadow-lg overflow-hidden rounded-lg">
                       <iframe
                         src="https://www.desmos.com/testing/cb-sat-ap/graphing"
                         width={"100%"}

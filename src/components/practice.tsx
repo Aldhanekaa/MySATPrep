@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, Suspense } from "react";
+import React, { useState, useEffect, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { SiteHeader } from "@/app/navbar";
 import PracticeOnboarding from "@/components/practice-onboarding";
@@ -34,6 +34,14 @@ import {
 } from "@/static-data/validation";
 import { PracticeSessionRestorer } from "@/components/practice-session-restorer";
 import FooterSection from "@/components/footer";
+import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
+import { fetchSessions, fetchNotes } from "@/lib/redux";
+import {
+  selectIsAuthenticated,
+  selectSessionChecked,
+  selectUserBookmarks,
+  selectUserSessions,
+} from "@/lib/redux/selectors";
 
 // Validation functions for URL parameters
 function validateAssessment(assessment: string): boolean {
@@ -67,7 +75,7 @@ function validateSkillCds(skillCds: string[], subject: string): boolean {
   // First validate against the complete SkillCd_Variants type
   // Check if all provided skill codes are valid
   const areValidSkillCds = skillCds.every((skillCd) =>
-    validSkillCds.includes(skillCd as SkillCd_Variants)
+    validSkillCds.includes(skillCd as SkillCd_Variants),
   );
 
   if (!areValidSkillCds) {
@@ -77,7 +85,7 @@ function validateSkillCds(skillCds: string[], subject: string): boolean {
   // Additional validation: check if skills match the subject
   if (subject === "math") {
     return skillCds.every((skillCd) =>
-      mathSkillPrefixes.some((prefix) => skillCd.startsWith(prefix))
+      mathSkillPrefixes.some((prefix) => skillCd.startsWith(prefix)),
     );
   } else if (subject === "reading-writing") {
     return skillCds.every((skillCd) => rwSkillCds.includes(skillCd));
@@ -106,6 +114,63 @@ function getSubjectFromDomains(domainIds: string[]): string | null {
 
 function Practice() {
   const searchParams = useSearchParams();
+
+  // ── Redux auth + data state ────────────────────────────────────────────────
+  const reduxDispatch = useAppDispatch();
+  const isAuthenticated = useAppSelector(selectIsAuthenticated);
+  const sessionChecked = useAppSelector(selectSessionChecked);
+  const bookmarkChecked = useAppSelector(selectUserBookmarks);
+
+  const reduxSessions = useAppSelector(selectUserSessions);
+
+  // Track whether we've fired the prefetch so it only runs once per mount
+  const prefetchedRef = useRef(false);
+  // Whether the prefetch is in-flight (loading screen gating)
+  const [prefetchComplete, setPrefetchComplete] = useState(false);
+
+  // Prefetch sessions + notes for authenticated users.
+  // Until the prefetch resolves we show a loading screen so the rest of the
+  // component can rely on Redux state being populated.
+  useEffect(() => {
+    // Unauthenticated — nothing to fetch, skip the loading screen entirely
+    if (!isAuthenticated) {
+      setPrefetchComplete(true);
+      return;
+    } else {
+      if (!reduxSessions) return;
+      // Wait for the auth session check to finish
+      if (!sessionChecked) return;
+      if (!bookmarkChecked) return;
+    }
+
+    // Guard: only run once per component mount
+    if (prefetchedRef.current) return;
+    prefetchedRef.current = true;
+
+    async function prefetch() {
+      try {
+        await Promise.all([
+          reduxDispatch(fetchSessions()),
+          reduxDispatch(fetchNotes()),
+        ]);
+      } catch {
+        // Errors are captured inside the thunks; we still unblock the UI
+      } finally {
+        setPrefetchComplete(true);
+      }
+    }
+
+    prefetch();
+  }, [sessionChecked, isAuthenticated, reduxDispatch]);
+
+  // Reset when the user logs out so a subsequent login re-fetches
+  useEffect(() => {
+    if (!isAuthenticated) {
+      prefetchedRef.current = false;
+      setPrefetchComplete(false);
+    }
+  }, [isAuthenticated]);
+
   const [onboardingComplete, setOnboardingComplete] = useState<boolean>(false);
   const [practiceSelections, setPracticeSelections] =
     useState<PracticeSelections | null>(null);
@@ -132,62 +197,113 @@ function Practice() {
 
     if (sessionParam === "continue") {
       console.log(
-        "Detected session=continue parameter, validating localStorage data..."
+        "Detected session=continue parameter, validating session data...",
       );
 
-      // Validate currentPracticeSession localStorage data
+      // Validate currentPracticeSession data.
+      // Authenticated users: read from Redux sessions (currentSession === true).
+      // Unauthenticated users: read from localStorage as before.
       try {
-        const currentSessionData = localStorage.getItem(
-          "currentPracticeSession"
-        );
-
-        // Check for null, undefined, empty string, or any falsy value
-        if (!currentSessionData || currentSessionData.trim() === "") {
-          console.warn(
-            "No currentPracticeSession found in localStorage, falling back to onboarding"
-          );
-          toast.error("No Active Session Found", {
-            description:
-              "No practice session was found to continue. Please start a new practice session.",
-            duration: 5000,
-          });
-          setShouldRestoreSession(false);
-          // Force redirect to normal onboarding by removing the session parameter
-          const url = new URL(window.location.href);
-          url.searchParams.delete("session");
-          window.history.replaceState({}, "", url.toString());
-          return;
-        }
-
-        // Parse and validate the session data
         let sessionData: PracticeSession;
-        try {
-          sessionData = JSON.parse(currentSessionData);
-        } catch (parseError) {
-          console.error(
-            "Failed to parse currentPracticeSession JSON:",
-            parseError
+
+        if (isAuthenticated) {
+          // ── Authenticated path: use Redux state ──────────────────────────
+          const currentReduxSession = reduxSessions.find(
+            (s) => s.currentSession === true,
           );
-          toast.error("Invalid Session Data", {
-            description:
-              "The saved session data is corrupted. Please start a new practice session.",
-            duration: 5000,
-          });
-          // Clean up corrupted data
-          localStorage.removeItem("currentPracticeSession");
-          setShouldRestoreSession(false);
-          // Force redirect to normal onboarding by removing the session parameter
-          const url = new URL(window.location.href);
-          url.searchParams.delete("session");
-          window.history.replaceState({}, "", url.toString());
-          return;
+
+          if (!currentReduxSession) {
+            // No current session in Redux — fall back to localStorage
+            console.warn(
+              "No current session found in Redux state, trying localStorage fallback...",
+            );
+            const raw = localStorage.getItem("currentPracticeSession");
+            if (!raw || raw.trim() === "") {
+              console.warn(
+                "No currentPracticeSession found in localStorage either, falling back to onboarding",
+              );
+              toast.error("No Active Session Found", {
+                description:
+                  "No practice session was found to continue. Please start a new practice session.",
+                duration: 5000,
+              });
+              setShouldRestoreSession(false);
+              const url = new URL(window.location.href);
+              url.searchParams.delete("session");
+              window.history.replaceState({}, "", url.toString());
+              return;
+            }
+            try {
+              sessionData = JSON.parse(raw);
+            } catch {
+              localStorage.removeItem("currentPracticeSession");
+              toast.error("Invalid Session Data", {
+                description:
+                  "The saved session data is corrupted. Please start a new practice session.",
+                duration: 5000,
+              });
+              setShouldRestoreSession(false);
+              const url = new URL(window.location.href);
+              url.searchParams.delete("session");
+              window.history.replaceState({}, "", url.toString());
+              return;
+            }
+          } else {
+            console.log(
+              "Found current session in Redux state:",
+              currentReduxSession.sessionId,
+            );
+            sessionData = currentReduxSession;
+          }
+        } else {
+          // ── Unauthenticated path: use localStorage ───────────────────────
+          const currentSessionData = localStorage.getItem(
+            "currentPracticeSession",
+          );
+
+          // Check for null, undefined, empty string, or any falsy value
+          if (!currentSessionData || currentSessionData.trim() === "") {
+            console.warn(
+              "No currentPracticeSession found in localStorage, falling back to onboarding",
+            );
+            toast.error("No Active Session Found", {
+              description:
+                "No practice session was found to continue. Please start a new practice session.",
+              duration: 5000,
+            });
+            setShouldRestoreSession(false);
+            const url = new URL(window.location.href);
+            url.searchParams.delete("session");
+            window.history.replaceState({}, "", url.toString());
+            return;
+          }
+
+          try {
+            sessionData = JSON.parse(currentSessionData);
+          } catch (parseError) {
+            console.error(
+              "Failed to parse currentPracticeSession JSON:",
+              parseError,
+            );
+            toast.error("Invalid Session Data", {
+              description:
+                "The saved session data is corrupted. Please start a new practice session.",
+              duration: 5000,
+            });
+            localStorage.removeItem("currentPracticeSession");
+            setShouldRestoreSession(false);
+            const url = new URL(window.location.href);
+            url.searchParams.delete("session");
+            window.history.replaceState({}, "", url.toString());
+            return;
+          }
         }
 
         // Validate session structure using type guard
         if (!isValidPracticeSession(sessionData)) {
           console.error(
             "Invalid session structure found in localStorage:",
-            sessionData
+            sessionData,
           );
           toast.error("Invalid Session Format", {
             description:
@@ -207,7 +323,7 @@ function Practice() {
         // Additional validation: check session status
         if (sessionData.status === SessionStatus.COMPLETED) {
           console.warn(
-            "Found completed session, cannot continue. Falling back to onboarding"
+            "Found completed session, cannot continue. Falling back to onboarding",
           );
           toast.error("Session Already Completed", {
             description:
@@ -226,7 +342,7 @@ function Practice() {
 
         if (sessionData.status === SessionStatus.ABANDONED) {
           console.warn(
-            "Found abandoned session, cannot continue. Falling back to onboarding"
+            "Found abandoned session, cannot continue. Falling back to onboarding",
           );
           toast.error("Session Was Abandoned", {
             description:
@@ -245,7 +361,7 @@ function Practice() {
         if (!isValidPracticeSelections(sessionData.practiceSelections)) {
           console.error(
             "Invalid practice selections found in session:",
-            sessionData.practiceSelections
+            sessionData.practiceSelections,
           );
           toast.error("Invalid Practice Configuration", {
             description:
@@ -264,7 +380,7 @@ function Practice() {
         // Handle backward compatibility for missing fields
         if (!sessionData.answeredQuestionDetails) {
           console.log(
-            "Adding backward compatibility for answeredQuestionDetails"
+            "Adding backward compatibility for answeredQuestionDetails",
           );
           sessionData.answeredQuestionDetails = [];
         }
@@ -330,7 +446,7 @@ function Practice() {
             answeredQuestions: sessionData.answeredQuestions.length,
             domains: selections.domains.length,
             skills: selections.skills.length,
-          }
+          },
         );
 
         // Store the session data to be passed down as props
@@ -353,18 +469,22 @@ function Practice() {
     } else if (sessionParam && sessionParam !== "continue") {
       // Handle session ID for review mode
       console.log(
-        `Detected session ID parameter: ${sessionParam}, checking practice history...`
+        `Detected session ID parameter: ${sessionParam}, checking practice history...`,
       );
 
       try {
-        const practiceHistory = getSessionHistory();
+        // Authenticated users: search Redux sessions state.
+        // Unauthenticated users: fall back to localStorage via getSessionHistory().
+        const practiceHistory = isAuthenticated
+          ? reduxSessions
+          : getSessionHistory();
         const targetSession = practiceHistory.find(
-          (session) => session.sessionId === sessionParam
+          (session) => session.sessionId === sessionParam,
         );
 
         if (!targetSession) {
           console.warn(
-            `Session ID ${sessionParam} not found in practice history`
+            `Session ID ${sessionParam} not found in practice history`,
           );
           toast.error("Session Not Found", {
             description:
@@ -382,7 +502,7 @@ function Practice() {
         if (!isValidPracticeSession(targetSession)) {
           console.error(
             "Invalid session structure found in practice history:",
-            targetSession
+            targetSession,
           );
           toast.error("Invalid Session Data", {
             description:
@@ -403,7 +523,7 @@ function Practice() {
             totalQuestions: targetSession.totalQuestions,
             answeredQuestions: targetSession.answeredQuestions.length,
             timestamp: targetSession.timestamp,
-          }
+          },
         );
 
         // Set up review mode
@@ -433,12 +553,12 @@ function Practice() {
         window.history.replaceState({}, "", url.toString());
       }
     }
-  }, [searchParams]);
+  }, [searchParams, isAuthenticated, reduxSessions]);
 
   // Handle session restoration
   const handleSessionRestored = (
     practiceSelections: PracticeSelections,
-    sessionData?: PracticeSession
+    sessionData?: PracticeSession,
   ) => {
     console.log("Successfully restored practice session:", {
       sessionId: sessionData?.sessionId,
@@ -459,7 +579,7 @@ function Practice() {
   const handleRestorationFailed = (error: string) => {
     console.error(
       "Session restoration failed from PracticeSessionRestorer:",
-      error
+      error,
     );
     setShouldRestoreSession(false);
     setRestoredSessionData(null); // Clear the restored session data
@@ -484,7 +604,7 @@ function Practice() {
     window.history.replaceState({}, "", url.toString());
 
     console.log(
-      "Redirecting to normal onboarding flow due to restoration failure"
+      "Redirecting to normal onboarding flow due to restoration failure",
     );
   };
 
@@ -493,7 +613,7 @@ function Practice() {
     // Skip URL parameter processing if we're restoring a session or in review mode
     if (shouldRestoreSession || isReviewMode) {
       console.log(
-        "Skipping URL parameter processing - restoring session or in review mode"
+        "Skipping URL parameter processing - restoring session or in review mode",
       );
       return;
     }
@@ -547,8 +667,8 @@ function Practice() {
     if (type && !validPracticeTypes.includes(type)) {
       errors.push(
         `Practice type "${type}" is not valid. Valid options: ${validPracticeTypes.join(
-          ", "
-        )}. Defaulting to "rush".`
+          ", ",
+        )}. Defaulting to "rush".`,
       );
 
       // Don't set isValid to false since we'll fall back to default
@@ -559,14 +679,14 @@ function Practice() {
         type && type !== practiceType
           ? ` (fallback from invalid "${type}")`
           : ""
-      }`
+      }`,
     );
 
     // Validate and set randomize option (default to false)
     const randomizeQuestions = randomize === "true";
     if (randomize && randomize !== "true" && randomize !== "false") {
       errors.push(
-        `Randomize option "${randomize}" is not valid. Valid options: true, false. Defaulting to "false".`
+        `Randomize option "${randomize}" is not valid. Valid options: true, false. Defaulting to "false".`,
       );
 
       // Don't set isValid to false since we'll fall back to default
@@ -577,9 +697,9 @@ function Practice() {
         !randomize
           ? " (default)"
           : randomize && randomize !== randomizeQuestions.toString()
-          ? ` (fallback from invalid "${randomize}")`
-          : ""
-      }`
+            ? ` (fallback from invalid "${randomize}")`
+            : ""
+      }`,
     );
 
     // Validate assessment
@@ -604,11 +724,11 @@ function Practice() {
     } else {
       // Validate domain IDs against DomainItemsArray
       const invalidDomainIds = domainIds.filter(
-        (id) => !DomainItemsArray.includes(id)
+        (id) => !DomainItemsArray.includes(id),
       );
       if (invalidDomainIds.length > 0) {
         const errorMsg = `Invalid domain IDs: ${invalidDomainIds.join(
-          ", "
+          ", ",
         )}. Valid options: ${DomainItemsArray.join(", ")}`;
         errors.push(errorMsg);
 
@@ -623,7 +743,7 @@ function Practice() {
     if (!subject) {
       if (urlSubject && !validSubjects.includes(urlSubject)) {
         const errorMsg = `Invalid subject "${urlSubject}" in shared link. Valid options: ${validSubjects.join(
-          ", "
+          ", ",
         )}`;
         errors.push(errorMsg);
       } else {
@@ -642,18 +762,18 @@ function Practice() {
     ) {
       if (subject === "math") {
         const invalidMathDomains = domainIds.filter(
-          (id) => !mathDomains.includes(id)
+          (id) => !mathDomains.includes(id),
         );
         const errorMsg = `Some domains are not valid for Math: ${invalidMathDomains.join(
-          ", "
+          ", ",
         )}. Valid Math domains: ${mathDomains.join(", ")}`;
         errors.push(errorMsg);
       } else if (subject === "reading-writing") {
         const invalidRWDomains = domainIds.filter(
-          (id) => !rwDomains.includes(id)
+          (id) => !rwDomains.includes(id),
         );
         const errorMsg = `Some domains are not valid for Reading & Writing: ${invalidRWDomains.join(
-          ", "
+          ", ",
         )}. Valid R&W domains: ${rwDomains.join(", ")}`;
         errors.push(errorMsg);
       }
@@ -673,12 +793,12 @@ function Practice() {
     } else if (subject && !validateSkillCds(skillCdList, subject)) {
       // Provide detailed skill validation errors
       const invalidSkillCds = skillCdList.filter(
-        (skillCd) => !validSkillCds.includes(skillCd as SkillCd_Variants)
+        (skillCd) => !validSkillCds.includes(skillCd as SkillCd_Variants),
       );
 
       if (invalidSkillCds.length > 0) {
         const errorMsg = `Invalid skill codes: ${invalidSkillCds.join(
-          ", "
+          ", ",
         )}. Must be valid skill codes from the SkillCd_Variants type.`;
         errors.push(errorMsg);
       }
@@ -686,21 +806,21 @@ function Practice() {
       if (subject === "math") {
         const nonMathSkills = skillCdList.filter(
           (skillCd) =>
-            !mathSkillPrefixes.some((prefix) => skillCd.startsWith(prefix))
+            !mathSkillPrefixes.some((prefix) => skillCd.startsWith(prefix)),
         );
         if (nonMathSkills.length > 0) {
           const errorMsg = `Some skills are not valid for Math: ${nonMathSkills.join(
-            ", "
+            ", ",
           )}. Math skills must start with: ${mathSkillPrefixes.join(", ")}`;
           errors.push(errorMsg);
         }
       } else if (subject === "reading-writing") {
         const nonRWSkills = skillCdList.filter(
-          (skillCd) => !rwSkillCds.includes(skillCd)
+          (skillCd) => !rwSkillCds.includes(skillCd),
         );
         if (nonRWSkills.length > 0) {
           const errorMsg = `Some skills are not valid for Reading & Writing: ${nonRWSkills.join(
-            ", "
+            ", ",
           )}. Valid R&W skills: ${rwSkillCds.join(", ")}`;
           errors.push(errorMsg);
         }
@@ -818,7 +938,7 @@ function Practice() {
 
   const handleSessionComplete = (
     sessionData: PracticeSession,
-    correctAnswers: { [questionId: string]: Array<string> }
+    correctAnswers: { [questionId: string]: Array<string> },
   ) => {
     setSessionData(sessionData);
     setCorrectAnswers(correctAnswers);
@@ -837,87 +957,108 @@ function Practice() {
     <React.Fragment>
       <SiteHeader />
 
-      {/* Handle session restoration */}
-      {shouldRestoreSession && (
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="text-center">
-            <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">
-              Restoring Your Practice Session
-            </h2>
-            <p className="text-gray-600 mb-2">
-              Validating saved session data and restoring your progress...
-            </p>
-            <p className="text-xs text-gray-500">
-              If this takes too long, you&apos;ll be redirected to start a new
-              session
-            </p>
+      {/* Data prefetch loading screen — shown only while fetching sessions + notes
+          for authenticated users. Skipped entirely for unauthenticated users so
+          there is zero flash/delay on the normal onboarding path. */}
+      {!prefetchComplete ? (
+        <div
+          className="min-h-screen flex flex-col items-center justify-center gap-4"
+          role="status"
+          aria-live="polite"
+          aria-label="Loading your practice data"
+        >
+          <div className="flex space-x-1.5">
+            <div className="w-2.5 h-2.5 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.3s] [animation-duration:0.6s]" />
+            <div className="w-2.5 h-2.5 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.15s] [animation-duration:0.6s]" />
+            <div className="w-2.5 h-2.5 bg-blue-500 rounded-full animate-bounce [animation-duration:0.6s]" />
           </div>
-          <PracticeSessionRestorer
-            onSessionRestored={handleSessionRestored}
-            onRestorationFailed={handleRestorationFailed}
-          />
+          <p className="text-sm text-muted-foreground animate-pulse">
+            Loading your practice data…
+          </p>
         </div>
+      ) : (
+        <>
+          {/* Handle session restoration */}
+          {shouldRestoreSession && (
+            <div className="min-h-screen flex items-center justify-center">
+              <div className="text-center">
+                <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+                <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                  Restoring Your Practice Session
+                </h2>
+                <p className="text-gray-600 mb-2">
+                  Validating saved session data and restoring your progress...
+                </p>
+                <p className="text-xs text-gray-500">
+                  If this takes too long, you&apos;ll be redirected to start a
+                  new session
+                </p>
+              </div>
+              <PracticeSessionRestorer
+                onSessionRestored={handleSessionRestored}
+                onRestorationFailed={handleRestorationFailed}
+              />
+            </div>
+          )}
+
+          {!shouldRestoreSession && sessionComplete && sessionData ? (
+            <PracticeRushCelebration
+              sessionData={sessionData}
+              onContinue={handleContinuePracticing}
+              correctAnswerChoices={correctAnswers || {}}
+            />
+          ) : !shouldRestoreSession && !onboardingComplete ? (
+            <React.Fragment>
+              <PracticeOnboarding onComplete={handleOnboardingComplete} />
+              {showValidationBanner && validationErrors.length > 0 && (
+                <ProjectBanner
+                  variant="error"
+                  icon={
+                    <div className="w-4 h-4 bg-red-400 rounded-full flex items-center justify-center">
+                      <span className="text-white text-xs font-bold">!</span>
+                    </div>
+                  }
+                  label={
+                    <div>
+                      <div className="font-medium">
+                        Invalid Share Link Parameters
+                      </div>
+                      <div className="text-xs mt-1">
+                        The shared link contains invalid data. You can continue
+                        with the normal setup process.
+                      </div>
+                    </div>
+                  }
+                  callToAction={{
+                    label: "View Details",
+                    onClick: () => {
+                      const detailedMessage = validationErrors.join("\n• ");
+                      toast.error("Configuration Issues", {
+                        description: `• ${detailedMessage}`,
+                        duration: 10000,
+                        action: {
+                          label: "Dismiss",
+                          onClick: () => {},
+                        },
+                      });
+                    },
+                  }}
+                />
+              )}
+            </React.Fragment>
+          ) : !shouldRestoreSession && practiceSelections ? (
+            <PracticeRushMultistep
+              practiceSelections={practiceSelections}
+              onSessionComplete={handleSessionComplete}
+              restoredSessionData={
+                restoredSessionData || reviewSessionData || undefined
+              }
+              isReviewMode={isReviewMode}
+            />
+          ) : null}
+        </>
       )}
 
-      {!shouldRestoreSession && sessionComplete && sessionData ? (
-        <PracticeRushCelebration
-          sessionData={sessionData}
-          onContinue={handleContinuePracticing}
-          correctAnswerChoices={correctAnswers || {}}
-        />
-      ) : !shouldRestoreSession && !onboardingComplete ? (
-        <React.Fragment>
-          <PracticeOnboarding onComplete={handleOnboardingComplete} />
-          {showValidationBanner && validationErrors.length > 0 && (
-            <ProjectBanner
-              variant="error"
-              icon={
-                <div className="w-4 h-4 bg-red-400 rounded-full flex items-center justify-center">
-                  <span className="text-white text-xs font-bold">!</span>
-                </div>
-              }
-              label={
-                <div>
-                  <div className="font-medium">
-                    Invalid Share Link Parameters
-                  </div>
-                  <div className="text-xs mt-1">
-                    The shared link contains invalid data. You can continue with
-                    the normal setup process.
-                  </div>
-                </div>
-              }
-              callToAction={{
-                label: "View Details",
-                onClick: () => {
-                  // Show detailed toast with all validation errors
-                  const detailedMessage = validationErrors.join("\n• ");
-                  toast.error("Configuration Issues", {
-                    description: `• ${detailedMessage}`,
-                    duration: 10000, // Show for 10 seconds
-                    action: {
-                      label: "Dismiss",
-                      onClick: () => {
-                        // Toast will auto-dismiss, this is just for user convenience
-                      },
-                    },
-                  });
-                },
-              }}
-            />
-          )}
-        </React.Fragment>
-      ) : !shouldRestoreSession && practiceSelections ? (
-        <PracticeRushMultistep
-          practiceSelections={practiceSelections}
-          onSessionComplete={handleSessionComplete}
-          restoredSessionData={
-            restoredSessionData || reviewSessionData || undefined
-          }
-          isReviewMode={isReviewMode}
-        />
-      ) : null}
       <FooterSection />
     </React.Fragment>
   );

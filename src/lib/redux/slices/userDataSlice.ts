@@ -18,6 +18,7 @@ import type {
   AnswerHistory,
 } from "@/lib/types/userData";
 import type { MigrationSummary } from "@/lib/types/api";
+import type { QuestionNotes } from "@/types/questionNotes";
 
 // ─── Async Thunks ────────────────────────────────────────────────────────────
 
@@ -138,11 +139,16 @@ export const createSession = createAsyncThunk<PracticeSession, PracticeSession>(
   "userData/createSession",
   async (sessionData, { rejectWithValue }) => {
     try {
+      // Mark this session as the current active one.
+      // The DB layer (createPracticeSession) will clear the flag on any
+      // pre-existing current session for this user before inserting.
+      const payload: PracticeSession = { ...sessionData, currentSession: true };
+
       const response = await fetch("/api/user/sessions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify(sessionData),
+        body: JSON.stringify(payload),
       });
 
       if (response.status === 401) {
@@ -1073,6 +1079,33 @@ export const fetchAnswerHistory = createAsyncThunk<AnswerHistory | null, void>(
   },
 );
 
+/**
+ * Fetches question notes from the server on demand.
+ * Dispatched when the user visits the practice page so that
+ * practice-rush-multistep can read/write notes from Redux instead of
+ * raw localStorage.
+ */
+export const fetchNotes = createAsyncThunk<QuestionNotes | null, void>(
+  "userData/fetchNotes",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await fetch("/api/user/notes", {
+        method: "GET",
+        credentials: "include",
+      });
+      if (response.status === 401) return rejectWithValue("Unauthorized");
+      if (!response.ok)
+        throw new Error(`Failed to fetch notes: ${response.status}`);
+      const json = await response.json();
+      return (json.data ?? null) as QuestionNotes | null;
+    } catch (error) {
+      return rejectWithValue(
+        error instanceof Error ? error.message : "Failed to fetch notes",
+      );
+    }
+  },
+);
+
 // Initial user data state
 const initialState: UserDataState = {
   profile: null,
@@ -1083,6 +1116,7 @@ const initialState: UserDataState = {
   vocabulary: null,
   preferences: null,
   answerHistory: null,
+  questionNotes: null,
   loading: {
     profile: false,
     statistics: false,
@@ -1091,6 +1125,7 @@ const initialState: UserDataState = {
     collections: false,
     vocabulary: false,
     answerHistory: false,
+    questionNotes: false,
   },
   error: null,
 };
@@ -1138,14 +1173,30 @@ const userDataSlice = createSlice({
       state.loading.sessions = false;
     },
 
-    // Add a new practice session
+    // Add a new practice session.
+    // If the incoming session has currentSession=true, clear the flag on all
+    // other sessions first to keep the at-most-one invariant in the local store.
     addSession: (state, action: PayloadAction<PracticeSession>) => {
+      if (action.payload.currentSession) {
+        state.sessions.forEach((s) => {
+          s.currentSession = false;
+        });
+      }
       state.sessions.unshift(action.payload); // Add to beginning
       state.loading.sessions = false;
     },
 
-    // Update an existing session
+    // Update an existing session.
+    // If the update sets currentSession=true, clear the flag on all other
+    // sessions to keep the at-most-one invariant in the local store.
     updateSession: (state, action: PayloadAction<PracticeSession>) => {
+      if (action.payload.currentSession) {
+        state.sessions.forEach((s) => {
+          if (s.sessionId !== action.payload.sessionId) {
+            s.currentSession = false;
+          }
+        });
+      }
       const index = state.sessions.findIndex(
         (s) => s.sessionId === action.payload.sessionId,
       );
@@ -1274,6 +1325,21 @@ const userDataSlice = createSlice({
       state.loading.answerHistory = false;
     },
 
+    // Set question notes
+    setNotes: (state, action: PayloadAction<QuestionNotes | null>) => {
+      state.questionNotes = action.payload;
+      state.loading.questionNotes = false;
+    },
+
+    // Merge question notes (shallow merge by assessment key)
+    mergeNotes: (state, action: PayloadAction<QuestionNotes>) => {
+      state.questionNotes = {
+        ...(state.questionNotes ?? {}),
+        ...action.payload,
+      };
+      state.loading.questionNotes = false;
+    },
+
     // Set loading state for a specific data type
     setDataLoading: (
       state,
@@ -1300,6 +1366,7 @@ const userDataSlice = createSlice({
       state.vocabulary = null;
       state.preferences = null;
       state.answerHistory = null;
+      state.questionNotes = null;
       state.loading = {
         profile: false,
         statistics: false,
@@ -1308,6 +1375,7 @@ const userDataSlice = createSlice({
         collections: false,
         vocabulary: false,
         answerHistory: false,
+        questionNotes: false,
       };
       state.error = null;
     },
@@ -1344,6 +1412,7 @@ const userDataSlice = createSlice({
           collections: false,
           vocabulary: false,
           answerHistory: false,
+          questionNotes: false,
         };
         state.error = null;
       })
@@ -1356,6 +1425,7 @@ const userDataSlice = createSlice({
           collections: false,
           vocabulary: false,
           answerHistory: false,
+          questionNotes: false,
         };
         state.error = action.payload as string;
       });
@@ -1399,6 +1469,13 @@ const userDataSlice = createSlice({
         state.error = null;
       })
       .addCase(createSession.fulfilled, (state, action) => {
+        // The new session is the active current one — clear the flag on all
+        // existing sessions so the at-most-one invariant holds in the local store.
+        if (action.payload.currentSession) {
+          state.sessions.forEach((s) => {
+            s.currentSession = false;
+          });
+        }
         state.sessions.unshift(action.payload);
         state.loading.sessions = false;
         state.error = null;
@@ -1633,6 +1710,22 @@ const userDataSlice = createSlice({
         state.error = action.payload as string;
       });
 
+    // ── fetchNotes (lazy practice-page fetch) ────────────────────────────────
+    builder
+      .addCase(fetchNotes.pending, (state) => {
+        state.loading.questionNotes = true;
+        state.error = null;
+      })
+      .addCase(fetchNotes.fulfilled, (state, action) => {
+        state.questionNotes = action.payload;
+        state.loading.questionNotes = false;
+        state.error = null;
+      })
+      .addCase(fetchNotes.rejected, (state, action) => {
+        state.loading.questionNotes = false;
+        state.error = action.payload as string;
+      });
+
     // ── batchUpdateUserData ──────────────────────────────────────────────────
     builder
       .addCase(batchUpdateUserData.pending, (state) => {
@@ -1700,6 +1793,8 @@ export const {
   setUiFlag,
   setAnswerHistory,
   mergeAnswerHistory,
+  setNotes,
+  mergeNotes,
   setDataLoading,
   setDataError,
   clearUserData,

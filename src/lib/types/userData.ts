@@ -81,6 +81,7 @@ export interface UserData {
   vocabulary: VocabularyProgress | null;
   preferences: UserPreferences | null;
   answerHistory: AnswerHistory | null;
+  questionNotes: QuestionNotes | null;
 }
 
 // User data state for Redux
@@ -93,6 +94,7 @@ export interface UserDataState {
   vocabulary: VocabularyProgress | null;
   preferences: UserPreferences | null;
   answerHistory: AnswerHistory | null;
+  questionNotes: QuestionNotes | null;
   loading: {
     profile: boolean;
     statistics: boolean;
@@ -101,6 +103,7 @@ export interface UserDataState {
     collections: boolean;
     vocabulary: boolean;
     answerHistory: boolean;
+    questionNotes: boolean;
   };
   error: string | null;
 }

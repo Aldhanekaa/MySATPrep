@@ -47,6 +47,7 @@ CREATE TABLE IF NOT EXISTS practice_sessions (
   session_id VARCHAR(255) UNIQUE NOT NULL,
   session_data JSONB NOT NULL,
   status VARCHAR(50) NOT NULL, -- 'not_started', 'in_progress', 'completed'
+  current_session BOOLEAN NOT NULL DEFAULT FALSE, -- true for the single active in-progress session per user
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
@@ -55,6 +56,10 @@ CREATE INDEX IF NOT EXISTS idx_practice_sessions_user_id ON practice_sessions(us
 CREATE INDEX IF NOT EXISTS idx_practice_sessions_session_id ON practice_sessions(session_id);
 CREATE INDEX IF NOT EXISTS idx_practice_sessions_status ON practice_sessions(status);
 CREATE INDEX IF NOT EXISTS idx_practice_sessions_created_at ON practice_sessions(created_at DESC);
+-- Partial unique index: only one row per user may have current_session = TRUE
+CREATE UNIQUE INDEX IF NOT EXISTS idx_practice_sessions_current_session
+  ON practice_sessions(user_id)
+  WHERE current_session = TRUE;
 
 -- ── saved_questions ────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS saved_questions (

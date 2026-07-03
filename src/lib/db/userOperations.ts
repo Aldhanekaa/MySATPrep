@@ -264,6 +264,7 @@ interface DbPracticeSession {
   sessionId: string;
   sessionData: PracticeSession;
   status: string;
+  currentSession: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -272,7 +273,31 @@ function rowToPracticeSession(row: DbPracticeSession): PracticeSession {
   return {
     ...(row.sessionData as PracticeSession),
     sessionId: row.sessionId,
+    currentSession: row.currentSession,
   };
+}
+
+/**
+ * Fetch the single in-progress session flagged as current for a user.
+ * Returns null if no such session exists.
+ */
+export async function getCurrentSession(
+  userId: string,
+): Promise<PracticeSession | null> {
+  const result = await pool.query<DbPracticeSession>(
+    `SELECT id, user_id AS "userId", session_id AS "sessionId",
+            session_data AS "sessionData", status,
+            current_session AS "currentSession",
+            created_at AS "createdAt", updated_at AS "updatedAt"
+     FROM practice_sessions
+     WHERE user_id = $1
+       AND current_session = TRUE
+     LIMIT 1`,
+    [userId],
+  );
+
+  if (!result.rows[0]) return null;
+  return rowToPracticeSession(result.rows[0]);
 }
 
 /**
@@ -285,6 +310,7 @@ export async function getPracticeSessions(
   const result = await pool.query<DbPracticeSession>(
     `SELECT id, user_id AS "userId", session_id AS "sessionId",
             session_data AS "sessionData", status,
+            current_session AS "currentSession",
             created_at AS "createdAt", updated_at AS "updatedAt"
      FROM practice_sessions
      WHERE user_id = $1
@@ -297,29 +323,47 @@ export async function getPracticeSessions(
 
 /**
  * Insert a new practice session row.
+ * When currentSession is true, clears the flag on any prior session for this
+ * user first (only one active session per user is allowed).
  * Validates: Requirement 8.3
  */
 export async function createPracticeSession(
   userId: string,
   sessionData: PracticeSession,
 ): Promise<PracticeSession> {
+  const isCurrentSession = sessionData.currentSession ?? false;
+
+  // If this session is being flagged as current, clear the flag on any
+  // existing current session for this user before inserting/upserting.
+  if (isCurrentSession) {
+    await pool.query(
+      `UPDATE practice_sessions
+       SET current_session = FALSE, updated_at = CURRENT_TIMESTAMP
+       WHERE user_id = $1 AND current_session = TRUE`,
+      [userId],
+    );
+  }
+
   const result = await pool.query<DbPracticeSession>(
     `INSERT INTO practice_sessions
-       (user_id, session_id, session_data, status)
-     VALUES ($1, $2, $3, $4)
+       (user_id, session_id, session_data, status, current_session)
+     VALUES ($1, $2, $3, $4, $5)
      ON CONFLICT (session_id) DO UPDATE SET
-       session_data = EXCLUDED.session_data,
-       status       = EXCLUDED.status,
-       updated_at   = CURRENT_TIMESTAMP
+       session_data     = EXCLUDED.session_data,
+       status           = EXCLUDED.status,
+       current_session  = EXCLUDED.current_session,
+       updated_at       = CURRENT_TIMESTAMP
      RETURNING
        id, user_id AS "userId", session_id AS "sessionId",
        session_data AS "sessionData", status,
+       current_session AS "currentSession",
        created_at AS "createdAt", updated_at AS "updatedAt"`,
     [
       userId,
       sessionData.sessionId,
       JSON.stringify(sessionData),
       sessionData.status ?? "not_started",
+      isCurrentSession,
     ],
   );
 
@@ -328,6 +372,8 @@ export async function createPracticeSession(
 
 /**
  * Update an existing practice session by session ID.
+ * When currentSession is set to true, clears the flag on any other session
+ * for this user first.
  * Validates: Requirement 8.4
  */
 export async function updatePracticeSession(
@@ -336,7 +382,8 @@ export async function updatePracticeSession(
 ): Promise<PracticeSession | null> {
   // Merge with existing session data
   const existing = await pool.query<DbPracticeSession>(
-    `SELECT session_data AS "sessionData", status
+    `SELECT session_data AS "sessionData", status, user_id AS "userId",
+            current_session AS "currentSession"
      FROM practice_sessions
      WHERE session_id = $1
      LIMIT 1`,
@@ -347,18 +394,35 @@ export async function updatePracticeSession(
 
   const merged = { ...existing.rows[0].sessionData, ...data };
   const newStatus = data.status ?? existing.rows[0].status;
+  const newCurrentSession =
+    data.currentSession !== undefined
+      ? data.currentSession
+      : existing.rows[0].currentSession;
+
+  // If flipping current_session to true, clear the flag on any other session
+  // for this user to maintain the at-most-one constraint.
+  if (newCurrentSession && !existing.rows[0].currentSession) {
+    await pool.query(
+      `UPDATE practice_sessions
+       SET current_session = FALSE, updated_at = CURRENT_TIMESTAMP
+       WHERE user_id = $1 AND current_session = TRUE AND session_id != $2`,
+      [existing.rows[0].userId, sessionId],
+    );
+  }
 
   const result = await pool.query<DbPracticeSession>(
     `UPDATE practice_sessions
-     SET session_data = $2,
-         status       = $3,
-         updated_at   = CURRENT_TIMESTAMP
+     SET session_data    = $2,
+         status          = $3,
+         current_session = $4,
+         updated_at      = CURRENT_TIMESTAMP
      WHERE session_id = $1
      RETURNING
        id, user_id AS "userId", session_id AS "sessionId",
        session_data AS "sessionData", status,
+       current_session AS "currentSession",
        created_at AS "createdAt", updated_at AS "updatedAt"`,
-    [sessionId, JSON.stringify(merged), newStatus],
+    [sessionId, JSON.stringify(merged), newStatus, newCurrentSession],
   );
 
   if (!result.rows[0]) return null;

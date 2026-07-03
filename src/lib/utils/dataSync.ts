@@ -21,6 +21,7 @@ import type {
   VocabularyProgress,
   UserPreferences,
 } from "@/lib/types/userData";
+import type { QuestionNotes } from "@/types/questionNotes";
 import {
   updateUserProfile,
   updateUserStatistics,
@@ -35,6 +36,7 @@ import {
   updateVocabularyThunk,
   updatePreferencesThunk,
   batchUpdateUserData,
+  setNotes,
   type BatchUpdatePayload,
 } from "@/lib/redux/slices/userDataSlice";
 import { saveUserProfile as saveProfileToLocalStorage } from "@/lib/userProfile";
@@ -717,3 +719,58 @@ export function removeCurrentSession(
     }
   }
 }
+
+// ─── Question Notes ───────────────────────────────────────────────────────────
+
+/**
+ * Saves question notes.
+ * Authenticated → PUT /api/user/notes + updates Redux `questionNotes` state.
+ * Unauthenticated → localStorage only (key: "questionNotes").
+ */
+export function saveNotes(
+  data: QuestionNotes,
+  dispatch: AppDispatch,
+  state: RootState,
+): void {
+  // Always write to localStorage as a fast local mirror
+  try {
+    localStorage.setItem("questionNotes", JSON.stringify(data));
+  } catch (error) {
+    console.error(
+      "[dataSync] Failed to write questionNotes to localStorage:",
+      error,
+    );
+  }
+
+  if (!isAuthenticated(state)) return;
+
+  // Update Redux immediately so the UI reflects the change without waiting
+  dispatch(setNotes(data));
+
+  // Persist to the API
+  withRetry(async () => {
+    const response = await fetch("/api/user/notes", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+      throw new Error(`PUT /api/user/notes failed: ${response.status}`);
+    }
+  }).catch(() => {
+    showNetworkError(
+      "Failed to save your notes. Please check your connection.",
+    );
+  });
+}
+
+/**
+ * Debounced version of saveNotes (500 ms).
+ * Use this in high-frequency update paths (e.g., per-keystroke note edits).
+ */
+export const debouncedSaveNotes = debounce(
+  (data: QuestionNotes, dispatch: AppDispatch, state: RootState) =>
+    saveNotes(data, dispatch, state),
+  500,
+);

@@ -484,11 +484,11 @@ export function SaveButton({
         </HoverCardTrigger>
         <HoverCardContent
           align="end"
-          className="w-80 p-0 border-2 border-b-4 border-gray-300 rounded-xl md:rounded-2xl shadow-md hover:shadow-lg bg-white"
+          className="w-80 p-0 border-2 border-b-4 border-gray-300 dark:border-neutral-600 rounded-xl md:rounded-2xl shadow-md hover:shadow-lg bg-white dark:bg-neutral-900"
         >
           {/* Search Input */}
           <div className="p-4">
-            <div className="relative border-2 border-gray-200 rounded-xl overflow-hidden focus:border-blue-500  bg-gray-50 hover:bg-white">
+            <div className="relative border-2 border-gray-200 dark:border-neutral-700 rounded-xl overflow-hidden focus:border-blue-500 bg-gray-50 dark:bg-neutral-800 hover:bg-white dark:hover:bg-neutral-700">
               <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
               <Input
                 type="search"
@@ -500,12 +500,12 @@ export function SaveButton({
             </div>
           </div>
 
-          <div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent mx-4"></div>
+          <div className="h-px bg-gradient-to-r from-transparent via-gray-200 dark:via-neutral-700 to-transparent mx-4"></div>
 
           {/* Collections List */}
           <div className="px-4 pt-2 pb-4 max-h-60 overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
-              <div className="text-sm font-semibold text-gray-800">
+              <div className="text-sm font-semibold text-gray-800 dark:text-gray-200">
                 Collections ({migratedCollections.length})
               </div>
               <Dialog
@@ -522,9 +522,9 @@ export function SaveButton({
                     New
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="sm:max-w-md border-2 border-b-4 border-gray-300 rounded-xl shadow-lg">
+                <DialogContent className="sm:max-w-md border-2 border-b-4 border-gray-300 dark:border-neutral-600 rounded-xl shadow-lg">
                   <DialogHeader>
-                    <DialogTitle className="text-lg font-bold text-gray-800">
+                    <DialogTitle className="text-lg font-bold text-gray-800 dark:text-gray-200">
                       Create New Collection
                     </DialogTitle>
                   </DialogHeader>
@@ -548,7 +548,7 @@ export function SaveButton({
                         setIsCreateDialogOpen(false);
                         setNewCollectionName("");
                       }}
-                      className="border-2 rounded-xl hover:bg-gray-50"
+                      className="border-2 rounded-xl hover:bg-gray-50 dark:hover:bg-neutral-800"
                     >
                       Cancel
                     </Button>
@@ -565,16 +565,16 @@ export function SaveButton({
             </div>
 
             {filteredCollections.length === 0 ? (
-              <div className="text-center py-8 text-sm text-gray-500">
+              <div className="text-center py-8 text-sm text-gray-500 dark:text-gray-400">
                 {migratedCollections.length === 0 ? (
                   <div className="flex flex-col items-center">
-                    <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center mb-3">
-                      <Folder className="h-6 w-6 text-gray-400" />
+                    <div className="w-12 h-12 bg-gray-100 dark:bg-neutral-800 rounded-xl flex items-center justify-center mb-3">
+                      <Folder className="h-6 w-6 text-gray-400 dark:text-gray-500" />
                     </div>
-                    <div className="font-medium text-gray-600 mb-1">
+                    <div className="font-medium text-gray-600 dark:text-gray-400 mb-1">
                       No collections yet
                     </div>
-                    <div className="text-xs text-gray-500">
+                    <div className="text-xs text-gray-500 dark:text-gray-500">
                       Create one to organize your saved questions!
                     </div>
                   </div>
@@ -592,7 +592,7 @@ export function SaveButton({
                   return (
                     <div
                       key={collection.id}
-                      className="flex items-center gap-3 group p-2 rounded-lg hover:bg-gray-50 transition-colors"
+                      className="flex items-center gap-3 group p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors"
                     >
                       <Checkbox
                         id={`${id}-${collection.id}`}
@@ -636,7 +636,7 @@ export function SaveButton({
                       ) : (
                         <Label
                           htmlFor={`${id}-${collection.id}`}
-                          className="font-medium flex-1 cursor-pointer truncate text-gray-700 text-sm"
+                          className="font-medium flex-1 cursor-pointer truncate text-gray-700 dark:text-gray-300 text-sm"
                           title={collection.name || "Untitled Collection"}
                         >
                           {collection.name || "Untitled Collection"}
@@ -647,7 +647,7 @@ export function SaveButton({
                         <Button
                           size="sm"
                           variant="ghost"
-                          className="h-7 w-7 p-0 hover:bg-blue-100 rounded-lg"
+                          className="h-7 w-7 p-0 hover:bg-blue-100 dark:hover:bg-blue-900 rounded-lg"
                           onClick={() => setEditingCollection(collection)}
                         >
                           <Pencil className="h-3 w-3" />
@@ -655,13 +655,13 @@ export function SaveButton({
                         <Button
                           size="sm"
                           variant="ghost"
-                          className="h-7 w-7 p-0 text-red-500 hover:text-red-600 hover:bg-red-50 rounded-lg"
+                          className="h-7 w-7 p-0 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950 rounded-lg"
                           onClick={() => handleDeleteCollection(collection.id)}
                         >
                           <Trash2 className="h-3 w-3" />
                         </Button>
                       </div>
-                      <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-md min-w-0">
+                      <span className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-neutral-800 px-2 py-1 rounded-md min-w-0">
                         {collection.questionIds.length}
                       </span>
                     </div>
@@ -673,9 +673,9 @@ export function SaveButton({
 
           {questionCollections.length > 0 && (
             <>
-              <div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent mx-4"></div>
+              <div className="h-px bg-gradient-to-r from-transparent via-gray-200 dark:via-neutral-700 to-transparent mx-4"></div>
               <div className="px-4 py-3">
-                <div className="text-xs text-gray-600">
+                <div className="text-xs text-gray-600 dark:text-gray-400">
                   <div className="font-medium mb-2">
                     This question is saved in {questionCollections.length}{" "}
                     collection{questionCollections.length !== 1 ? "s" : ""}:
@@ -684,7 +684,7 @@ export function SaveButton({
                     {questionCollections.map((collection) => (
                       <span
                         key={collection.id}
-                        className="inline-flex items-center px-3 py-1 rounded-lg bg-blue-100 text-blue-700 text-xs font-medium border border-blue-200"
+                        className="inline-flex items-center px-3 py-1 rounded-lg bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 text-xs font-medium border border-blue-200 dark:border-blue-700"
                       >
                         {collection.name || "Untitled Collection"}
                       </span>

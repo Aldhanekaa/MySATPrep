@@ -107,6 +107,12 @@ export const selectAnswerHistory = (state: RootState) =>
   state.userData.answerHistory;
 
 /**
+ * Selects question notes data for the user.
+ */
+export const selectQuestionNotes = (state: RootState) =>
+  state.userData.questionNotes;
+
+/**
  * Selects user preferences (theme, sound, notifications, etc.).
  */
 export const selectUserPreferences = (state: RootState) =>
