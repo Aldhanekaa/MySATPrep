@@ -27,9 +27,7 @@ import {
   Trash2,
 } from "lucide-react";
 import Link from "next/link";
-import { useLocalStorage } from "@/lib/useLocalStorage";
-import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
-import { saveVocabulary } from "@/lib/utils/dataSync";
+import { useResolvedVocabsData } from "@/hooks/use-resolved-user-data";
 import { useSearchParams } from "next/navigation";
 
 // Learn vocab reducer
@@ -186,8 +184,7 @@ export default function LearnVocab() {
     filteredVocabs: vocabs_database,
   });
 
-  const reduxDispatch = useAppDispatch();
-  const reduxState = useAppSelector((s) => s);
+  const [vocabsData, setVocabsData] = useResolvedVocabsData();
 
   const [userSentence, setUserSentence] = useState("");
   const [showPreviousSentences, setShowPreviousSentences] = useState(false);
@@ -195,23 +192,6 @@ export default function LearnVocab() {
   const [sentenceError, setSentenceError] = useState<string | null>(null);
   const searchParams = useSearchParams();
   const wordParam = searchParams.get("word");
-
-  // Use the useLocalStorage hook
-  const [vocabsData, setVocabsData] = useLocalStorage<VocabsData>(
-    "vocabsData",
-    {
-      learntVocabs: [],
-      userSentences: {},
-    },
-  );
-
-  // Sync vocabulary data to DB for authenticated users whenever it changes
-  useEffect(() => {
-    saveVocabulary(vocabsData, reduxDispatch, reduxState);
-    // We intentionally exclude reduxState and reduxDispatch from deps to avoid
-    // re-running the effect on every Redux action — vocabsData changes are the trigger.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [vocabsData]);
 
   // Handle URL parameter for specific word
   useEffect(() => {

@@ -14,12 +14,7 @@ import { vocabs_database, PracticePerformanceData } from "@/types/vocabulary";
 import { partOfSpeechType } from "@/types/dictionaryapi";
 import { useLocalStorage } from "@/lib/useLocalStorage";
 import Link from "next/link";
-
-// LocalStorage interface for vocabs data (same as learn.tsx)
-interface VocabsData {
-  learntVocabs: string[];
-  userSentences: { [word: string]: string[] };
-}
+import { useResolvedVocabsData } from "@/hooks/use-resolved-user-data";
 
 // Search and Filter reducer
 type SearchState = {
@@ -76,13 +71,10 @@ export default function VocabsMainPage() {
     masteryFilter: "all",
   });
 
-  // Use the same localStorage hook as learn.tsx
-  const [vocabsData] = useLocalStorage<VocabsData>("vocabsData", {
-    learntVocabs: [],
-    userSentences: {},
-  });
+  const [vocabsData] = useResolvedVocabsData();
 
-  // Add practicePerformanceData hook
+  // practicePerformanceData is vocab-quiz-specific and not yet in the DB schema —
+  // it always comes from localStorage for now.
   const [practiceData] = useLocalStorage<PracticePerformanceData>(
     "practicePerformanceData",
     {
@@ -94,7 +86,7 @@ export default function VocabsMainPage() {
       strongWords: [],
       weakWords: [],
       improvingWords: [],
-    }
+    },
   );
 
   // Calculate vocabulary statistics
@@ -105,22 +97,28 @@ export default function VocabsMainPage() {
     // Count total sentences across all words
     const totalSentences = Object.values(vocabsData.userSentences).reduce(
       (sum, sentences) => sum + sentences.length,
-      0
+      0,
     );
 
     // Calculate difficulty distribution
-    const totalByDifficulty = vocabs_database.reduce((acc, vocab) => {
-      acc[vocab.difficulty] = (acc[vocab.difficulty] || 0) + 1;
-      return acc;
-    }, {} as Record<"easy" | "medium" | "hard", number>);
+    const totalByDifficulty = vocabs_database.reduce(
+      (acc, vocab) => {
+        acc[vocab.difficulty] = (acc[vocab.difficulty] || 0) + 1;
+        return acc;
+      },
+      {} as Record<"easy" | "medium" | "hard", number>,
+    );
 
     // Calculate learned words by difficulty
-    const learnedByDifficulty = vocabs_database.reduce((acc, vocab) => {
-      if (learntVocabsSet.has(vocab.word)) {
-        acc[vocab.difficulty] = (acc[vocab.difficulty] || 0) + 1;
-      }
-      return acc;
-    }, {} as Record<"easy" | "medium" | "hard", number>);
+    const learnedByDifficulty = vocabs_database.reduce(
+      (acc, vocab) => {
+        if (learntVocabsSet.has(vocab.word)) {
+          acc[vocab.difficulty] = (acc[vocab.difficulty] || 0) + 1;
+        }
+        return acc;
+      },
+      {} as Record<"easy" | "medium" | "hard", number>,
+    );
 
     // Calculate mastery level distribution
     const masteryStats = {
@@ -156,7 +154,7 @@ export default function VocabsMainPage() {
           percentage,
           remaining: total - learned,
         };
-      }
+      },
     );
 
     const totalWords = vocabs_database.length;
@@ -186,7 +184,7 @@ export default function VocabsMainPage() {
       filtered = filtered.filter(
         (vocab) =>
           vocab.word.toLowerCase().includes(query) ||
-          vocab.definition.toLowerCase().includes(query)
+          vocab.definition.toLowerCase().includes(query),
       );
     }
 
@@ -235,13 +233,13 @@ export default function VocabsMainPage() {
   };
 
   const handleDifficultyFilterChange = (
-    difficulty: "all" | "easy" | "medium" | "hard"
+    difficulty: "all" | "easy" | "medium" | "hard",
   ) => {
     dispatch({ type: "SET_DIFFICULTY_FILTER", payload: difficulty });
   };
 
   const handlePartOfSpeechFilterChange = (
-    partOfSpeech: "all" | partOfSpeechType
+    partOfSpeech: "all" | partOfSpeechType,
   ) => {
     dispatch({ type: "SET_PART_OF_SPEECH_FILTER", payload: partOfSpeech });
   };
@@ -253,7 +251,7 @@ export default function VocabsMainPage() {
       | "learning"
       | "proficient"
       | "mastered"
-      | "not-practiced"
+      | "not-practiced",
   ) => {
     dispatch({ type: "SET_MASTERY_FILTER", payload: masteryLevel });
   };
@@ -338,8 +336,8 @@ export default function VocabsMainPage() {
                                   difficulty === "easy"
                                     ? "bg-green-500"
                                     : difficulty === "medium"
-                                    ? "bg-yellow-500"
-                                    : "bg-red-500"
+                                      ? "bg-yellow-500"
+                                      : "bg-red-500"
                                 }`}
                               />
                               <span className="text-sm font-medium">
@@ -356,14 +354,14 @@ export default function VocabsMainPage() {
                                 difficulty === "easy"
                                   ? "bg-green-500"
                                   : difficulty === "medium"
-                                  ? "bg-yellow-500"
-                                  : "bg-red-500"
+                                    ? "bg-yellow-500"
+                                    : "bg-red-500"
                               }`}
                               style={{ width: `${percentage}%` }}
                             />
                           </div>
                         </div>
-                      )
+                      ),
                     )}
                   </div>
 
@@ -448,7 +446,7 @@ export default function VocabsMainPage() {
             <Card
               className={cn(
                 "rounded-3xl mt-6 border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-emerald-50",
-                "transition-all duration-300 hover:shadow-lg hover:border-blue-300 hover:scale-[1.02]"
+                "transition-all duration-300 hover:shadow-lg hover:border-blue-300 hover:scale-[1.02]",
               )}
             >
               <CardContent className="p-6">
@@ -506,7 +504,7 @@ export default function VocabsMainPage() {
                   "px-3 py-1 rounded-full text-sm font-medium transition-colors",
                   searchState.difficultyFilter === "all"
                     ? "bg-blue-500 text-white"
-                    : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                    : "bg-gray-200 text-gray-700 hover:bg-gray-300",
                 )}
               >
                 All
@@ -517,7 +515,7 @@ export default function VocabsMainPage() {
                   "px-3 py-1 rounded-full text-sm font-medium transition-colors",
                   searchState.difficultyFilter === "easy"
                     ? "bg-green-500 text-white"
-                    : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                    : "bg-gray-200 text-gray-700 hover:bg-gray-300",
                 )}
               >
                 Easy
@@ -528,7 +526,7 @@ export default function VocabsMainPage() {
                   "px-3 py-1 rounded-full text-sm font-medium transition-colors",
                   searchState.difficultyFilter === "medium"
                     ? "bg-yellow-500 text-white"
-                    : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                    : "bg-gray-200 text-gray-700 hover:bg-gray-300",
                 )}
               >
                 Medium
@@ -539,7 +537,7 @@ export default function VocabsMainPage() {
                   "px-3 py-1 rounded-full text-sm font-medium transition-colors",
                   searchState.difficultyFilter === "hard"
                     ? "bg-red-500 text-white"
-                    : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                    : "bg-gray-200 text-gray-700 hover:bg-gray-300",
                 )}
               >
                 Hard
@@ -559,7 +557,7 @@ export default function VocabsMainPage() {
                   "px-3 py-1 rounded-full text-sm font-medium transition-colors",
                   searchState.partOfSpeechFilter === "all"
                     ? "bg-blue-500 text-white"
-                    : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                    : "bg-gray-200 text-gray-700 hover:bg-gray-300",
                 )}
               >
                 All
@@ -570,7 +568,7 @@ export default function VocabsMainPage() {
                   "px-3 py-1 rounded-full text-sm font-medium transition-colors",
                   searchState.partOfSpeechFilter === "noun"
                     ? "bg-purple-500 text-white"
-                    : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                    : "bg-gray-200 text-gray-700 hover:bg-gray-300",
                 )}
               >
                 Noun
@@ -581,7 +579,7 @@ export default function VocabsMainPage() {
                   "px-3 py-1 rounded-full text-sm font-medium transition-colors",
                   searchState.partOfSpeechFilter === "verb"
                     ? "bg-indigo-500 text-white"
-                    : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                    : "bg-gray-200 text-gray-700 hover:bg-gray-300",
                 )}
               >
                 Verb
@@ -592,7 +590,7 @@ export default function VocabsMainPage() {
                   "px-3 py-1 rounded-full text-sm font-medium transition-colors",
                   searchState.partOfSpeechFilter === "adjective"
                     ? "bg-pink-500 text-white"
-                    : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                    : "bg-gray-200 text-gray-700 hover:bg-gray-300",
                 )}
               >
                 Adjective
@@ -603,7 +601,7 @@ export default function VocabsMainPage() {
                   "px-3 py-1 rounded-full text-sm font-medium transition-colors",
                   searchState.partOfSpeechFilter === "adverb"
                     ? "bg-teal-500 text-white"
-                    : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                    : "bg-gray-200 text-gray-700 hover:bg-gray-300",
                 )}
               >
                 Adverb
@@ -623,7 +621,7 @@ export default function VocabsMainPage() {
                   "px-3 py-1 rounded-full text-sm font-medium transition-colors",
                   searchState.masteryFilter === "all"
                     ? "bg-blue-500 text-white"
-                    : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                    : "bg-gray-200 text-gray-700 hover:bg-gray-300",
                 )}
               >
                 All
@@ -634,7 +632,7 @@ export default function VocabsMainPage() {
                   "px-3 py-1 rounded-full text-sm font-medium transition-colors",
                   searchState.masteryFilter === "not-practiced"
                     ? "bg-gray-500 text-white"
-                    : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                    : "bg-gray-200 text-gray-700 hover:bg-gray-300",
                 )}
               >
                 Not Practiced
@@ -645,7 +643,7 @@ export default function VocabsMainPage() {
                   "px-3 py-1 rounded-full text-sm font-medium transition-colors",
                   searchState.masteryFilter === "struggling"
                     ? "bg-red-500 text-white"
-                    : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                    : "bg-gray-200 text-gray-700 hover:bg-gray-300",
                 )}
               >
                 Struggling
@@ -656,7 +654,7 @@ export default function VocabsMainPage() {
                   "px-3 py-1 rounded-full text-sm font-medium transition-colors",
                   searchState.masteryFilter === "learning"
                     ? "bg-orange-500 text-white"
-                    : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                    : "bg-gray-200 text-gray-700 hover:bg-gray-300",
                 )}
               >
                 Learning
@@ -667,7 +665,7 @@ export default function VocabsMainPage() {
                   "px-3 py-1 rounded-full text-sm font-medium transition-colors",
                   searchState.masteryFilter === "proficient"
                     ? "bg-blue-500 text-white"
-                    : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                    : "bg-gray-200 text-gray-700 hover:bg-gray-300",
                 )}
               >
                 Proficient
@@ -678,7 +676,7 @@ export default function VocabsMainPage() {
                   "px-3 py-1 rounded-full text-sm font-medium transition-colors",
                   searchState.masteryFilter === "mastered"
                     ? "bg-green-500 text-white"
-                    : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                    : "bg-gray-200 text-gray-700 hover:bg-gray-300",
                 )}
               >
                 Mastered
@@ -712,7 +710,7 @@ export default function VocabsMainPage() {
                         "border-orange-200 bg-orange-50/50",
                       masteryLevel === "struggling" &&
                         "border-red-200 bg-red-50/50",
-                      !masteryLevel && "border-gray-200 bg-white"
+                      !masteryLevel && "border-gray-200 bg-white",
                     )}
                   >
                     <div className="flex items-center justify-between mb-2">
@@ -728,7 +726,7 @@ export default function VocabsMainPage() {
                             masteryLevel === "learning" &&
                               "bg-orange-100 text-orange-800",
                             masteryLevel === "struggling" &&
-                              "bg-red-100 text-red-800"
+                              "bg-red-100 text-red-800",
                           )}
                         >
                           {masteryLevel.charAt(0).toUpperCase() +

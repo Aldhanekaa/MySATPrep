@@ -6,8 +6,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 import { playSound } from "@/lib/playSound";
-import { useLocalStorage } from "@/lib/useLocalStorage";
-import { VocabsData } from "@/types/vocabulary";
+import { useResolvedVocabsData } from "@/hooks/use-resolved-user-data";
 
 // Import practice components
 import VocabsQuizPractice from "./quiz";
@@ -33,14 +32,7 @@ const cardVariants = {
 };
 
 export default function VocabsPracticePage_Main() {
-  // Use the useLocalStorage hook
-  const [vocabsData, setVocabsData] = useLocalStorage<VocabsData>(
-    "vocabsData",
-    {
-      learntVocabs: [],
-      userSentences: {},
-    }
-  );
+  const [vocabsData, setVocabsData] = useResolvedVocabsData();
 
   const [selectedMethod, setSelectedMethod] = useState("");
   const [isStarted, setIsStarted] = useState(false);

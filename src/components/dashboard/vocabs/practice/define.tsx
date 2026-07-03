@@ -2,6 +2,7 @@
 
 import React, { useReducer, useEffect, useMemo, useState } from "react";
 import { useLocalStorage } from "@/lib/useLocalStorage";
+import { useResolvedVocabsData } from "@/hooks/use-resolved-user-data";
 import {
   vocabs_database,
   VocabsData,
@@ -218,14 +219,7 @@ export default function VocabsDefinePractice({
   // Define state managed by reducer
   const [defineState, dispatch] = useReducer(defineReducer, initialDefineState);
 
-  // Use the useLocalStorage hook
-  const [vocabsData, setVocabsData] = useLocalStorage<VocabsData>(
-    "vocabsData",
-    {
-      learntVocabs: [],
-      userSentences: {},
-    }
-  );
+  const [vocabsData, setVocabsData] = useResolvedVocabsData();
 
   // Practice performance tracking
   const [practicePerformance, setPracticePerformance] =

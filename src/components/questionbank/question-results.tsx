@@ -51,6 +51,11 @@ import { useLocalStorage } from "@/lib/useLocalStorage";
 import { SavedQuestions } from "@/types/savedQuestions";
 import { PracticeStatistics } from "@/types";
 import QB_Compact_Render from "./compact-render";
+import { useAppSelector } from "@/lib/redux/hooks";
+import {
+  selectIsAuthenticated,
+  selectUserStatistics,
+} from "@/lib/redux/selectors";
 
 // Tour state interface
 interface TourState {
@@ -116,9 +121,19 @@ export function QuestionResults({
 }: QuestionResultsProps) {
   const id = useId();
 
-  // Load practice statistics from localStorage with setter
-  const [practiceStatistics, setPracticeStatistics] =
-    useLocalStorage<PracticeStatistics>("practiceStatistics", {});
+  const isAuthenticated = useAppSelector(selectIsAuthenticated);
+  const reduxStatistics = useAppSelector(selectUserStatistics);
+
+  // Load practice statistics from localStorage (fallback for unauthenticated users)
+  const [practiceStatisticsLS] = useLocalStorage<PracticeStatistics>(
+    "practiceStatistics",
+    {},
+  );
+
+  // Resolve statistics: authenticated users use Redux (DB), guests use localStorage
+  const practiceStatistics: PracticeStatistics = isAuthenticated
+    ? (reduxStatistics as PracticeStatistics)
+    : practiceStatisticsLS;
 
   // Check if question has been answered before in practice statistics
   const answeredQuestions =

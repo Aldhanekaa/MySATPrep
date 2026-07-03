@@ -8,7 +8,6 @@ import {
   PracticeSession,
   SessionStatus,
 } from "@/types/session";
-import { getPracticeStatistics } from "@/lib/practiceStatistics";
 import { AnsweredQuestion } from "@/types/statistics";
 import {
   ChevronDown,
@@ -27,6 +26,7 @@ import {
   selectIsAuthenticated,
   selectUserSessions,
 } from "@/lib/redux/selectors";
+import { useResolvedPracticeStatistics } from "@/hooks/use-resolved-user-data";
 
 interface QuestionResult {
   questionId: string;
@@ -49,12 +49,13 @@ export function SessionsTab() {
   const dispatch = useAppDispatch();
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
   const reduxSessions = useAppSelector(selectUserSessions);
+  const practiceStatistics = useResolvedPracticeStatistics();
 
   useEffect(() => {
     const loadSessions = () => {
       try {
         let history: PracticeSession[];
-        if (isAuthenticated && reduxSessions.length > 0) {
+        if (isAuthenticated) {
           // Authenticated: use Redux store (populated from DB)
           history = [...reduxSessions];
         } else {
@@ -79,9 +80,8 @@ export function SessionsTab() {
 
   const getQuestionResults = (session: PracticeSession): QuestionResult[] => {
     try {
-      const practiceStats = getPracticeStatistics();
       const assessmentStats =
-        practiceStats[session.practiceSelections.assessment];
+        practiceStatistics[session.practiceSelections.assessment];
 
       if (!assessmentStats?.answeredQuestionsDetailed) {
         // Fallback: create results from session data without correctness info

@@ -18,7 +18,7 @@ import {
 import { API_Response_Question_List, PlainQuestionType } from "@/types";
 import { Activity, DatabaseIcon } from "lucide-react";
 import React, { useEffect, useReducer, useMemo } from "react";
-import { getPracticeStatistics } from "@/lib/practiceStatistics";
+import { useResolvedPracticeStatistics } from "@/hooks/use-resolved-user-data";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { QuestionDifficulty } from "@/types/question";
@@ -105,6 +105,7 @@ function questionsReducer(
 export default function Tracker() {
   const { state, setActiveAssessmentByWorkspace, getAssessmentKey } =
     useAssessment();
+  const practiceStatistics = useResolvedPracticeStatistics();
 
   // Initialize reducer
   const [questionsState, dispatch] = useReducer(questionsReducer, {
@@ -186,12 +187,11 @@ export default function Tracker() {
         subjectQuestions: PlainQuestionType[]
       ): Task[] => {
         // Get practice statistics for answered questions
-        const practiceStats = getPracticeStatistics();
         const activeAssessmentId = state.activeAssessmentId || "99";
         const assessmentTextId =
           AssessmentsId[activeAssessmentId as keyof typeof AssessmentsId]
             ?.textId || "";
-        const assessmentStats = practiceStats[assessmentTextId];
+        const assessmentStats = practiceStatistics[assessmentTextId];
         const answeredQuestionIds = new Set(
           assessmentStats?.answeredQuestions || []
         );
@@ -354,7 +354,7 @@ export default function Tracker() {
             : undefined,
       };
     };
-  }, [state.activeAssessmentId]);
+  }, [state.activeAssessmentId, practiceStatistics]);
 
   const { mathTasks, rwTasks } = useMemo(() => {
     return questionsState.allQuestions.length > 0
@@ -371,12 +371,11 @@ export default function Tracker() {
       return null;
     }
 
-    const practiceStats = getPracticeStatistics();
     const activeAssessmentId = state.activeAssessmentId || "99";
     const assessmentTextId =
       AssessmentsId[activeAssessmentId as keyof typeof AssessmentsId]?.textId ||
       "";
-    const assessmentStats = practiceStats[assessmentTextId];
+    const assessmentStats = practiceStatistics[assessmentTextId];
     const answeredQuestionIds = new Set(
       assessmentStats?.answeredQuestions || []
     );
@@ -456,7 +455,7 @@ export default function Tracker() {
             )
           : 0,
     };
-  }, [questionsState.allQuestions, state.activeAssessmentId]);
+  }, [questionsState.allQuestions, state.activeAssessmentId, practiceStatistics]);
   // Show loading state for the entire component
   if (questionsState.loading) {
     return (

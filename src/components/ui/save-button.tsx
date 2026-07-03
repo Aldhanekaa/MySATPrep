@@ -14,8 +14,12 @@ import { SavedCollections, SavedCollection } from "@/types/savedCollections";
 import { QuestionById_Data } from "@/types";
 import { playSound } from "@/lib/playSound";
 import { useLocalStorage } from "@/lib/useLocalStorage";
-import { useState, useId, useEffect } from "react";
+import { useState, useId, useEffect, useMemo } from "react";
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
+import {
+  selectIsAuthenticated,
+  selectUserCollections,
+} from "@/lib/redux/selectors";
 import {
   saveBookmark,
   removeBookmark as syncRemoveBookmark,
@@ -60,54 +64,34 @@ export function SaveButton({
   const id = useId();
   const reduxDispatch = useAppDispatch();
   const reduxState = useAppSelector((s) => s);
-  const [savedCollections, setSavedCollections] =
+  const isAuthenticated = useAppSelector(selectIsAuthenticated);
+  const reduxCollections = useAppSelector(selectUserCollections);
+
+  // localStorage fallback for unauthenticated users
+  const [savedCollectionsLS, setSavedCollectionsLS] =
     useLocalStorage<SavedCollections>("savedCollections", {});
+
+  // Resolve collections: authenticated → Redux (DB), unauthenticated → localStorage
+  const savedCollections: SavedCollections = useMemo(() => {
+    if (isAuthenticated && reduxCollections.length > 0) {
+      return reduxCollections.reduce<SavedCollections>((acc, col) => {
+        acc[col.collectionId] = col as SavedCollection;
+        return acc;
+      }, {});
+    }
+    return savedCollectionsLS;
+  }, [isAuthenticated, reduxCollections, savedCollectionsLS]);
+
+  // For writes to localStorage (unauthenticated path only)
+  const setSavedCollections = (value: SavedCollections) => {
+    if (!isAuthenticated) setSavedCollectionsLS(value);
+  };
   const [searchTerm, setSearchTerm] = useState("");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [newCollectionName, setNewCollectionName] = useState("");
   const [editingCollection, setEditingCollection] =
     useState<SavedCollection | null>(null);
   const [hoverCardOpen, setHoverCardOpen] = useState(false);
-
-  // Effect to keep savedCollections updated with latest localStorage data
-  useEffect(() => {
-    const updateCollections = () => {
-      try {
-        const currentCollections =
-          window.localStorage.getItem("savedCollections");
-        const parsedCollections = currentCollections
-          ? JSON.parse(currentCollections)
-          : {};
-
-        // Only update if the data has actually changed
-        if (
-          JSON.stringify(savedCollections) !== JSON.stringify(parsedCollections)
-        ) {
-          setSavedCollections(parsedCollections);
-        }
-      } catch (error) {
-        console.error("Error syncing savedCollections:", error);
-      }
-    };
-
-    // Update on storage events (changes from other tabs/windows)
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === "savedCollections") {
-        updateCollections();
-      }
-    };
-
-    // Update periodically to catch any missed changes
-    const interval = setInterval(updateCollections, 1000);
-
-    // Listen for storage events
-    window.addEventListener("storage", handleStorageChange);
-
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener("storage", handleStorageChange);
-    };
-  }, [savedCollections, setSavedCollections]);
 
   const questionId = question.question.questionId;
 

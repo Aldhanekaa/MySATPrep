@@ -2,6 +2,7 @@
 
 import React, { useReducer, useEffect, useMemo, useState } from "react";
 import { useLocalStorage } from "@/lib/useLocalStorage";
+import { useResolvedVocabsData } from "@/hooks/use-resolved-user-data";
 import {
   vocabs_database,
   VocabsData,
@@ -27,8 +28,6 @@ import {
 } from "lucide-react";
 import { playSound } from "@/lib/playSound";
 import Link from "next/link";
-import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
-import { saveVocabulary } from "@/lib/utils/dataSync";
 
 interface SentenceQuestion {
   word: VocabularyWord;
@@ -225,23 +224,7 @@ export default function VocabsFormaSentencePractice({
     initialSentenceState,
   );
 
-  const reduxDispatch = useAppDispatch();
-  const reduxState = useAppSelector((s) => s);
-
-  // Use the useLocalStorage hook
-  const [vocabsData, setVocabsData] = useLocalStorage<VocabsData>(
-    "vocabsData",
-    {
-      learntVocabs: [],
-      userSentences: {},
-    },
-  );
-
-  // Sync vocabulary data to DB for authenticated users whenever it changes
-  useEffect(() => {
-    saveVocabulary(vocabsData, reduxDispatch, reduxState);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [vocabsData]);
+  const [vocabsData, setVocabsData] = useResolvedVocabsData();
 
   // Practice performance tracking
   const [practicePerformance, setPracticePerformance] =

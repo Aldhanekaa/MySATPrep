@@ -81,21 +81,12 @@ export function HomeTab({ selectedAssessment }: HomeTabProps) {
   const [activityMetrics, setActivityMetrics] = useState<Metric[]>([]);
   const [streakDays, setStreakDays] = useState<number>(0);
 
-  // ── Resolved data: prefer Redux (cloud) when authenticated ─────────────────
-  // Redux initialises statistics as {} and sessions as [] — never null —
-  // so we can't use ?? to fall back. Check for actual content instead.
-  const reduxHasProfile = isAuthenticated && reduxProfile !== null;
-  const reduxHasStats =
-    isAuthenticated && Object.keys(reduxStatistics).length > 0;
-  const reduxHasSessions =
-    isAuthenticated &&
-    (reduxSessions as unknown as PracticeSession[]).length > 0;
-
-  const userProfile = reduxHasProfile ? reduxProfile : localProfile;
-  const practiceStats = reduxHasStats
+  // ── Resolved data: Redux when authenticated, localStorage otherwise ─────────
+  const userProfile = isAuthenticated ? reduxProfile : localProfile;
+  const practiceStats = isAuthenticated
     ? (reduxStatistics as PracticeStatistics)
     : localStats;
-  const practiceHistory: PracticeSession[] = reduxHasSessions
+  const practiceHistory: PracticeSession[] = isAuthenticated
     ? (reduxSessions as unknown as PracticeSession[])
     : localHistory;
 
@@ -109,8 +100,9 @@ export function HomeTab({ selectedAssessment }: HomeTabProps) {
     return "SAT";
   }, [reduxPreferences?.assessment, selectedAssessment?.name]);
 
-  // ── Load localStorage data as fallback (always, shown until Redux is ready) ─
+  // ── Load localStorage data only for unauthenticated users ───────────────────
   useEffect(() => {
+    if (isAuthenticated) return;
     try {
       setLocalProfile(getUserProfile());
       setLocalStats(getPracticeStatistics());
@@ -118,7 +110,7 @@ export function HomeTab({ selectedAssessment }: HomeTabProps) {
     } catch (err) {
       console.error("Error loading local user data:", err);
     }
-  }, []);
+  }, [isAuthenticated]);
 
   // ── Recompute ActivityCard metrics whenever resolved data changes ──────────
   useEffect(() => {
@@ -174,7 +166,9 @@ export function HomeTab({ selectedAssessment }: HomeTabProps) {
         <SummaryCharts
           selectedAssessment={selectedAssessment}
           statistics={
-            reduxHasStats ? (reduxStatistics as PracticeStatistics) : undefined
+            isAuthenticated
+              ? (reduxStatistics as PracticeStatistics)
+              : undefined
           }
         />
 

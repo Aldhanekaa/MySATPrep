@@ -3,8 +3,6 @@ import { OptimizedQuestionCard } from "../dashboard/shared/OptimizedQuestionCard
 import { useState, useEffect, useMemo, useRef } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useLocalStorage } from "@/lib/useLocalStorage";
-import { SavedQuestions } from "@/types/savedQuestions";
 
 export default function QB_Compact_Render({
   questions,
@@ -23,12 +21,6 @@ export default function QB_Compact_Render({
   answerVisibility: string;
   assessmentName: string;
 }) {
-  // Load saved questions from localStorage
-  const [savedQuestions, setSavedQuestions] = useLocalStorage<SavedQuestions>(
-    "savedQuestions",
-    {}
-  );
-
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const dotsContainerRef = useRef<HTMLDivElement>(null);
 
@@ -111,7 +103,7 @@ export default function QB_Compact_Render({
   // Helper function to get difficulty color classes
   const getDifficultyColorClasses = (
     difficulty: string | undefined,
-    isActive: boolean
+    isActive: boolean,
   ) => {
     if (isActive) {
       return "ring-2 ring-blue-500 scale-125 shadow-lg";
@@ -173,8 +165,8 @@ export default function QB_Compact_Render({
                     currentQuestion.difficulty === "E"
                       ? "bg-green-100 text-green-800"
                       : currentQuestion.difficulty === "M"
-                      ? "bg-yellow-100 text-yellow-800"
-                      : "bg-red-100 text-red-800"
+                        ? "bg-yellow-100 text-yellow-800"
+                        : "bg-red-100 text-red-800"
                   }`}
                 >
                   {getDifficultyLabel(currentQuestion.difficulty)}
@@ -242,7 +234,7 @@ export default function QB_Compact_Render({
 
               // Get difficulty border color
               const getDifficultyBorderColor = (
-                difficulty: string | undefined
+                difficulty: string | undefined,
               ) => {
                 switch (difficulty) {
                   case "E":
@@ -272,12 +264,12 @@ export default function QB_Compact_Render({
                     goToQuestion(index);
                   }}
                   className={`relative p-3 rounded-lg border border-gray-200 border-b-4 bg-white text-sm font-medium transition-all duration-200 flex-shrink-0 w-16 h-16 hover:shadow-md ${getDifficultyBorderColor(
-                    difficulty
+                    difficulty,
                   )} ${
                     isActive ? "ring-2 ring-blue-500 scale-105 shadow-lg" : ""
                   }`}
                   title={`Question ${index + 1} - ${getDifficultyLabel(
-                    difficulty
+                    difficulty,
                   )}`}
                   aria-label={`Go to question ${
                     index + 1

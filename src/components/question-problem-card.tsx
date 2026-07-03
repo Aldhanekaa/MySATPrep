@@ -43,6 +43,13 @@ import { DraggableDesmosPopup } from "./popups/desmos-popup";
 import { DraggableNotesPopup } from "./popups/notes-popup";
 import { getSubjectByPrimaryClassCd } from "@/static-data/domains";
 import { SaveButton } from "./ui/save-button";
+import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
+import {
+  selectIsAuthenticated,
+  selectUserBookmarks,
+  selectUserStatistics,
+} from "@/lib/redux/selectors";
+import { saveUserStatistics } from "@/lib/utils/dataSync";
 
 // Duolingo-styled Input Component
 interface DuolingoInputProps {
