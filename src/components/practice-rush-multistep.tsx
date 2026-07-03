@@ -85,12 +85,18 @@ import {
   saveUserStatistics,
   savePracticeSession,
   updatePracticeSession,
+  debouncedSavePreferences,
+  debouncedSaveCurrentSession,
+  removeCurrentSession,
 } from "@/lib/utils/dataSync";
 import {
   selectIsAuthenticated,
   selectUserStatistics,
   selectUserSessions,
+  selectUiFlag,
+  selectUserPreferences,
 } from "@/lib/redux/selectors";
+import { setUiFlag } from "@/lib/redux/slices/userDataSlice";
 
 // Duolingo-styled Loading Spinner Component
 interface DuolingoLoadingSpinnerProps {
@@ -224,17 +230,32 @@ interface SuccessFeedbackProps {
 
 function SuccessFeedback({ isVisible, onContinue }: SuccessFeedbackProps) {
   const [dontShowAgain, setDontShowAgain] = React.useState(false);
-  const [hideSuccessFeedback, setHideSuccessFeedback] = React.useState(false);
 
-  // Load localStorage preference on component mount
-  React.useEffect(() => {
-    try {
-      const savedPreference = localStorage.getItem("hideSuccessFeedback");
-      setHideSuccessFeedback(savedPreference === "true");
-    } catch (error) {
-      console.error("Failed to load preference:", error);
+  // Read authentication state and Redux values
+  const dispatch = useAppDispatch();
+  const isAuthenticated = useAppSelector(selectIsAuthenticated);
+  const reduxHideFlag = useAppSelector(selectUiFlag("hideSuccessFeedback"));
+  const currentPrefs = useAppSelector(selectUserPreferences);
+
+  // Determine whether to hide success feedback:
+  // - For authenticated users: use Redux value; fall back to localStorage only if Redux is false
+  // - For unauthenticated users: read directly from localStorage
+  const hideSuccessFeedback = React.useMemo(() => {
+    if (isAuthenticated) {
+      if (reduxHideFlag) return true;
+      // Fallback: check localStorage when Redux value is false (legacy data before sync)
+      try {
+        return localStorage.getItem("hideSuccessFeedback") === "true";
+      } catch {
+        return false;
+      }
     }
-  }, []);
+    try {
+      return localStorage.getItem("hideSuccessFeedback") === "true";
+    } catch {
+      return false;
+    }
+  }, [isAuthenticated, reduxHideFlag]);
 
   // Auto-continue if user has opted out
   // React.useEffect(() => {
@@ -252,11 +273,32 @@ function SuccessFeedback({ isVisible, onContinue }: SuccessFeedbackProps) {
 
   const handleContinue = () => {
     if (dontShowAgain) {
+      // Always write localStorage as an optimistic local mirror
       try {
         localStorage.setItem("hideSuccessFeedback", "true");
-        setHideSuccessFeedback(true);
       } catch (error) {
-        console.error("Failed to save preference:", error);
+        console.error("Failed to save preference to localStorage:", error);
+      }
+
+      if (isAuthenticated) {
+        // Dispatch Redux update for immediate UI consistency
+        dispatch(setUiFlag({ key: "hideSuccessFeedback", value: true }));
+
+        // Persist to database via the preferences sync layer
+        const updatedPrefs = {
+          ...(currentPrefs ?? {}),
+          uiFlags: {
+            ...(currentPrefs?.uiFlags ?? {}),
+            hideSuccessFeedback: true,
+          },
+        };
+        // We need the current Redux state for debouncedSavePreferences, but since
+        // this runs inside a component we pass a synthetic state reference via the
+        // store. The dispatch reference already has the updated flag committed.
+        // Import store to get the state snapshot at call time.
+        import("@/lib/redux/store").then(({ store }) => {
+          debouncedSavePreferences(updatedPrefs, dispatch, store.getState());
+        });
       }
     }
     onContinue();
@@ -1346,27 +1388,8 @@ export default function PracticeRushMultistep({
     };
 
     try {
-      // Save current session as temporary in-progress marker
-      localStorage.setItem(
-        "currentPracticeSession",
-        JSON.stringify(currentSession),
-      );
-
-      // Determine if this session already exists (used to pick save vs update)
-      const existingIndex = findSessionIndex(state.sessionId);
-
-      // Sync session via dataSync: saves to DB for authenticated users,
-      // or writes to localStorage ("practiceHistory") for unauthenticated users.
-      if (existingIndex !== -1) {
-        updatePracticeSession(
-          currentSession.sessionId,
-          currentSession,
-          reduxDispatch,
-          reduxState,
-        );
-      } else {
-        savePracticeSession(currentSession, reduxDispatch, reduxState);
-      }
+      // Save current session via the sync layer (handles localStorage + API for authenticated users)
+      debouncedSaveCurrentSession(currentSession, reduxDispatch, reduxState);
 
       // Show saving indicator briefly
       setTimeout(() => {
@@ -1694,9 +1717,11 @@ export default function PracticeRushMultistep({
             totalXPReceived: state.sessionXPReceived, // Include session XP tracking
           };
           try {
-            localStorage.setItem(
-              "currentPracticeSession",
-              JSON.stringify(currentSession),
+            // Save via sync layer (localStorage first + API for authenticated users)
+            debouncedSaveCurrentSession(
+              currentSession,
+              reduxDispatch,
+              reduxState,
             );
           } catch (error) {
             console.error("Failed to save session on unload:", error);
@@ -1801,8 +1826,14 @@ export default function PracticeRushMultistep({
         savePracticeSession(completedSession, reduxDispatch, reduxState);
       }
 
-      // Clear current session since it's completed
-      localStorage.removeItem("currentPracticeSession");
+      // Remove the in-progress session marker (complete path: updateSession then remove)
+      removeCurrentSession(
+        completedSession.sessionId,
+        completedSession,
+        false, // abandon=false (completion path)
+        reduxDispatch,
+        reduxState,
+      );
 
       console.log("Practice session completed and saved!", completedSession);
       console.log("Session ID:", completedSession.sessionId);
@@ -3258,6 +3289,15 @@ export default function PracticeRushMultistep({
       } else {
         savePracticeSession(abandonedSession, reduxDispatch, reduxState);
       }
+
+      // Remove the in-progress session marker (abandon path: no updateSession, just remove)
+      removeCurrentSession(
+        abandonedSession.sessionId,
+        null,
+        true, // abandon=true (abandon path)
+        reduxDispatch,
+        reduxState,
+      );
 
       console.log("Practice session saved successfully as abandoned");
       console.log(

@@ -18,17 +18,17 @@ export interface SavedQuestion {
   userId?: string; // User ID (for database)
   assessment: string;
   questionId: string;
-  externalId: string | null;
-  ibn: string | null;
-  plainQuestion: PlainQuestionType | null;
+  externalId?: string | null;
+  ibn?: string | null;
+  plainQuestion?: PlainQuestionType | null;
   timestamp: string;
 }
 
 // Question detail for collections
 export interface QuestionDetail {
   questionId: string;
-  externalId?: string;
-  ibn?: string;
+  externalId?: string | null;
+  ibn?: string | null;
   plainQuestion?: PlainQuestionType;
 }
 
@@ -51,6 +51,15 @@ export interface VocabularyProgress {
   [key: string]: any; // Vocabulary progress structure
 }
 
+// Answer history structure (flexible JSONB)
+export interface AnswerHistory {
+  [questionId: string]: Array<{
+    userChoice: string;
+    time: number;
+    status: "correct" | "incorrect";
+  }>;
+}
+
 // User preferences
 export interface UserPreferences {
   theme?: "light" | "dark";
@@ -58,6 +67,7 @@ export interface UserPreferences {
   assessment?: "SAT" | "PSAT/NMSQT" | "PSAT";
   soundEnabled?: boolean;
   notifications?: boolean;
+  uiFlags?: Record<string, boolean>; // NEW — explicit typed field for per-key UI state
   [key: string]: any;
 }
 
@@ -70,6 +80,7 @@ export interface UserData {
   collections: SavedCollection[];
   vocabulary: VocabularyProgress | null;
   preferences: UserPreferences | null;
+  answerHistory: AnswerHistory | null;
 }
 
 // User data state for Redux
@@ -81,6 +92,7 @@ export interface UserDataState {
   collections: SavedCollection[];
   vocabulary: VocabularyProgress | null;
   preferences: UserPreferences | null;
+  answerHistory: AnswerHistory | null;
   loading: {
     profile: boolean;
     statistics: boolean;
@@ -88,6 +100,7 @@ export interface UserDataState {
     bookmarks: boolean;
     collections: boolean;
     vocabulary: boolean;
+    answerHistory: boolean;
   };
   error: string | null;
 }

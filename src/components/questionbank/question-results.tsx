@@ -49,6 +49,14 @@ import QB_List_Render from "./list-render";
 import QB_Single_Render from "./single-render";
 import QB_Compact_Render from "./compact-render";
 import { useResolvedPracticeStatistics } from "@/hooks/use-resolved-user-data";
+import { useAppSelector, useAppDispatch } from "@/lib/redux/hooks";
+import {
+  selectIsAuthenticated,
+  selectUiFlag,
+  selectUserPreferences,
+} from "@/lib/redux/selectors";
+import { setUiFlag } from "@/lib/redux/slices/userDataSlice";
+import { debouncedSavePreferences } from "@/lib/utils/dataSync";
 
 // Tour state interface
 interface TourState {
@@ -114,6 +122,13 @@ export function QuestionResults({
 }: QuestionResultsProps) {
   const id = useId();
 
+  const reduxDispatch = useAppDispatch();
+  const isAuthenticated = useAppSelector(selectIsAuthenticated);
+  const reduxOnboardingFlag = useAppSelector(
+    selectUiFlag("questionbank-onboarding"),
+  );
+  const currentPrefs = useAppSelector(selectUserPreferences);
+
   const practiceStatistics = useResolvedPracticeStatistics();
 
   // Check if question has been answered before in practice statistics
@@ -161,11 +176,22 @@ export function QuestionResults({
   });
 
   // Check localStorage to determine if tour should be shown
+  // Authenticated users: read from Redux first, fall back to localStorage for legacy data
+  // Unauthenticated users: read directly from localStorage
   useEffect(() => {
     const tourKey = "questionbank-onboarding";
-    const hasCompletedTour = localStorage.getItem(tourKey) === "true";
+    let hasCompletedTour: boolean;
+
+    if (isAuthenticated) {
+      // Redux value takes priority; fall back to localStorage for legacy pre-sync data
+      hasCompletedTour =
+        reduxOnboardingFlag || localStorage.getItem(tourKey) === "true";
+    } else {
+      hasCompletedTour = localStorage.getItem(tourKey) === "true";
+    }
+
     tourDispatch({ type: "SET_SHOW_TOUR_DIALOG", payload: !hasCompletedTour });
-  }, []);
+  }, [isAuthenticated, reduxOnboardingFlag]);
 
   useEffect(() => {
     let isMounted = true;
@@ -272,6 +298,24 @@ export function QuestionResults({
   const handleFinish = () => {
     console.log("Onboarding completed!");
     tourDispatch({ type: "SET_ONBOARDING_OPEN", payload: false });
+
+    if (isAuthenticated) {
+      // Dispatch Redux update for immediate UI consistency
+      reduxDispatch(setUiFlag({ key: "questionbank-onboarding", value: true }));
+
+      // Persist to database via the preferences sync layer
+      const updatedPrefs = {
+        ...(currentPrefs ?? {}),
+        uiFlags: {
+          ...(currentPrefs?.uiFlags ?? {}),
+          "questionbank-onboarding": true,
+        },
+      };
+      // Use the store to get a current state snapshot for the sync call
+      import("@/lib/redux/store").then(({ store }) => {
+        debouncedSavePreferences(updatedPrefs, reduxDispatch, store.getState());
+      });
+    }
   };
 
   const resetDemo = () => {

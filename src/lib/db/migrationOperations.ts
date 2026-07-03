@@ -32,6 +32,8 @@ export async function migrateUserData(
     collectionsMigrated: 0,
     vocabularyMigrated: false,
     preferencesMigrated: false,
+    notesMigrated: false,
+    answerHistoryMigrated: false,
   };
 
   try {
@@ -167,6 +169,28 @@ export async function migrateUserData(
         [userId, JSON.stringify(data.preferences)],
       );
       summary.preferencesMigrated = true;
+    }
+
+    // ── Question Notes (Requirement 11.4) ─────────────────────────────────────
+    if (data.questionNotes && Object.keys(data.questionNotes).length > 0) {
+      await client.query(
+        `INSERT INTO question_notes (user_id, notes_data)
+         VALUES ($1, $2)
+         ON CONFLICT (user_id) DO NOTHING`,
+        [userId, JSON.stringify(data.questionNotes)],
+      );
+      summary.notesMigrated = true;
+    }
+
+    // ── Answer History (Requirement 11.5) ─────────────────────────────────────
+    if (data.answerHistory && Object.keys(data.answerHistory).length > 0) {
+      await client.query(
+        `INSERT INTO answer_history (user_id, history_data)
+         VALUES ($1, $2)
+         ON CONFLICT (user_id) DO NOTHING`,
+        [userId, JSON.stringify(data.answerHistory)],
+      );
+      summary.answerHistoryMigrated = true;
     }
 
     await client.query("COMMIT");

@@ -46,6 +46,7 @@ import { SaveButton } from "./ui/save-button";
 import {
   usePracticeStatisticsState,
   useResolvedBookmarks,
+  useResolvedCollections,
 } from "@/hooks/use-resolved-user-data";
 
 // Duolingo-styled Input Component
@@ -109,6 +110,7 @@ const QuestionProblemCard = React.memo(function QuestionProblemCard({
   const router = useRouter();
 
   const [savedQuestions, setSavedQuestions] = useResolvedBookmarks();
+  const [savedCollections] = useResolvedCollections();
 
   const [practiceStatistics, setPracticeStatistics] =
     usePracticeStatisticsState();
@@ -230,11 +232,19 @@ const QuestionProblemCard = React.memo(function QuestionProblemCard({
   // Check if current question is saved and if it has been answered before - optimized
   useEffect(() => {
     if (question && question.question && assessment) {
-      // Check if question is saved - using memoized values
-      const isSaved = assessmentSavedQuestions.some(
+      // Check if question is saved in savedQuestions OR in any collection - using memoized values
+      const isSavedInBookmarks = assessmentSavedQuestions.some(
         (q: SavedQuestion) => q.questionId === questionId,
       );
-      setIsQuestionSaved(isSaved);
+
+      // Check if question is in any collection
+      const allCollections = Object.values(savedCollections);
+      const isSavedInCollection = allCollections.some((collection) =>
+        collection.questionIds.includes(questionId),
+      );
+
+      // Question is considered saved if it's in either bookmarks or any collection
+      setIsQuestionSaved(isSavedInBookmarks || isSavedInCollection);
 
       // Check if question has a note - using memoized values
       const existingNote = assessmentNotes.find(
@@ -284,6 +294,7 @@ const QuestionProblemCard = React.memo(function QuestionProblemCard({
     assessmentSavedQuestions,
     assessmentNotes,
     assessmentStats,
+    savedCollections,
   ]);
 
   // Reset current session state when answerVisibility changes to "hide"

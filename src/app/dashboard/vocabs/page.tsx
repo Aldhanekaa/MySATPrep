@@ -1,4 +1,4 @@
-import VocabsMainPage from "@/components/dashboard/vocabs/vocabs";
+import VocabsPageClient from "@/components/dashboard/vocabs/VocabsPageClient";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -361,7 +361,7 @@ export default function VocabsPage() {
       />
 
       <section className="space-y-4 max-w-4xl lg:max-w-5xl xl:max-w-7xl w-full mx-auto px-3 py-10 ">
-        <VocabsMainPage />
+        <VocabsPageClient />
       </section>
 
       {/* Hidden SEO Elements */}

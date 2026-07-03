@@ -1,20 +1,73 @@
 /**
+ * GET  /api/user/sessions
  * POST /api/user/sessions
  *
- * Creates a new practice session for the authenticated user.
- * Validates the incoming session data, persists it, invalidates
- * the sessions cache, and returns the created session.
+ * GET  — fetches practice sessions for the authenticated user.
+ *        Called lazily when the user visits /dashboard/sessions.
+ * POST — creates a new practice session.
  *
  * Validates: Requirements 8.3, 8.12, 8.13, 8.14
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { sessionsCache, getCacheKey } from "@/lib/cache";
-import { createPracticeSession } from "@/lib/db/userOperations";
+import { sessionsCache, getCacheKey, getCachedOrFetch } from "@/lib/cache";
+import {
+  getPracticeSessions,
+  createPracticeSession,
+} from "@/lib/db/userOperations";
 import { isValidPracticeSession } from "@/types/session";
 import { logError } from "@/lib/utils/errorLogger";
 import type { PracticeSession } from "@/types";
+
+// ─── GET /api/user/sessions ───────────────────────────────────────────────────
+
+export async function GET(request: NextRequest) {
+  const session = await auth.api.getSession({ headers: request.headers });
+  if (!session?.user?.id) {
+    return NextResponse.json(
+      { success: false, error: "Unauthorized" },
+      { status: 401 },
+    );
+  }
+
+  const userId = session.user.id;
+
+  try {
+    const sessions = await getCachedOrFetch(
+      sessionsCache,
+      getCacheKey("sessions", userId),
+      () => getPracticeSessions(userId),
+    );
+
+    return NextResponse.json({
+      success: true,
+      data: { sessions: sessions ?? [] },
+    });
+  } catch (error) {
+    logError("[GET /api/user/sessions]", error);
+
+    const isDbError =
+      error instanceof Error &&
+      (error.message.includes("ECONNREFUSED") ||
+        error.message.includes("connection") ||
+        error.message.includes("pool"));
+
+    if (isDbError) {
+      return NextResponse.json(
+        { success: false, error: "Service temporarily unavailable" },
+        { status: 503 },
+      );
+    }
+
+    return NextResponse.json(
+      { success: false, error: "Internal server error" },
+      { status: 500 },
+    );
+  }
+}
+
+// ─── POST /api/user/sessions ──────────────────────────────────────────────────
 
 export async function POST(request: NextRequest) {
   // Requirement 8.14 – return 401 if not authenticated

@@ -16,6 +16,12 @@ import { playSound } from "@/lib/playSound";
 import { useResolvedCollections } from "@/hooks/use-resolved-user-data";
 import { useState, useId, useEffect } from "react";
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
+import { selectIsAuthenticated } from "@/lib/redux/selectors";
+import {
+  addBookmark as addBookmarkAction,
+  removeBookmark as removeBookmarkAction,
+  updateCollectionLocal,
+} from "@/lib/redux/slices/userDataSlice";
 import {
   saveBookmark,
   removeBookmark as syncRemoveBookmark,
@@ -60,6 +66,7 @@ export function SaveButton({
   const id = useId();
   const reduxDispatch = useAppDispatch();
   const reduxState = useAppSelector((s) => s);
+  const isAuthenticated = useAppSelector(selectIsAuthenticated);
   const [savedCollections, setSavedCollections] = useResolvedCollections();
   const [searchTerm, setSearchTerm] = useState("");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -129,6 +136,12 @@ export function SaveButton({
           timestamp: new Date().toISOString(),
         };
         updatedSavedQuestions[assessment].push(newSavedQuestion);
+
+        // Optimistic update for authenticated users
+        if (isAuthenticated) {
+          reduxDispatch(addBookmarkAction({ ...newSavedQuestion, assessment }));
+        }
+
         // Sync: API for authenticated users, localStorage for unauthenticated
         saveBookmark(
           { ...newSavedQuestion, assessment },
@@ -162,12 +175,41 @@ export function SaveButton({
               updatedAt: new Date().toISOString(),
             };
             updatedCollections[collId] = updatedCol;
+
+            // Optimistic update for authenticated users
+            if (isAuthenticated) {
+              reduxDispatch(
+                updateCollectionLocal({
+                  collectionId: collId,
+                  name: updatedCol.name || "",
+                  description: updatedCol.description,
+                  createdAt: updatedCol.createdAt || new Date().toISOString(),
+                  updatedAt: updatedCol.updatedAt,
+                  questionIds: updatedCol.questionIds,
+                  questionDetails: (updatedCol.questionDetails || []).map(
+                    (d) => ({
+                      questionId: d.questionId,
+                      externalId: d.externalId ?? null,
+                      ibn: d.ibn ?? null,
+                    }),
+                  ),
+                  color: updatedCol.color,
+                }),
+              );
+            }
+
             // Sync collection update
             updateCollection(collId, updatedCol, reduxDispatch, reduxState);
           }
         });
 
         setSavedCollections(updatedCollections);
+
+        // Optimistic update for authenticated users
+        if (isAuthenticated) {
+          reduxDispatch(removeBookmarkAction(questionId));
+        }
+
         // Sync bookmark removal
         syncRemoveBookmark(questionId, reduxDispatch, reduxState);
         toast.success("Question removed from saved and all collections!");
@@ -269,6 +311,7 @@ export function SaveButton({
       const collection = updatedCollections[collectionId];
       if (!collection) return;
 
+      const collectionName = collection.name || "Untitled Collection";
       const questionExists = collection.questionIds.includes(questionId);
 
       if (questionExists) {
@@ -285,8 +328,32 @@ export function SaveButton({
           updatedAt: new Date().toISOString(),
         };
         updatedCollections[collectionId] = updatedCol;
+
+        // Optimistic Redux update (authenticated users)
+        if (isAuthenticated) {
+          reduxDispatch(
+            updateCollectionLocal({
+              collectionId,
+              name: updatedCol.name || "",
+              description: updatedCol.description,
+              createdAt: updatedCol.createdAt || new Date().toISOString(),
+              updatedAt: updatedCol.updatedAt,
+              questionIds: updatedCol.questionIds,
+              questionDetails: (updatedCol.questionDetails || []).map((d) => ({
+                questionId: d.questionId,
+                externalId: d.externalId ?? null,
+                ibn: d.ibn ?? null,
+              })),
+              color: updatedCol.color,
+            }),
+          );
+        }
+
+        setSavedCollections(updatedCollections);
         // Sync collection update
         updateCollection(collectionId, updatedCol, reduxDispatch, reduxState);
+        playSound("tap-checkbox-unchecked.wav");
+        toast.success(`Removed from "${collectionName}"`);
       } else {
         // Add question to collection
         const updatedCol = {
@@ -303,10 +370,32 @@ export function SaveButton({
           updatedAt: new Date().toISOString(),
         };
         updatedCollections[collectionId] = updatedCol;
+
+        // Optimistic Redux update (authenticated users)
+        if (isAuthenticated) {
+          reduxDispatch(
+            updateCollectionLocal({
+              collectionId,
+              name: updatedCol.name || "",
+              description: updatedCol.description,
+              createdAt: updatedCol.createdAt || new Date().toISOString(),
+              updatedAt: updatedCol.updatedAt,
+              questionIds: updatedCol.questionIds,
+              questionDetails: updatedCol.questionDetails.map((d) => ({
+                questionId: d.questionId,
+                externalId: d.externalId ?? null,
+                ibn: d.ibn ?? null,
+              })),
+              color: updatedCol.color,
+            }),
+          );
+        }
+
+        setSavedCollections(updatedCollections);
         // Sync collection update
         updateCollection(collectionId, updatedCol, reduxDispatch, reduxState);
 
-        // Also ensure question is in savedQuestions
+        // Also ensure question is in savedQuestions / Redux bookmarks
         if (!updatedSavedQuestions[assessment]) {
           updatedSavedQuestions[assessment] = [];
         }
@@ -323,6 +412,14 @@ export function SaveButton({
           };
           updatedSavedQuestions[assessment].push(newSavedQuestion);
           setSavedQuestions(updatedSavedQuestions);
+
+          // Optimistic Redux update for bookmark
+          if (isAuthenticated) {
+            reduxDispatch(
+              addBookmarkAction({ ...newSavedQuestion, assessment }),
+            );
+          }
+
           // Sync bookmark addition
           saveBookmark(
             { ...newSavedQuestion, assessment },
@@ -330,10 +427,10 @@ export function SaveButton({
             reduxState,
           );
         }
-      }
 
-      setSavedCollections(updatedCollections);
-      playSound("tap-checkbox-checked.wav");
+        playSound("tap-checkbox-checked.wav");
+        toast.success(`Saved to "${collectionName}"`);
+      }
     } catch (error) {
       console.error("Failed to toggle question in collection:", error);
       toast.error("Failed to update collection");

@@ -25,7 +25,8 @@ import {
   updateUserProfile,
   updateUserStatistics,
   createSession,
-  updateSession,
+  updateSessionThunk,
+  removeSession,
   addBookmarkThunk,
   removeBookmarkThunk,
   createCollection,
@@ -178,7 +179,7 @@ export function updatePracticeSession(
     withRetry(
       () =>
         dispatch(
-          updateSession({ id, sessionData }),
+          updateSessionThunk({ id, sessionData }),
         ) as unknown as Promise<unknown>,
     ).catch(() => {
       showNetworkError(
@@ -592,3 +593,127 @@ export const debouncedBatchSaveUserData = debounce(
     batchSaveUserData(data, dispatch, state),
   500,
 );
+
+// ─── In-Progress Session Sync ─────────────────────────────────────────────────
+
+/**
+ * Saves or updates the in-progress (current) practice session.
+ * Always writes to localStorage immediately (crash-recovery guarantee).
+ * For authenticated users, also dispatches createSession or updateSession to the API.
+ *
+ * Authenticated: write to localStorage immediately, then debounced createSession/updateSession.
+ * Unauthenticated: localStorage only.
+ *
+ * Validates: Requirements 5.1, 5.2
+ */
+export function saveCurrentSession(
+  data: PracticeSession,
+  dispatch: AppDispatch,
+  state: RootState,
+): void {
+  // Always write to localStorage first (crash-recovery guarantee)
+  try {
+    localStorage.setItem("currentPracticeSession", JSON.stringify(data));
+  } catch (error) {
+    console.error(
+      "[dataSync] Failed to save current session to localStorage:",
+      error,
+    );
+  }
+
+  if (isAuthenticated(state)) {
+    // Check if session exists in Redux store
+    const existingSession = state.userData.sessions.find(
+      (s) => s.sessionId === data.sessionId,
+    );
+
+    if (existingSession) {
+      withRetry(
+        () =>
+          dispatch(
+            updateSessionThunk({ id: data.sessionId, sessionData: data }),
+          ) as unknown as Promise<unknown>,
+      ).catch(() => {
+        showNetworkError(
+          "Failed to save your practice session. Please check your connection.",
+        );
+      });
+    } else {
+      withRetry(
+        () => dispatch(createSession(data)) as unknown as Promise<unknown>,
+      ).catch(() => {
+        showNetworkError(
+          "Failed to save your practice session. Please check your connection.",
+        );
+      });
+    }
+  }
+}
+
+/**
+ * Debounced version of saveCurrentSession (1000 ms).
+ * Use this in high-frequency update paths (e.g., per-answer updates) to coalesce
+ * rapid successive calls and reduce API traffic.
+ *
+ * Validates: Requirement 5.2
+ */
+export const debouncedSaveCurrentSession = debounce(
+  (data: PracticeSession, dispatch: AppDispatch, state: RootState) =>
+    saveCurrentSession(data, dispatch, state),
+  1000,
+);
+
+/**
+ * Removes the in-progress session from localStorage and optionally syncs final state
+ * to the database.
+ *
+ * - abandon=true: dispatch removeSession only (no prior updateSession call).
+ *   This is used when the user exits/abandons the session without completing it.
+ * - abandon=false (complete): call updateSession with final state, then dispatch removeSession.
+ *   This is used when the session is completed successfully.
+ *
+ * Always removes from localStorage. For authenticated users, also updates Redux accordingly.
+ *
+ * Validates: Requirements 5.4, 5.5
+ */
+export function removeCurrentSession(
+  sessionId: string,
+  finalData: PracticeSession | null,
+  abandon: boolean,
+  dispatch: AppDispatch,
+  state: RootState,
+): void {
+  // Always remove from localStorage
+  try {
+    localStorage.removeItem("currentPracticeSession");
+  } catch (error) {
+    console.error(
+      "[dataSync] Failed to remove current session from localStorage:",
+      error,
+    );
+  }
+
+  if (isAuthenticated(state)) {
+    if (abandon) {
+      // Abandon path: dispatch removeSession only (no prior updateSession)
+      // Per Req 5.4: removeSession is a synchronous Redux action (local store update)
+      dispatch(removeSession(sessionId));
+    } else {
+      // Complete path: first update the session with final data, then remove
+      // Per Req 5.5: updateSession then removeSession
+      if (finalData) {
+        withRetry(
+          () =>
+            dispatch(
+              updateSessionThunk({ id: sessionId, sessionData: finalData }),
+            ) as unknown as Promise<unknown>,
+        ).catch(() => {
+          showNetworkError(
+            "Failed to finalize your practice session. Please check your connection.",
+          );
+        });
+      }
+      dispatch(removeSession(sessionId));
+    }
+  }
+}

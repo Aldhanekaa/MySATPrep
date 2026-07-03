@@ -92,6 +92,7 @@ import * as practiceStatisticsLib from "@/lib/practiceStatistics";
 
 import type { AppDispatch, RootState } from "@/lib/redux/store";
 import type { PracticeStatistics, PracticeSession } from "@/types";
+import { SessionStatus } from "@/types/session";
 import type {
   SavedQuestion,
   SavedCollection,
@@ -265,7 +266,7 @@ describe("saveUserStatistics – authenticated", () => {
 const mockSession: PracticeSession = {
   sessionId: "sess-1",
   timestamp: "2024-01-01T00:00:00.000Z",
-  status: "completed",
+  status: SessionStatus.COMPLETED,
   practiceSelections: {} as PracticeSession["practiceSelections"],
   currentQuestionStep: 5,
   questionAnswers: {},
@@ -324,14 +325,14 @@ describe("updatePracticeSession – unauthenticated", () => {
 
     updatePracticeSession(
       "sess-1",
-      { status: "completed" },
+      { status: SessionStatus.COMPLETED },
       mockDispatch,
       unauthState(),
     );
 
     const raw = localStorageMock.getItem("practiceHistory");
     const sessions: PracticeSession[] = JSON.parse(raw!);
-    expect(sessions[0].status).toBe("completed");
+    expect(sessions[0].status).toBe(SessionStatus.COMPLETED);
     expect(mockDispatch).not.toHaveBeenCalled();
   });
 });

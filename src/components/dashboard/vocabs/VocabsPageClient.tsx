@@ -1,9 +1,9 @@
 "use client";
+
 import { useEffect, useRef } from "react";
-import { SavedTab } from "@/components/dashboard";
-import { useAssessment } from "@/contexts/assessment-context";
+import VocabsMainPage from "@/components/dashboard/vocabs/vocabs";
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
-import { fetchBookmarksAndCollections } from "@/lib/redux";
+import { fetchVocabulary } from "@/lib/redux";
 import {
   selectIsAuthenticated,
   selectUserDataLoading,
@@ -35,8 +35,7 @@ function Spinner() {
   );
 }
 
-export default function BookmarksPage() {
-  const { state } = useAssessment();
+export default function VocabsPageClient() {
   const dispatch = useAppDispatch();
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
   const loading = useAppSelector(selectUserDataLoading);
@@ -45,14 +44,13 @@ export default function BookmarksPage() {
   useEffect(() => {
     if (!isAuthenticated) return;
     if (fetchedRef.current) return;
-    if (loading.bookmarks || loading.collections) return;
+    if (loading.vocabulary) return;
 
     fetchedRef.current = true;
-    dispatch(fetchBookmarksAndCollections());
-  }, [isAuthenticated, loading.bookmarks, loading.collections, dispatch]);
+    dispatch(fetchVocabulary());
+  }, [isAuthenticated, loading.vocabulary, dispatch]);
 
-  const isLoading =
-    isAuthenticated && (loading.bookmarks || loading.collections);
+  const isLoading = isAuthenticated && loading.vocabulary;
 
   if (isLoading) {
     return (
@@ -60,19 +58,15 @@ export default function BookmarksPage() {
         className="flex flex-col items-center justify-center min-h-[calc(100vh-12rem)] gap-4"
         role="status"
         aria-live="polite"
-        aria-label="Loading bookmarks"
+        aria-label="Loading vocabulary"
       >
         <Spinner />
         <p className="text-sm text-muted-foreground animate-pulse">
-          Loading your bookmarks…
+          Loading your vocabulary…
         </p>
       </div>
     );
   }
 
-  return (
-    <section className="space-y-4 max-w-4xl lg:max-w-5xl xl:max-w-7xl w-full mx-auto px-3 py-10">
-      <SavedTab selectedAssessment={state.selectedAssessment} />
-    </section>
-  );
+  return <VocabsMainPage />;
 }

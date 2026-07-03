@@ -22,9 +22,7 @@ import {
   updateCollection as syncUpdateCollection,
   removeCollection,
 } from "@/lib/utils/dataSync";
-import {
-  selectIsAuthenticated,
-} from "@/lib/redux/selectors";
+import { selectIsAuthenticated } from "@/lib/redux/selectors";
 import {
   OptimizedQuestionCard,
   BaseQuestionWithData,

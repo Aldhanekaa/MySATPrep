@@ -28,6 +28,8 @@ export async function syncUserData(
     collectionsMigrated: 0,
     vocabularyMigrated: false,
     preferencesMigrated: false,
+    notesMigrated: false,
+    answerHistoryMigrated: false,
   };
 
   try {

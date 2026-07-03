@@ -8,10 +8,15 @@
  *  - userData.loading.profile is true (fetchUserData pending)
  *
  * Once both resolve, children are rendered normally.
+ *
+ * Also kicks off a one-time lazy fetch of answerHistory for the entire
+ * dashboard session, so individual pages (tracker, answered) don't each
+ * need to dispatch it independently.
  */
 
-import React from "react";
-import { useAppSelector } from "@/lib/redux/hooks";
+import React, { useEffect, useRef } from "react";
+import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
+import { fetchAnswerHistory } from "@/lib/redux";
 import {
   selectAuthLoading,
   selectSessionChecked,
@@ -52,19 +57,34 @@ interface DashboardLoadingGuardProps {
 export function DashboardLoadingGuard({
   children,
 }: DashboardLoadingGuardProps) {
+  const dispatch = useAppDispatch();
   const authLoading = useAppSelector(selectAuthLoading);
   const sessionChecked = useAppSelector(selectSessionChecked);
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
   const userDataLoading = useAppSelector(selectUserDataLoading);
 
-  // Show loader only when there IS a user session and data is still loading:
-  //  1. Session check is in flight AND user appears to be authenticated
-  //     (cookie exists but Redux hasn't confirmed it yet)
-  //  2. Auth is actively loading while already authenticated
+  // Fetch answer history exactly once per dashboard session.
+  // useRef ensures this never fires more than once regardless of re-renders.
+  const answerHistoryFetched = useRef(false);
+  useEffect(() => {
+    if (isAuthenticated && !answerHistoryFetched.current) {
+      answerHistoryFetched.current = true;
+      dispatch(fetchAnswerHistory());
+    }
+  }, [isAuthenticated, dispatch]);
+
+  // Show loader ONLY when authenticated AND data is loading:
+  //  1. Session hasn't been checked yet (initial auth check in progress)
+  //  2. Auth is actively loading while authenticated
   //  3. User is authenticated but profile data is still being fetched
+  //
+  // For unauthenticated users:
+  //  - Once sessionChecked is true and isAuthenticated is false,
+  //    we skip the loading screen entirely and render immediately
   const isLoading =
-    isAuthenticated &&
-    (!sessionChecked || authLoading || userDataLoading.profile);
+    !sessionChecked ||
+    (isAuthenticated && authLoading) ||
+    (isAuthenticated && userDataLoading.profile);
 
   if (isLoading) {
     return (

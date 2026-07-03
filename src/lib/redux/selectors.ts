@@ -101,6 +101,12 @@ export const selectUserVocabulary = (state: RootState) =>
   state.userData.vocabulary;
 
 /**
+ * Selects answer history data for the user.
+ */
+export const selectAnswerHistory = (state: RootState) =>
+  state.userData.answerHistory;
+
+/**
  * Selects user preferences (theme, sound, notifications, etc.).
  */
 export const selectUserPreferences = (state: RootState) =>
@@ -163,3 +169,16 @@ export const selectIsUserDataLoading = createSelector(
   selectUserDataLoading,
   (loading): boolean => Object.values(loading).some(Boolean),
 );
+
+/**
+ * Returns the boolean value for a specific UI flag key, or false if not found.
+ * Reads from preferences.uiFlags in Redux state for authenticated users.
+ *
+ * Memoized: only recomputes when selectUserPreferences output changes.
+ * Validates: Requirements 9.2, 9.6
+ */
+export const selectUiFlag = (key: string) =>
+  createSelector(
+    selectUserPreferences,
+    (prefs): boolean => prefs?.uiFlags?.[key] ?? false,
+  );

@@ -1,19 +1,86 @@
 /**
+ * GET  /api/user/bookmarks
  * POST /api/user/bookmarks
  *
- * Adds a saved question (bookmark) for the authenticated user.
- * Validates incoming data, persists to the database, invalidates
- * the bookmarks cache, and returns the newly created bookmark.
+ * GET  — fetches all saved questions + collections for the authenticated user.
+ *        Called lazily when the user visits /dashboard/bookmarks.
+ * POST — adds a new bookmark (saved question).
  *
  * Validates: Requirements 8.5, 8.12, 8.13, 8.14
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { bookmarksCache, getCacheKey } from "@/lib/cache";
-import { addSavedQuestion } from "@/lib/db/bookmarkOperations";
 import { logError } from "@/lib/utils/errorLogger";
+import {
+  bookmarksCache,
+  collectionsCache,
+  getCacheKey,
+  getCachedOrFetch,
+} from "@/lib/cache";
+import {
+  getSavedQuestions,
+  addSavedQuestion,
+} from "@/lib/db/bookmarkOperations";
+import { getSavedCollections } from "@/lib/db/collectionOperations";
 import type { SavedQuestion } from "@/lib/types/userData";
+
+// ─── GET /api/user/bookmarks ─────────────────────────────────────────────────
+
+export async function GET(request: NextRequest) {
+  const session = await auth.api.getSession({ headers: request.headers });
+  if (!session?.user?.id) {
+    return NextResponse.json(
+      { success: false, error: "Unauthorized" },
+      { status: 401 },
+    );
+  }
+
+  const userId = session.user.id;
+
+  try {
+    const [bookmarks, collections] = await Promise.all([
+      getCachedOrFetch(bookmarksCache, getCacheKey("bookmarks", userId), () =>
+        getSavedQuestions(userId),
+      ),
+      getCachedOrFetch(
+        collectionsCache,
+        getCacheKey("collections", userId),
+        () => getSavedCollections(userId),
+      ),
+    ]);
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        bookmarks: bookmarks ?? [],
+        collections: collections ?? [],
+      },
+    });
+  } catch (error) {
+    logError("[GET /api/user/bookmarks]", error);
+
+    const isDbError =
+      error instanceof Error &&
+      (error.message.includes("ECONNREFUSED") ||
+        error.message.includes("connection") ||
+        error.message.includes("pool"));
+
+    if (isDbError) {
+      return NextResponse.json(
+        { success: false, error: "Service temporarily unavailable" },
+        { status: 503 },
+      );
+    }
+
+    return NextResponse.json(
+      { success: false, error: "Internal server error" },
+      { status: 500 },
+    );
+  }
+}
+
+// ─── POST /api/user/bookmarks ────────────────────────────────────────────────
 
 // Fields accepted in the request body
 interface BookmarkPayload {

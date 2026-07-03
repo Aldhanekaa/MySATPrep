@@ -43,6 +43,8 @@ export interface MigrationSummary {
   collectionsMigrated: number;
   vocabularyMigrated: boolean;
   preferencesMigrated: boolean;
+  notesMigrated: boolean;
+  answerHistoryMigrated: boolean;
 }
 
 // User data fetch response

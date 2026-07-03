@@ -106,6 +106,38 @@ export const VocabularyProgressSchema = z.record(z.string(), z.unknown());
 
 export const UserPreferencesSchema = z.record(z.string(), z.unknown());
 
+// ─── Question Notes ───────────────────────────────────────────────────────────
+
+const QuestionNoteSchema = z.object({
+  note: z.string().optional(),
+  timestamp: z.string().optional(),
+  createdAt: z.string().optional(),
+  difficulty: z.string().optional().nullable(),
+  primaryClassCd: z.string().optional().nullable(),
+  skillCd: z.string().optional().nullable(),
+  subject: z.string().optional().nullable(),
+  createdDate: z.string().optional().nullable(),
+  updatedDate: z.string().optional().nullable(),
+});
+
+export const QuestionNotesSchema = z.record(
+  z.string(),
+  z.array(QuestionNoteSchema).or(z.unknown()),
+);
+
+// ─── Answer History ───────────────────────────────────────────────────────────
+
+export const AnswerHistorySchema = z.record(
+  z.string(),
+  z.array(
+    z.object({
+      userChoice: z.string(),
+      time: z.number(),
+      status: z.enum(["correct", "incorrect"]),
+    }),
+  ),
+);
+
 // ─── Migration Payload ────────────────────────────────────────────────────────
 
 export const MigrationPayloadSchema = z.object({
@@ -116,6 +148,8 @@ export const MigrationPayloadSchema = z.object({
   collections: CollectionsSchema.optional(),
   vocabulary: VocabularyProgressSchema.optional().nullable(),
   preferences: UserPreferencesSchema.optional().nullable(),
+  questionNotes: QuestionNotesSchema.optional().nullable(), // NEW
+  answerHistory: AnswerHistorySchema.optional().nullable(), // NEW
 });
 
 export type ValidatedMigrationPayload = z.infer<typeof MigrationPayloadSchema>;

@@ -8,6 +8,8 @@ const cacheConfigs = {
   savedCollections: { max: 500, ttl: 10 * 60 * 1000 },
   vocabularyProgress: { max: 1000, ttl: 10 * 60 * 1000 },
   userPreferences: { max: 1000, ttl: 10 * 60 * 1000 },
+  questionNotes: { max: 1000, ttl: 10 * 60 * 1000 },
+  answerHistory: { max: 1000, ttl: 10 * 60 * 1000 },
 };
 
 export const userProfileCache = new LRUCache<string, any>(
@@ -31,6 +33,10 @@ export const vocabularyCache = new LRUCache<string, any>(
 export const preferencesCache = new LRUCache<string, any>(
   cacheConfigs.userPreferences,
 );
+export const notesCache = new LRUCache<string, any>(cacheConfigs.questionNotes);
+export const answerHistoryCache = new LRUCache<string, any>(
+  cacheConfigs.answerHistory,
+);
 
 export function getCacheKey(
   type: string,
@@ -51,6 +57,8 @@ export function invalidateUserCache(userId: string): void {
   collectionsCache.delete(getCacheKey("collections", userId));
   vocabularyCache.delete(getCacheKey("vocabulary", userId));
   preferencesCache.delete(getCacheKey("preferences", userId));
+  notesCache.delete(getCacheKey("notes", userId));
+  answerHistoryCache.delete(getCacheKey("answerHistory", userId));
 }
 
 // Sentinel value to cache `null` results — LRUCache ignores actual null values.

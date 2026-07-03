@@ -22,6 +22,7 @@ import userDataReducer, {
   updateVocabulary,
   setPreferences,
   updatePreferences,
+  setUiFlag,
   setDataLoading,
   setDataError,
   clearUserData,
@@ -950,5 +951,81 @@ describe("userDataSlice – action composition", () => {
     expect(state.profile).toBeNull();
     expect(state.sessions).toEqual([]);
     expect(state.bookmarks).toEqual([]);
+  });
+});
+
+// ─── setUiFlag ────────────────────────────────────────────────────────────────
+
+describe("userDataSlice – setUiFlag", () => {
+  it("should set a UI flag when preferences already exists", () => {
+    const withPrefs = userDataReducer(
+      undefined,
+      setPreferences({ theme: "dark", uiFlags: {} }),
+    );
+    const state = userDataReducer(
+      withPrefs,
+      setUiFlag({ key: "hideSuccessFeedback", value: true }),
+    );
+    expect(state.preferences?.uiFlags?.["hideSuccessFeedback"]).toBe(true);
+  });
+
+  it("should lazily initialise preferences when it is null", () => {
+    // start with null preferences
+    const state = userDataReducer(
+      undefined,
+      setUiFlag({ key: "tourDone", value: true }),
+    );
+    expect(state.preferences).not.toBeNull();
+    expect(state.preferences?.uiFlags?.["tourDone"]).toBe(true);
+  });
+
+  it("should lazily initialise uiFlags when preferences exists but uiFlags is undefined", () => {
+    const withPrefs = userDataReducer(
+      undefined,
+      setPreferences({ theme: "light" }),
+    );
+    const state = userDataReducer(
+      withPrefs,
+      setUiFlag({ key: "questionbank-onboarding", value: false }),
+    );
+    expect(state.preferences?.uiFlags?.["questionbank-onboarding"]).toBe(false);
+  });
+
+  it("should overwrite an existing UI flag value", () => {
+    const withPrefs = userDataReducer(
+      undefined,
+      setPreferences({ uiFlags: { hideSuccessFeedback: false } }),
+    );
+    const state = userDataReducer(
+      withPrefs,
+      setUiFlag({ key: "hideSuccessFeedback", value: true }),
+    );
+    expect(state.preferences?.uiFlags?.["hideSuccessFeedback"]).toBe(true);
+  });
+
+  it("should not affect other uiFlags when setting a new key", () => {
+    const withPrefs = userDataReducer(
+      undefined,
+      setPreferences({ uiFlags: { existingFlag: true } }),
+    );
+    const state = userDataReducer(
+      withPrefs,
+      setUiFlag({ key: "newFlag", value: false }),
+    );
+    expect(state.preferences?.uiFlags?.["existingFlag"]).toBe(true);
+    expect(state.preferences?.uiFlags?.["newFlag"]).toBe(false);
+  });
+
+  it("should not affect other preferences fields when setting a UI flag", () => {
+    const withPrefs = userDataReducer(
+      undefined,
+      setPreferences({ theme: "dark", soundEnabled: true }),
+    );
+    const state = userDataReducer(
+      withPrefs,
+      setUiFlag({ key: "someFlag", value: true }),
+    );
+    expect(state.preferences?.theme).toBe("dark");
+    expect(state.preferences?.soundEnabled).toBe(true);
   });
 });

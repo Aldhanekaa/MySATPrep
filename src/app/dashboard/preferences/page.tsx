@@ -128,15 +128,18 @@ export default function PreferencesPage() {
     fallback: T,
   ): T => {
     if (reduxPrefs?.[key] !== undefined) return reduxPrefs[key] as T;
-    if (typeof window !== "undefined") {
-      try {
-        const raw = localStorage.getItem("userPreferences");
-        if (raw) {
-          const parsed: UserPreferences = JSON.parse(raw);
-          if (parsed[key] !== undefined) return parsed[key] as T;
+    if (!isAuthenticated) {
+      // Only read localStorage for unauthenticated users
+      if (typeof window !== "undefined") {
+        try {
+          const raw = localStorage.getItem("userPreferences");
+          if (raw) {
+            const parsed: UserPreferences = JSON.parse(raw);
+            if (parsed[key] !== undefined) return parsed[key] as T;
+          }
+        } catch {
+          // ignore
         }
-      } catch {
-        // ignore
       }
     }
     return fallback;

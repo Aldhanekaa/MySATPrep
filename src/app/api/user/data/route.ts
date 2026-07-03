@@ -21,6 +21,8 @@ import {
   collectionsCache,
   vocabularyCache,
   preferencesCache,
+  notesCache,
+  answerHistoryCache,
   getCacheKey,
   getCachedOrFetch,
 } from "@/lib/cache";
@@ -34,6 +36,8 @@ import { getSavedCollections } from "@/lib/db/collectionOperations";
 import {
   getVocabularyProgress,
   getUserPreferences,
+  getQuestionNotes,
+  getAnswerHistory,
 } from "@/lib/db/miscOperations";
 import type { PracticeStatistics } from "@/types";
 
@@ -65,15 +69,17 @@ export async function GET(request: NextRequest) {
   const userId = session.user.id;
 
   try {
-    // Fetch all seven data categories in parallel, isolating failures per-item
+    // Fetch all nine data categories in parallel, isolating failures per-item
     const [
       [profile, profileErr],
       statisticsResults,
-      [sessions, sessionsErr],
-      [bookmarks, bookmarksErr],
-      [collections, collectionsErr],
-      [vocabulary, vocabularyErr],
+      // [sessions, sessionsErr],
+      // [bookmarks, bookmarksErr],
+      // [collections, collectionsErr],
+      // [vocabulary, vocabularyErr],
       [preferences, preferencesErr],
+      [questionNotes, questionNotesErr],
+      // [answerHistory, answerHistoryErr],
     ] = await Promise.all([
       // Profile
       safe(
@@ -99,41 +105,41 @@ export async function GET(request: NextRequest) {
         ),
       ),
 
-      // Sessions
-      safe(
-        "sessions",
-        getCachedOrFetch(sessionsCache, getCacheKey("sessions", userId), () =>
-          getPracticeSessions(userId),
-        ),
-      ),
+      // // Sessions
+      // safe(
+      //   "sessions",
+      //   getCachedOrFetch(sessionsCache, getCacheKey("sessions", userId), () =>
+      //     getPracticeSessions(userId),
+      //   ),
+      // ),
 
-      // Bookmarks
-      safe(
-        "bookmarks",
-        getCachedOrFetch(bookmarksCache, getCacheKey("bookmarks", userId), () =>
-          getSavedQuestions(userId),
-        ),
-      ),
+      // // Bookmarks
+      // safe(
+      //   "bookmarks",
+      //   getCachedOrFetch(bookmarksCache, getCacheKey("bookmarks", userId), () =>
+      //     getSavedQuestions(userId),
+      //   ),
+      // ),
 
       // Collections
-      safe(
-        "collections",
-        getCachedOrFetch(
-          collectionsCache,
-          getCacheKey("collections", userId),
-          () => getSavedCollections(userId),
-        ),
-      ),
+      // safe(
+      //   "collections",
+      //   getCachedOrFetch(
+      //     collectionsCache,
+      //     getCacheKey("collections", userId),
+      //     () => getSavedCollections(userId),
+      //   ),
+      // ),
 
-      // Vocabulary progress
-      safe(
-        "vocabulary",
-        getCachedOrFetch(
-          vocabularyCache,
-          getCacheKey("vocabulary", userId),
-          () => getVocabularyProgress(userId),
-        ),
-      ),
+      // // Vocabulary progress
+      // safe(
+      //   "vocabulary",
+      //   getCachedOrFetch(
+      //     vocabularyCache,
+      //     getCacheKey("vocabulary", userId),
+      //     () => getVocabularyProgress(userId),
+      //   ),
+      // ),
 
       // User preferences
       safe(
@@ -144,16 +150,36 @@ export async function GET(request: NextRequest) {
           () => getUserPreferences(userId),
         ),
       ),
+
+      // Question notes
+      safe(
+        "notes",
+        getCachedOrFetch(notesCache, getCacheKey("notes", userId), () =>
+          getQuestionNotes(userId),
+        ),
+      ),
+
+      // Answer history
+      // safe(
+      //   "answerHistory",
+      //   getCachedOrFetch(
+      //     answerHistoryCache,
+      //     getCacheKey("answerHistory", userId),
+      //     () => getAnswerHistory(userId),
+      //   ),
+      // ),
     ]);
 
     // Log any per-field errors without failing the whole response
     const fieldErrors: Record<string, string> = {};
     if (profileErr) fieldErrors.profile = profileErr.message;
-    if (sessionsErr) fieldErrors.sessions = sessionsErr.message;
-    if (bookmarksErr) fieldErrors.bookmarks = bookmarksErr.message;
-    if (collectionsErr) fieldErrors.collections = collectionsErr.message;
-    if (vocabularyErr) fieldErrors.vocabulary = vocabularyErr.message;
+    // if (sessionsErr) fieldErrors.sessions = sessionsErr.message;
+    // if (bookmarksErr) fieldErrors.bookmarks = bookmarksErr.message;
+    // if (collectionsErr) fieldErrors.collections = collectionsErr.message;
+    // if (vocabularyErr) fieldErrors.vocabulary = vocabularyErr.message;
     if (preferencesErr) fieldErrors.preferences = preferencesErr.message;
+    if (questionNotesErr) fieldErrors.questionNotes = questionNotesErr.message;
+    // if (answerHistoryErr) fieldErrors.answerHistory = answerHistoryErr.message;
 
     // Merge per-assessment statistics into a single object
     const mergedStatistics: PracticeStatistics = statisticsResults.reduce(
@@ -172,11 +198,13 @@ export async function GET(request: NextRequest) {
       data: {
         profile: profile ?? null,
         statistics: mergedStatistics,
-        sessions: sessions ?? [],
-        bookmarks: bookmarks ?? [],
-        collections: collections ?? [],
-        vocabulary: vocabulary ?? null,
+        // sessions: sessions ?? [],
+        // bookmarks: bookmarks ?? [],
+        // collections: collections ?? [],
+        // vocabulary: vocabulary ?? null,
         preferences: preferences ?? null,
+        questionNotes: questionNotes ?? null,
+        // answerHistory: answerHistory ?? null,
       },
     });
   } catch (error) {

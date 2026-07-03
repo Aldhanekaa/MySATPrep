@@ -15,6 +15,7 @@ import type {
   VocabularyProgress,
   UserPreferences,
   UserData,
+  AnswerHistory,
 } from "@/lib/types/userData";
 import type { MigrationSummary } from "@/lib/types/api";
 
@@ -169,7 +170,7 @@ export const createSession = createAsyncThunk<PracticeSession, PracticeSession>(
  * Updates an existing practice session in the backend.
  * Validates: Requirements 4.8, 8.4, 13.3
  */
-export const updateSession = createAsyncThunk<
+export const updateSessionThunk = createAsyncThunk<
   PracticeSession,
   { id: string; sessionData: Partial<PracticeSession> }
 >(
@@ -965,6 +966,113 @@ export const batchUpdateUserData = createAsyncThunk<
   }
 });
 
+// ─── Lazy Page-Level Fetch Thunks ─────────────────────────────────────────────
+
+/**
+ * Fetches practice sessions from the server on demand.
+ * Dispatched when the user navigates to /dashboard/sessions.
+ */
+export const fetchSessions = createAsyncThunk<PracticeSession[], void>(
+  "userData/fetchSessions",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await fetch("/api/user/sessions", {
+        method: "GET",
+        credentials: "include",
+      });
+      if (response.status === 401) return rejectWithValue("Unauthorized");
+      if (!response.ok)
+        throw new Error(`Failed to fetch sessions: ${response.status}`);
+      const json = await response.json();
+      return (json.data?.sessions ?? []) as PracticeSession[];
+    } catch (error) {
+      return rejectWithValue(
+        error instanceof Error ? error.message : "Failed to fetch sessions",
+      );
+    }
+  },
+);
+
+/**
+ * Fetches bookmarks (saved questions) and collections from the server on demand.
+ * Dispatched when the user navigates to /dashboard/bookmarks.
+ */
+export const fetchBookmarksAndCollections = createAsyncThunk<
+  { bookmarks: SavedQuestion[]; collections: SavedCollection[] },
+  void
+>("userData/fetchBookmarksAndCollections", async (_, { rejectWithValue }) => {
+  try {
+    const response = await fetch("/api/user/bookmarks", {
+      method: "GET",
+      credentials: "include",
+    });
+    if (response.status === 401) return rejectWithValue("Unauthorized");
+    if (!response.ok)
+      throw new Error(`Failed to fetch bookmarks: ${response.status}`);
+    const json = await response.json();
+    return {
+      bookmarks: (json.data?.bookmarks ?? []) as SavedQuestion[],
+      collections: (json.data?.collections ?? []) as SavedCollection[],
+    };
+  } catch (error) {
+    return rejectWithValue(
+      error instanceof Error ? error.message : "Failed to fetch bookmarks",
+    );
+  }
+});
+
+/**
+ * Fetches vocabulary progress from the server on demand.
+ * Dispatched when the user navigates to /dashboard/vocabs.
+ */
+export const fetchVocabulary = createAsyncThunk<
+  VocabularyProgress | null,
+  void
+>("userData/fetchVocabulary", async (_, { rejectWithValue }) => {
+  try {
+    const response = await fetch("/api/user/vocabulary", {
+      method: "GET",
+      credentials: "include",
+    });
+    if (response.status === 401) return rejectWithValue("Unauthorized");
+    if (!response.ok)
+      throw new Error(`Failed to fetch vocabulary: ${response.status}`);
+    const json = await response.json();
+    return (json.data?.vocabulary ?? null) as VocabularyProgress | null;
+  } catch (error) {
+    return rejectWithValue(
+      error instanceof Error ? error.message : "Failed to fetch vocabulary",
+    );
+  }
+});
+
+/**
+ * Fetches answer history from the server on demand.
+ * Dispatched when the user navigates to /dashboard/tracker or /dashboard/answered.
+ */
+export const fetchAnswerHistory = createAsyncThunk<AnswerHistory | null, void>(
+  "userData/fetchAnswerHistory",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await fetch("/api/user/answer-history", {
+        method: "GET",
+        credentials: "include",
+      });
+      if (response.status === 401) return rejectWithValue("Unauthorized");
+      if (!response.ok)
+        throw new Error(`Failed to fetch answer history: ${response.status}`);
+      const json = await response.json();
+      return (json.data?.answerHistory ?? null) as AnswerHistory | null;
+    } catch (error) {
+      return rejectWithValue(
+        error instanceof Error
+          ? error.message
+          : "Failed to fetch answer history",
+      );
+    }
+  },
+);
+
 // Initial user data state
 const initialState: UserDataState = {
   profile: null,
@@ -974,6 +1082,7 @@ const initialState: UserDataState = {
   collections: [],
   vocabulary: null,
   preferences: null,
+  answerHistory: null,
   loading: {
     profile: false,
     statistics: false,
@@ -981,6 +1090,7 @@ const initialState: UserDataState = {
     bookmarks: false,
     collections: false,
     vocabulary: false,
+    answerHistory: false,
   },
   error: null,
 };
@@ -1035,7 +1145,7 @@ const userDataSlice = createSlice({
     },
 
     // Update an existing session
-    updateSessionLocal: (state, action: PayloadAction<PracticeSession>) => {
+    updateSession: (state, action: PayloadAction<PracticeSession>) => {
       const index = state.sessions.findIndex(
         (s) => s.sessionId === action.payload.sessionId,
       );
@@ -1135,6 +1245,35 @@ const userDataSlice = createSlice({
       state.preferences = { ...state.preferences, ...action.payload };
     },
 
+    // Set a single UI flag (lazily initialises uiFlags if not present)
+    setUiFlag: (
+      state,
+      action: PayloadAction<{ key: string; value: boolean }>,
+    ) => {
+      if (!state.preferences) {
+        state.preferences = { uiFlags: {} };
+      }
+      if (!state.preferences.uiFlags) {
+        state.preferences.uiFlags = {};
+      }
+      state.preferences.uiFlags[action.payload.key] = action.payload.value;
+    },
+
+    // Set answer history
+    setAnswerHistory: (state, action: PayloadAction<AnswerHistory | null>) => {
+      state.answerHistory = action.payload;
+      state.loading.answerHistory = false;
+    },
+
+    // Merge answer history entries (shallow merge by questionId)
+    mergeAnswerHistory: (state, action: PayloadAction<AnswerHistory>) => {
+      state.answerHistory = {
+        ...(state.answerHistory ?? {}),
+        ...action.payload,
+      };
+      state.loading.answerHistory = false;
+    },
+
     // Set loading state for a specific data type
     setDataLoading: (
       state,
@@ -1160,6 +1299,7 @@ const userDataSlice = createSlice({
       state.collections = [];
       state.vocabulary = null;
       state.preferences = null;
+      state.answerHistory = null;
       state.loading = {
         profile: false,
         statistics: false,
@@ -1167,6 +1307,7 @@ const userDataSlice = createSlice({
         bookmarks: false,
         collections: false,
         vocabulary: false,
+        answerHistory: false,
       };
       state.error = null;
     },
@@ -1187,6 +1328,13 @@ const userDataSlice = createSlice({
           state.collections = action.payload.collections ?? [];
           state.vocabulary = action.payload.vocabulary ?? null;
           state.preferences = action.payload.preferences ?? null;
+          // Only overwrite answerHistory if the API explicitly returned it.
+          // /api/user/data lazy-excludes this field; it is fetched on demand
+          // via fetchAnswerHistory. Overwriting with undefined → null would
+          // wipe data already loaded by fetchAnswerHistory.
+          if ("answerHistory" in (action.payload as object)) {
+            state.answerHistory = action.payload.answerHistory ?? null;
+          }
         }
         state.loading = {
           profile: false,
@@ -1195,6 +1343,7 @@ const userDataSlice = createSlice({
           bookmarks: false,
           collections: false,
           vocabulary: false,
+          answerHistory: false,
         };
         state.error = null;
       })
@@ -1206,6 +1355,7 @@ const userDataSlice = createSlice({
           bookmarks: false,
           collections: false,
           vocabulary: false,
+          answerHistory: false,
         };
         state.error = action.payload as string;
       });
@@ -1260,11 +1410,11 @@ const userDataSlice = createSlice({
 
     // ── updateSession ────────────────────────────────────────────────────────
     builder
-      .addCase(updateSession.pending, (state) => {
+      .addCase(updateSessionThunk.pending, (state) => {
         state.loading.sessions = true;
         state.error = null;
       })
-      .addCase(updateSession.fulfilled, (state, action) => {
+      .addCase(updateSessionThunk.fulfilled, (state, action) => {
         const index = state.sessions.findIndex(
           (s) => s.sessionId === action.payload.sessionId,
         );
@@ -1274,7 +1424,7 @@ const userDataSlice = createSlice({
         state.loading.sessions = false;
         state.error = null;
       })
-      .addCase(updateSession.rejected, (state, action) => {
+      .addCase(updateSessionThunk.rejected, (state, action) => {
         state.loading.sessions = false;
         state.error = action.payload as string;
       });
@@ -1415,6 +1565,74 @@ const userDataSlice = createSlice({
         state.error = action.payload as string;
       });
 
+    // ── fetchSessions (lazy page fetch) ─────────────────────────────────────
+    builder
+      .addCase(fetchSessions.pending, (state) => {
+        state.loading.sessions = true;
+        state.error = null;
+      })
+      .addCase(fetchSessions.fulfilled, (state, action) => {
+        state.sessions = action.payload;
+        state.loading.sessions = false;
+        state.error = null;
+      })
+      .addCase(fetchSessions.rejected, (state, action) => {
+        state.loading.sessions = false;
+        state.error = action.payload as string;
+      });
+
+    // ── fetchBookmarksAndCollections (lazy page fetch) ───────────────────────
+    builder
+      .addCase(fetchBookmarksAndCollections.pending, (state) => {
+        state.loading.bookmarks = true;
+        state.loading.collections = true;
+        state.error = null;
+      })
+      .addCase(fetchBookmarksAndCollections.fulfilled, (state, action) => {
+        state.bookmarks = action.payload.bookmarks;
+        state.collections = action.payload.collections;
+        state.loading.bookmarks = false;
+        state.loading.collections = false;
+        state.error = null;
+      })
+      .addCase(fetchBookmarksAndCollections.rejected, (state, action) => {
+        state.loading.bookmarks = false;
+        state.loading.collections = false;
+        state.error = action.payload as string;
+      });
+
+    // ── fetchVocabulary (lazy page fetch) ────────────────────────────────────
+    builder
+      .addCase(fetchVocabulary.pending, (state) => {
+        state.loading.vocabulary = true;
+        state.error = null;
+      })
+      .addCase(fetchVocabulary.fulfilled, (state, action) => {
+        state.vocabulary = action.payload;
+        state.loading.vocabulary = false;
+        state.error = null;
+      })
+      .addCase(fetchVocabulary.rejected, (state, action) => {
+        state.loading.vocabulary = false;
+        state.error = action.payload as string;
+      });
+
+    // ── fetchAnswerHistory (lazy page fetch) ─────────────────────────────────
+    builder
+      .addCase(fetchAnswerHistory.pending, (state) => {
+        state.loading.answerHistory = true;
+        state.error = null;
+      })
+      .addCase(fetchAnswerHistory.fulfilled, (state, action) => {
+        state.answerHistory = action.payload;
+        state.loading.answerHistory = false;
+        state.error = null;
+      })
+      .addCase(fetchAnswerHistory.rejected, (state, action) => {
+        state.loading.answerHistory = false;
+        state.error = action.payload as string;
+      });
+
     // ── batchUpdateUserData ──────────────────────────────────────────────────
     builder
       .addCase(batchUpdateUserData.pending, (state) => {
@@ -1466,7 +1684,7 @@ export const {
   updateStatistics,
   setSessions,
   addSession,
-  updateSessionLocal,
+  updateSession,
   removeSession,
   setBookmarks,
   addBookmark,
@@ -1479,10 +1697,17 @@ export const {
   updateVocabulary,
   setPreferences,
   updatePreferences,
+  setUiFlag,
+  setAnswerHistory,
+  mergeAnswerHistory,
   setDataLoading,
   setDataError,
   clearUserData,
 } = userDataSlice.actions;
+
+// Alias: updateCollection → updateCollectionLocal (sync reducer)
+// The async thunk is updateCollectionThunk (follows updateCollectionThunk pattern)
+export const updateCollection = updateCollectionLocal;
 
 // Export reducer
 export default userDataSlice.reducer;
