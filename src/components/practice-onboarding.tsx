@@ -298,7 +298,7 @@ export default function PracticeOnboarding({
                   {items.map((item) => (
                     <label
                       key={`${id}-${item.value}`}
-                      className="w-full px-4 py-6 relative flex cursor-pointer flex-col items-center gap-3 rounded-2xl border-2 border-input text-center shadow-[0_4px_0_0_theme(colors.gray.300),0_8px_20px_theme(colors.gray.300/0.15)] hover:shadow-[0_6px_0_0_theme(colors.gray.400),0_10px_25px_theme(colors.gray.300/0.2)] outline-offset-2 transition-all duration-150 has-[[data-disabled]]:cursor-not-allowed has-[[data-state=checked]]:border-blue-500 has-[[data-state=checked]]:bg-blue-50 has-[[data-state=checked]]:shadow-[0_4px_0_0_theme(colors.blue.500),0_8px_20px_theme(colors.blue.500/0.25)] has-[[data-disabled]]:opacity-50 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-ring/70 active:shadow-[0_2px_0_0_theme(colors.gray.300),0_4px_10px_theme(colors.gray.300/0.15)] active:translate-y-0.5 has-[[data-state=checked]]:active:shadow-[0_2px_0_0_theme(colors.blue.500),0_4px_10px_theme(colors.blue.500/0.2)]"
+                      className="w-full px-4 py-6 relative flex cursor-pointer flex-col items-center gap-3 rounded-2xl border-2 border-input text-center shadow-[0_4px_0_0_theme(colors.gray.300),0_8px_20px_theme(colors.gray.300/0.15)] dark:shadow-[0_4px_0_0_theme(colors.neutral.600),0_8px_20px_theme(colors.neutral.900/0.3)] hover:shadow-[0_6px_0_0_theme(colors.gray.400),0_10px_25px_theme(colors.gray.300/0.2)] outline-offset-2 transition-all duration-150 has-[[data-disabled]]:cursor-not-allowed has-[[data-state=checked]]:border-blue-500 has-[[data-state=checked]]:bg-blue-50 dark:has-[[data-state=checked]]:bg-blue-950/40 has-[[data-state=checked]]:shadow-[0_4px_0_0_theme(colors.blue.500),0_8px_20px_theme(colors.blue.500/0.25)] has-[[data-disabled]]:opacity-50 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-ring/70 active:shadow-[0_2px_0_0_theme(colors.gray.300),0_4px_10px_theme(colors.gray.300/0.15)] active:translate-y-0.5 has-[[data-state=checked]]:active:shadow-[0_2px_0_0_theme(colors.blue.500),0_4px_10px_theme(colors.blue.500/0.2)]"
                     >
                       <RadioGroupItem
                         id={`${id}-${item.value}`}
@@ -361,7 +361,7 @@ export default function PracticeOnboarding({
                   {assessmentItems.map((item) => (
                     <label
                       key={`${id}-assessment-${item.value}`}
-                      className="w-full px-4 py-6 relative flex cursor-pointer flex-col items-center gap-3 rounded-2xl border-2 border-input text-center shadow-[0_4px_0_0_theme(colors.gray.300),0_8px_20px_theme(colors.gray.300/0.15)] hover:shadow-[0_6px_0_0_theme(colors.gray.400),0_10px_25px_theme(colors.gray.300/0.2)] outline-offset-2 transition-all duration-150 has-[[data-disabled]]:cursor-not-allowed has-[[data-state=checked]]:border-blue-500 has-[[data-state=checked]]:bg-blue-50 has-[[data-state=checked]]:shadow-[0_4px_0_0_theme(colors.blue.500),0_8px_20px_theme(colors.blue.500/0.25)] has-[[data-disabled]]:opacity-50 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-ring/70 active:shadow-[0_2px_0_0_theme(colors.gray.300),0_4px_10px_theme(colors.gray.300/0.15)] active:translate-y-0.5 has-[[data-state=checked]]:active:shadow-[0_2px_0_0_theme(colors.blue.500),0_4px_10px_theme(colors.blue.500/0.2)]"
+                      className="w-full px-4 py-6 relative flex cursor-pointer flex-col items-center gap-3 rounded-2xl border-2 border-input text-center shadow-[0_4px_0_0_theme(colors.gray.300),0_8px_20px_theme(colors.gray.300/0.15)] dark:shadow-[0_4px_0_0_theme(colors.neutral.600),0_8px_20px_theme(colors.neutral.900/0.3)] hover:shadow-[0_6px_0_0_theme(colors.gray.400),0_10px_25px_theme(colors.gray.300/0.2)] outline-offset-2 transition-all duration-150 has-[[data-disabled]]:cursor-not-allowed has-[[data-state=checked]]:border-blue-500 has-[[data-state=checked]]:bg-blue-50 dark:has-[[data-state=checked]]:bg-blue-950/40 has-[[data-state=checked]]:shadow-[0_4px_0_0_theme(colors.blue.500),0_8px_20px_theme(colors.blue.500/0.25)] has-[[data-disabled]]:opacity-50 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-ring/70 active:shadow-[0_2px_0_0_theme(colors.gray.300),0_4px_10px_theme(colors.gray.300/0.15)] active:translate-y-0.5 has-[[data-state=checked]]:active:shadow-[0_2px_0_0_theme(colors.blue.500),0_4px_10px_theme(colors.blue.500/0.2)]"
                     >
                       <RadioGroupItem
                         id={`${id}-assessment-${item.value}`}
@@ -432,7 +432,7 @@ export default function PracticeOnboarding({
                   {subjectItems.map((item) => (
                     <label
                       key={`${id}-subject-${item.value}`}
-                      className="w-full px-4 py-6 relative flex cursor-pointer flex-col items-center gap-3 rounded-2xl border-2 border-input text-center shadow-[0_4px_0_0_theme(colors.gray.300),0_8px_20px_theme(colors.gray.300/0.15)] hover:shadow-[0_6px_0_0_theme(colors.gray.400),0_10px_25px_theme(colors.gray.300/0.2)] outline-offset-2 transition-all duration-150 has-[[data-disabled]]:cursor-not-allowed has-[[data-state=checked]]:border-blue-500 has-[[data-state=checked]]:bg-blue-50 has-[[data-state=checked]]:shadow-[0_4px_0_0_theme(colors.blue.500),0_8px_20px_theme(colors.blue.500/0.25)] has-[[data-disabled]]:opacity-50 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-ring/70 active:shadow-[0_2px_0_0_theme(colors.gray.300),0_4px_10px_theme(colors.gray.300/0.15)] active:translate-y-0.5 has-[[data-state=checked]]:active:shadow-[0_2px_0_0_theme(colors.blue.500),0_4px_10px_theme(colors.blue.500/0.2)]"
+                      className="w-full px-4 py-6 relative flex cursor-pointer flex-col items-center gap-3 rounded-2xl border-2 border-input text-center shadow-[0_4px_0_0_theme(colors.gray.300),0_8px_20px_theme(colors.gray.300/0.15)] dark:shadow-[0_4px_0_0_theme(colors.neutral.600),0_8px_20px_theme(colors.neutral.900/0.3)] hover:shadow-[0_6px_0_0_theme(colors.gray.400),0_10px_25px_theme(colors.gray.300/0.2)] outline-offset-2 transition-all duration-150 has-[[data-disabled]]:cursor-not-allowed has-[[data-state=checked]]:border-blue-500 has-[[data-state=checked]]:bg-blue-50 dark:has-[[data-state=checked]]:bg-blue-950/40 has-[[data-state=checked]]:shadow-[0_4px_0_0_theme(colors.blue.500),0_8px_20px_theme(colors.blue.500/0.25)] has-[[data-disabled]]:opacity-50 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-ring/70 active:shadow-[0_2px_0_0_theme(colors.gray.300),0_4px_10px_theme(colors.gray.300/0.15)] active:translate-y-0.5 has-[[data-state=checked]]:active:shadow-[0_2px_0_0_theme(colors.blue.500),0_4px_10px_theme(colors.blue.500/0.2)]"
                     >
                       <RadioGroupItem
                         id={`${id}-subject-${item.value}`}
@@ -511,7 +511,7 @@ export default function PracticeOnboarding({
                         variant="outline"
                         size="sm"
                         onClick={clearAllSkills}
-                        className="px-4 py-2 rounded-2xl font-bold shadow-[0_3px_0_0_theme(colors.gray.300),0_6px_15px_theme(colors.gray.300/0.25)] hover:shadow-[0_4px_0_0_theme(colors.gray.400),0_8px_20px_theme(colors.gray.300/0.3)] hover:bg-gray-50 active:shadow-[0_1px_0_0_theme(colors.gray.300),0_3px_8px_theme(colors.gray.300/0.2)] active:translate-y-0.5 transform transition-all duration-150 dark:shadow-[0_3px_0_0_theme(colors.gray.600),0_6px_15px_theme(colors.gray.700/0.25)] dark:hover:shadow-[0_4px_0_0_theme(colors.gray.500),0_8px_20px_theme(colors.gray.700/0.3)] dark:hover:bg-gray-800 cursor-pointer"
+                        className="px-4 py-2 rounded-2xl font-bold shadow-[0_3px_0_0_theme(colors.gray.300),0_6px_15px_theme(colors.gray.300/0.25)] hover:shadow-[0_4px_0_0_theme(colors.gray.400),0_8px_20px_theme(colors.gray.300/0.3)] hover:bg-gray-50 dark:hover:bg-neutral-800 active:shadow-[0_1px_0_0_theme(colors.gray.300),0_3px_8px_theme(colors.gray.300/0.2)] active:translate-y-0.5 transform transition-all duration-150 dark:shadow-[0_3px_0_0_theme(colors.gray.600),0_6px_15px_theme(colors.gray.700/0.25)] dark:hover:shadow-[0_4px_0_0_theme(colors.gray.500),0_8px_20px_theme(colors.gray.700/0.3)] cursor-pointer"
                       >
                         Clear All Skills
                       </Button>
@@ -558,7 +558,7 @@ export default function PracticeOnboarding({
 
                           {/* Icon */}
                           <div className="mb-4">
-                            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                            <div className="w-12 h-12 bg-blue-100 dark:bg-blue-950 rounded-lg flex items-center justify-center">
                               <span className="text-2xl">
                                 {domain.primaryClassCd === "H"
                                   ? "📊"
@@ -671,8 +671,8 @@ export default function PracticeOnboarding({
                   <div className="space-y-4">
                     {selectedDomains.length > 0 &&
                       !hasSkillsFromSelectedDomains() && (
-                        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-center">
-                          <p className="text-amber-800 text-sm font-medium">
+                        <div className="bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg p-4 text-center">
+                          <p className="text-amber-800 dark:text-amber-300 text-sm font-medium">
                             Please select at least one skill from your chosen
                             domains before proceeding.
                           </p>
