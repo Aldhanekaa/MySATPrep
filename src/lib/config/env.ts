@@ -29,7 +29,7 @@ export function validateEnv(): EnvConfig {
     "GOOGLE_CLIENT_ID",
     "GOOGLE_CLIENT_SECRET",
     "BETTER_AUTH_SECRET",
-    "NEXT_PUBLIC_BASE_URL",
+    // "NEXT_PUBLIC_BASE_URL",
   ] as const;
 
   const missingVars: string[] = [];

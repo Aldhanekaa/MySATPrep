@@ -1,30 +1,15 @@
 import { SiteHeader } from "@/app/navbar";
 import QuestionNotFound from "@/components/question-not-found";
 import QuestionProblemCard from "@/components/question-problem-card";
-import { Label } from "@/components/ui/label";
+import getInternalAPITargetURL from "@/lib/getInternalAPITargetURL";
 import { QuestionById_Response } from "@/types";
-import { MathJax } from "better-react-mathjax";
 import React from "react";
 import type { Metadata } from "next";
 
 async function fetchQuestionById(
   questionId: string,
 ): Promise<QuestionById_Response> {
-  const targetUrl = `${
-    process.env.NEXT_PUBLIC_URL
-      ? process.env.NEXT_PUBLIC_URL
-      : process.env.NEXT_PUBLIC_VERCEL_ENV !== "production"
-        ? `${
-            process.env.VERCEL_BRANCH_URL
-              ? `https://${process.env.VERCEL_BRANCH_URL}`
-              : "http://localhost:3000"
-          }`
-        : `${
-            process.env.NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL
-              ? `https://${process.env.NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL}`
-              : "http://localhost:3000"
-          }`
-  }/api/question-by-id/${questionId}`;
+  const targetUrl = `${getInternalAPITargetURL()}/api/question-by-id/${questionId}`;
 
   // console.log("Fetching question data from API route:", targetUrl);
   const response = await fetch(targetUrl, {
@@ -40,12 +25,6 @@ async function fetchQuestionById(
 
   if (!response.ok) {
     const errorText = await response.text();
-    const errorDetails = {
-      status: response.status,
-      statusText: response.statusText,
-      body: errorText,
-    };
-    // console.error("Failed to fetch question:", errorDetails);
     throw new Error(
       `Failed to fetch question: ${response.status} ${response.statusText} - ${errorText}`,
     );
