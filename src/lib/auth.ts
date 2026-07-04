@@ -26,7 +26,7 @@ function stripSslParams(url: string): string {
  * handle many concurrent connections without exhausting Postgres limits.
  */
 const pool = new Pool({
-  connectionString: stripSslParams(env.POSTGRES_URL),
+  connectionString: stripSslParams(env.DATABASE_URL),
   ssl: { rejectUnauthorized: false },
   max: 10,
   idleTimeoutMillis: 30000,
@@ -39,7 +39,7 @@ const pool = new Pool({
  * with PgBouncer's transaction-mode pooling, so it needs a direct connection.
  */
 const authPool = new Pool({
-  connectionString: stripSslParams(env.POSTGRES_URL_NON_POOLING),
+  connectionString: stripSslParams(env.DATABASE_URL_UNPOOLED),
   ssl: { rejectUnauthorized: false },
   max: 3,
   idleTimeoutMillis: 30000,

@@ -8,8 +8,8 @@
 interface EnvConfig {
   DATABASE_URL: string;
   DATABASE_URL_UNPOOLED: string;
-  POSTGRES_URL: string;
-  POSTGRES_URL_NON_POOLING: string;
+  // POSTGRES_URL: string;
+  // POSTGRES_URL_NON_POOLING: string;
   GOOGLE_CLIENT_ID: string;
   GOOGLE_CLIENT_SECRET: string;
   BETTER_AUTH_SECRET: string;
@@ -24,8 +24,8 @@ export function validateEnv(): EnvConfig {
   const requiredVars = [
     "DATABASE_URL",
     "DATABASE_URL_UNPOOLED",
-    "POSTGRES_URL",
-    "POSTGRES_URL_NON_POOLING",
+    // "POSTGRES_URL",
+    // "POSTGRES_URL_NON_POOLING",
     "GOOGLE_CLIENT_ID",
     "GOOGLE_CLIENT_SECRET",
     "BETTER_AUTH_SECRET",
@@ -51,8 +51,8 @@ export function validateEnv(): EnvConfig {
   return {
     DATABASE_URL: process.env.DATABASE_URL!,
     DATABASE_URL_UNPOOLED: process.env.DATABASE_URL_UNPOOLED!,
-    POSTGRES_URL: process.env.POSTGRES_URL!,
-    POSTGRES_URL_NON_POOLING: process.env.POSTGRES_URL_NON_POOLING!,
+    // POSTGRES_URL: process.env.POSTGRES_URL!,
+    // POSTGRES_URL_NON_POOLING: process.env.POSTGRES_URL_NON_POOLING!,
     GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID!,
     GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET!,
     BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET!,
