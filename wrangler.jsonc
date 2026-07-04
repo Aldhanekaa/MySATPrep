@@ -30,7 +30,7 @@
     },
   ],
   "observability": {
-    "enabled": true,
+    "enabled": false,
   },
 
   "upload_source_maps": true,
