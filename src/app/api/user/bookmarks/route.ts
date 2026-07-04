@@ -10,7 +10,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { getSession } from "@/lib/auth";
 import { logError } from "@/lib/utils/errorLogger";
 import {
   bookmarksCache,
@@ -28,7 +28,7 @@ import type { SavedQuestion } from "@/lib/types/userData";
 // ─── GET /api/user/bookmarks ─────────────────────────────────────────────────
 
 export async function GET(request: NextRequest) {
-  const session = await auth.api.getSession({ headers: request.headers });
+  const session = await getSession({ headers: request.headers });
   if (!session?.user?.id) {
     return NextResponse.json(
       { success: false, error: "Unauthorized" },
@@ -169,7 +169,7 @@ function validateBookmarkPayload(body: unknown):
 
 export async function POST(request: NextRequest) {
   // Requirement 8.14 – return 401 if not authenticated
-  const session = await auth.api.getSession({ headers: request.headers });
+  const session = await getSession({ headers: request.headers });
   if (!session?.user?.id) {
     return NextResponse.json(
       { success: false, error: "Unauthorized" },

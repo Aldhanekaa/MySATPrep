@@ -6,7 +6,7 @@
  * Validates: Requirements 7.7, 8.7, 8.8, 8.9
  */
 
-import { pool } from "@/lib/auth";
+import { getPool } from "@/lib/db";
 import type { SavedCollection, QuestionDetail } from "@/lib/types/userData";
 
 interface DbSavedCollection {
@@ -44,7 +44,7 @@ function rowToSavedCollection(row: DbSavedCollection): SavedCollection {
 export async function getSavedCollections(
   userId: string,
 ): Promise<SavedCollection[]> {
-  const result = await pool.query<DbSavedCollection>(
+  const result = await getPool().query<DbSavedCollection>(
     `SELECT id,
             user_id         AS "userId",
             collection_id   AS "collectionId",
@@ -75,7 +75,7 @@ export async function createCollection(
     "id" | "userId" | "createdAt" | "updatedAt"
   >,
 ): Promise<SavedCollection> {
-  const result = await pool.query<DbSavedCollection>(
+  const result = await getPool().query<DbSavedCollection>(
     `INSERT INTO saved_collections
        (user_id, collection_id, name, description, question_ids, question_details, color)
      VALUES ($1, $2, $3, $4, $5, $6, $7)
@@ -118,7 +118,7 @@ export async function updateCollection(
     >
   >,
 ): Promise<SavedCollection | null> {
-  const result = await pool.query<DbSavedCollection>(
+  const result = await getPool().query<DbSavedCollection>(
     `UPDATE saved_collections
      SET name             = COALESCE($2, name),
          description      = COALESCE($3, description),
@@ -160,7 +160,7 @@ export async function updateCollection(
  * Validates: Requirement 8.9
  */
 export async function deleteCollection(collectionId: string): Promise<boolean> {
-  const result = await pool.query(
+  const result = await getPool().query(
     `DELETE FROM saved_collections WHERE collection_id = $1`,
     [collectionId],
   );

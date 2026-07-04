@@ -10,7 +10,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { getSession } from "@/lib/auth";
 import { collectionsCache, getCacheKey } from "@/lib/cache";
 import {
   updateCollection,
@@ -109,7 +109,7 @@ function validateUpdatePayload(body: unknown):
 // Requirement 8.8 – update an existing collection
 export async function PUT(request: NextRequest, context: RouteContext) {
   // Requirement 8.14 – return 401 if not authenticated
-  const session = await auth.api.getSession({ headers: request.headers });
+  const session = await getSession({ headers: request.headers });
   if (!session?.user?.id) {
     return NextResponse.json(
       { success: false, error: "Unauthorized" },
@@ -189,7 +189,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
 // Requirement 8.9 – delete a collection
 export async function DELETE(request: NextRequest, context: RouteContext) {
   // Requirement 8.14 – return 401 if not authenticated
-  const session = await auth.api.getSession({ headers: request.headers });
+  const session = await getSession({ headers: request.headers });
   if (!session?.user?.id) {
     return NextResponse.json(
       { success: false, error: "Unauthorized" },

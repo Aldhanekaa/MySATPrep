@@ -8,7 +8,7 @@
  * Validates: Requirements 6.4, 6.5, 6.6, 6.7, 6.8, 6.9, 6.11
  */
 
-import { pool } from "@/lib/auth";
+import { getPool } from "@/lib/db";
 import type { MigrationSummary } from "@/lib/types/api";
 import type { ValidatedMigrationPayload } from "@/lib/validation/migrationSchema";
 
@@ -22,7 +22,7 @@ export async function migrateUserData(
   userId: string,
   data: ValidatedMigrationPayload,
 ): Promise<MigrationSummary> {
-  const client = await pool.connect();
+  const client = await getPool().connect();
 
   const summary: MigrationSummary = {
     profileMigrated: false,

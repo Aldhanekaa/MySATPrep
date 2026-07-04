@@ -7,7 +7,7 @@
  * Validates: Requirements 2.3, 7.3, 7.4, 7.5, 8.1, 8.4
  */
 
-import { pool } from "@/lib/auth";
+import { getPool } from "@/lib/db";
 import type {
   UserProfileWithHistory,
   XPTransaction,
@@ -26,7 +26,7 @@ export interface DbUser {
 
 /** Retrieve a user record by ID. Returns null if not found. */
 export async function getUserById(userId: string): Promise<DbUser | null> {
-  const result = await pool.query<DbUser>(
+  const result = await getPool().query<DbUser>(
     `SELECT id, email, name,
             created_at AS "createdAt", updated_at AS "updatedAt"
      FROM "user"
@@ -39,7 +39,7 @@ export async function getUserById(userId: string): Promise<DbUser | null> {
 
 /** Retrieve a user record by email. Returns null if not found. */
 export async function getUserByEmail(email: string): Promise<DbUser | null> {
-  const result = await pool.query<DbUser>(
+  const result = await getPool().query<DbUser>(
     `SELECT id, email, name,
             created_at AS "createdAt", updated_at AS "updatedAt"
      FROM "user"
@@ -85,7 +85,7 @@ function rowToUserProfile(row: DbUserProfile): UserProfileWithHistory {
 export async function getUserProfile(
   userId: string,
 ): Promise<UserProfileWithHistory | null> {
-  const result = await pool.query<DbUserProfile>(
+  const result = await getPool().query<DbUserProfile>(
     `SELECT user_id       AS "userId",
             total_xp      AS "totalXp",
             level,
@@ -114,7 +114,7 @@ export async function updateUserProfile(
   userId: string,
   data: Partial<UserProfileWithHistory>,
 ): Promise<UserProfileWithHistory> {
-  const result = await pool.query<DbUserProfile>(
+  const result = await getPool().query<DbUserProfile>(
     `INSERT INTO user_profiles
        (user_id, total_xp, level, questions_answered, correct_answers,
         incorrect_answers, last_activity, xp_history)
@@ -174,7 +174,7 @@ export async function getPracticeStatistics(
   userId: string,
   assessment: string,
 ): Promise<PracticeStatistics | null> {
-  const result = await pool.query<DbPracticeStatistics>(
+  const result = await getPool().query<DbPracticeStatistics>(
     `SELECT user_id                      AS "userId",
             assessment,
             answered_questions           AS "answeredQuestions",
@@ -221,7 +221,7 @@ export async function updatePracticeStatistics(
     assessmentData?.answeredQuestionsDetailed ?? [];
   const statistics = assessmentData?.statistics ?? {};
 
-  const result = await pool.query<DbPracticeStatistics>(
+  const result = await getPool().query<DbPracticeStatistics>(
     `INSERT INTO practice_statistics
        (user_id, assessment, answered_questions, answered_questions_detailed, statistics)
      VALUES ($1, $2, $3, $4, $5)
@@ -284,7 +284,7 @@ function rowToPracticeSession(row: DbPracticeSession): PracticeSession {
 export async function getCurrentSession(
   userId: string,
 ): Promise<PracticeSession | null> {
-  const result = await pool.query<DbPracticeSession>(
+  const result = await getPool().query<DbPracticeSession>(
     `SELECT id, user_id AS "userId", session_id AS "sessionId",
             session_data AS "sessionData", status,
             current_session AS "currentSession",
@@ -307,7 +307,7 @@ export async function getCurrentSession(
 export async function getPracticeSessions(
   userId: string,
 ): Promise<PracticeSession[]> {
-  const result = await pool.query<DbPracticeSession>(
+  const result = await getPool().query<DbPracticeSession>(
     `SELECT id, user_id AS "userId", session_id AS "sessionId",
             session_data AS "sessionData", status,
             current_session AS "currentSession",
@@ -336,7 +336,7 @@ export async function createPracticeSession(
   // If this session is being flagged as current, clear the flag on any
   // existing current session for this user before inserting/upserting.
   if (isCurrentSession) {
-    await pool.query(
+    await getPool().query(
       `UPDATE practice_sessions
        SET current_session = FALSE, updated_at = CURRENT_TIMESTAMP
        WHERE user_id = $1 AND current_session = TRUE`,
@@ -344,7 +344,7 @@ export async function createPracticeSession(
     );
   }
 
-  const result = await pool.query<DbPracticeSession>(
+  const result = await getPool().query<DbPracticeSession>(
     `INSERT INTO practice_sessions
        (user_id, session_id, session_data, status, current_session)
      VALUES ($1, $2, $3, $4, $5)
@@ -381,7 +381,7 @@ export async function updatePracticeSession(
   data: Partial<PracticeSession>,
 ): Promise<PracticeSession | null> {
   // Merge with existing session data
-  const existing = await pool.query<DbPracticeSession>(
+  const existing = await getPool().query<DbPracticeSession>(
     `SELECT session_data AS "sessionData", status, user_id AS "userId",
             current_session AS "currentSession"
      FROM practice_sessions
@@ -402,7 +402,7 @@ export async function updatePracticeSession(
   // If flipping current_session to true, clear the flag on any other session
   // for this user to maintain the at-most-one constraint.
   if (newCurrentSession && !existing.rows[0].currentSession) {
-    await pool.query(
+    await getPool().query(
       `UPDATE practice_sessions
        SET current_session = FALSE, updated_at = CURRENT_TIMESTAMP
        WHERE user_id = $1 AND current_session = TRUE AND session_id != $2`,
@@ -410,7 +410,7 @@ export async function updatePracticeSession(
     );
   }
 
-  const result = await pool.query<DbPracticeSession>(
+  const result = await getPool().query<DbPracticeSession>(
     `UPDATE practice_sessions
      SET session_data    = $2,
          status          = $3,

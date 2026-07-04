@@ -9,7 +9,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { getSession } from "@/lib/auth";
 import { invalidateUserCache } from "@/lib/cache";
 import { updateUserProfile } from "@/lib/db/userOperations";
 import { logError } from "@/lib/utils/errorLogger";
@@ -173,7 +173,7 @@ function validateProfilePayload(body: unknown):
 
 export async function PUT(request: NextRequest) {
   // Requirement 8.14 – return 401 if not authenticated
-  const session = await auth.api.getSession({ headers: request.headers });
+  const session = await getSession({ headers: request.headers });
   if (!session?.user?.id) {
     return NextResponse.json(
       { success: false, error: "Unauthorized" },

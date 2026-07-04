@@ -56,4 +56,10 @@
     "NEXT_PUBLIC_BASE_URL": "https://mysatprep.aldhanekadev.workers.dev",
     "BETTER_AUTH_URL": "https://mysatprep.aldhanekadev.workers.dev",
   },
+  "hyperdrive": [
+    {
+      "binding": "HYPERDRIVE",
+      "id": "0f9a403b124145a3935d763bb9057552",
+    },
+  ],
 }

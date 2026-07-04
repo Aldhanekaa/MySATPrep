@@ -9,7 +9,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { getSession } from "@/lib/auth";
 import { notesCache, getCacheKey, getCachedOrFetch } from "@/lib/cache";
 import { getQuestionNotes, updateQuestionNotes } from "@/lib/db/miscOperations";
 import { logError } from "@/lib/utils/errorLogger";
@@ -170,7 +170,7 @@ function validateQuestionNotesPayload(body: unknown):
  */
 export async function GET(request: NextRequest) {
   // Requirement 1.8 – return 401 if not authenticated
-  const session = await auth.api.getSession({ headers: request.headers });
+  const session = await getSession({ headers: request.headers });
   if (!session?.user?.id) {
     return NextResponse.json(
       { success: false, error: "Unauthorized" },
@@ -226,7 +226,7 @@ export async function GET(request: NextRequest) {
  */
 export async function PUT(request: NextRequest) {
   // Requirement 1.2 – verify session
-  const session = await auth.api.getSession({ headers: request.headers });
+  const session = await getSession({ headers: request.headers });
   if (!session?.user?.id) {
     // Requirement 1.3 – return 401 if session invalid
     return NextResponse.json(

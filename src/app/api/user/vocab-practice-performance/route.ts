@@ -10,7 +10,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { getSession } from "@/lib/auth";
 import {
   vocabPracticePerformanceCache,
   getCacheKey,
@@ -26,7 +26,7 @@ import type { PracticePerformanceData } from "@/types/vocabulary";
 // ─── GET /api/user/vocab-practice-performance ─────────────────────────────────
 
 export async function GET(request: NextRequest) {
-  const session = await auth.api.getSession({ headers: request.headers });
+  const session = await getSession({ headers: request.headers });
   if (!session?.user?.id) {
     return NextResponse.json(
       { success: false, error: "Unauthorized" },
@@ -95,7 +95,7 @@ function validatePayload(
 }
 
 export async function PUT(request: NextRequest) {
-  const session = await auth.api.getSession({ headers: request.headers });
+  const session = await getSession({ headers: request.headers });
   if (!session?.user?.id) {
     return NextResponse.json(
       { success: false, error: "Unauthorized" },

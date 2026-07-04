@@ -6,7 +6,7 @@
  * arrays and updating scalars so that the merged result lands in the DB.
  */
 
-import { pool } from "@/lib/auth";
+import { getPool } from "@/lib/db";
 import type { MigrationSummary } from "@/lib/types/api";
 import type { ValidatedMigrationPayload } from "@/lib/validation/migrationSchema";
 
@@ -18,7 +18,7 @@ export async function syncUserData(
   userId: string,
   data: ValidatedMigrationPayload,
 ): Promise<MigrationSummary> {
-  const client = await pool.connect();
+  const client = await getPool().connect();
 
   const summary: MigrationSummary = {
     profileMigrated: false,

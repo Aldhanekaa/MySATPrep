@@ -7,12 +7,21 @@
  * work in the Cloudflare Workers runtime (which has no Node.js TCP sockets).
  * The Neon serverless driver uses HTTP/WebSocket, both of which are available
  * in Workers.
+ *
+ * IMPORTANT: The Pool instances and betterAuth instance are created lazily
+ * (inside a factory function) rather than at module level. This is required for
+ * Cloudflare Workers, which prohibits reusing I/O objects (WebSocket connections)
+ * across different request contexts. See:
+ * https://opennext.js.org/cloudflare/troubleshooting
  */
 
-import { betterAuth } from "better-auth";
+import { betterAuth, type BetterAuthOptions } from "better-auth";
+import { getCloudflareContext } from "@opennextjs/cloudflare";
+import { withCloudflare } from "better-auth-cloudflare";
+
 import { Pool, neonConfig } from "@neondatabase/serverless";
 import ws from "ws";
-import { env } from "./config/env";
+import { validateEnv } from "./config/env";
 
 // Use the `ws` package as the WebSocket implementation when running outside
 // the browser (i.e. in Node.js during `next dev`) so the Neon serverless
@@ -23,59 +32,81 @@ if (typeof WebSocket === "undefined") {
 }
 
 /**
- * Application query pool — uses the Neon pooler endpoint (PgBouncer).
- * Uses @neondatabase/serverless Pool which works in Cloudflare Workers via WebSocket.
+ * Creates a new Better Auth instance with fresh Neon pool connections.
+ *
+ * Must be called once per request in Cloudflare Workers — pools created at
+ * module scope are tied to the first request's I/O context and cannot be
+ * reused in subsequent requests.
  */
-const pool = new Pool({
-  connectionString: env.DATABASE_URL,
-});
+export function createAuth() {
+  const env = validateEnv();
+
+  /**
+   * Application query pool — uses the Neon pooler endpoint (PgBouncer).
+   * Uses @neondatabase/serverless Pool which works in Cloudflare Workers via WebSocket.
+   */
+  const pool = new Pool({
+    connectionString: env.DATABASE_URL,
+  });
+
+  /**
+   * Unpooled connection for better-auth.
+   * better-auth uses prepared statements and SET commands that are incompatible
+   * with PgBouncer's transaction-mode pooling, so it needs a direct connection.
+   */
+  const authPool = new Pool({
+    connectionString: env.DATABASE_URL_UNPOOLED,
+  });
+
+  const authInstance = betterAuth({
+    database: authPool,
+    advanced: {
+      database: {
+        // Generate RFC 4122 UUIDs so better-auth's user IDs are compatible with
+        // our PostgreSQL schema, which uses the uuid column type throughout.
+        generateId: "uuid",
+      },
+    },
+    emailAndPassword: {
+      enabled: true,
+      minPasswordLength: 8,
+    },
+    socialProviders: {
+      google: {
+        clientId: env.GOOGLE_CLIENT_ID,
+        clientSecret: env.GOOGLE_CLIENT_SECRET,
+      },
+    },
+    session: {
+      cookieCache: {
+        enabled: true,
+        maxAge: 5 * 60, // 5 minutes
+      },
+    },
+    secret: env.BETTER_AUTH_SECRET,
+    baseURL: process.env.NEXT_PUBLIC_BASE_URL,
+  } satisfies BetterAuthOptions);
+
+  return { auth: authInstance, pool };
+}
+
+// Export types derived from a transient instance (type-only, no runtime cost)
+type AuthInstance = ReturnType<typeof createAuth>["auth"];
+export type Session = AuthInstance["$Infer"]["Session"]["session"];
+export type User = AuthInstance["$Infer"]["Session"]["user"];
 
 /**
- * Unpooled connection for better-auth.
- * better-auth uses prepared statements and SET commands that are incompatible
- * with PgBouncer's transaction-mode pooling, so it needs a direct connection.
+ * Convenience helper: get the current session from request headers.
+ *
+ * Creates a fresh auth instance per call (required for Cloudflare Workers —
+ * see createAuth() docs). Use this in API route handlers instead of importing
+ * `auth` directly.
+ *
+ * Usage: `const session = await getSession({ headers: request.headers })`
  */
-const authPool = new Pool({
-  connectionString: env.DATABASE_URL_UNPOOLED,
-});
-
-console.log(
-  "process.env.NEXT_PUBLIC_BASE_URL",
-  process.env.NEXT_PUBLIC_BASE_URL,
-);
-// Configure Better Auth
-export const auth = betterAuth({
-  database: authPool,
-  advanced: {
-    database: {
-      // Generate RFC 4122 UUIDs so better-auth's user IDs are compatible with
-      // our PostgreSQL schema, which uses the uuid column type throughout.
-      generateId: "uuid",
-    },
-  },
-  emailAndPassword: {
-    enabled: true,
-    minPasswordLength: 8,
-  },
-  socialProviders: {
-    google: {
-      clientId: env.GOOGLE_CLIENT_ID,
-      clientSecret: env.GOOGLE_CLIENT_SECRET,
-    },
-  },
-  session: {
-    cookieCache: {
-      enabled: true,
-      maxAge: 5 * 60, // 5 minutes
-    },
-  },
-  secret: env.BETTER_AUTH_SECRET,
-  baseURL: process.env.NEXT_PUBLIC_BASE_URL,
-});
-
-// Export types for use throughout the app
-export type Session = typeof auth.$Infer.Session.session;
-export type User = typeof auth.$Infer.Session.user;
-
-// Export the app query pool for direct database access
-export { pool };
+export async function getSession(options: {
+  headers: Headers;
+}): Promise<{ session: Session; user: User } | null> {
+  const { auth } = createAuth();
+  return auth.api.getSession({ headers: options.headers });
+}

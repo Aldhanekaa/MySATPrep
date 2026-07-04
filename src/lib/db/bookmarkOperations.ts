@@ -6,7 +6,7 @@
  * Validates: Requirements 7.6, 8.5, 8.6
  */
 
-import { pool } from "@/lib/auth";
+import { getPool } from "@/lib/db";
 import type { SavedQuestion } from "@/lib/types/userData";
 
 interface DbSavedQuestion {
@@ -40,7 +40,7 @@ function rowToSavedQuestion(row: DbSavedQuestion): SavedQuestion {
 export async function getSavedQuestions(
   userId: string,
 ): Promise<SavedQuestion[]> {
-  const result = await pool.query<DbSavedQuestion>(
+  const result = await getPool().query<DbSavedQuestion>(
     `SELECT id,
             user_id      AS "userId",
             assessment,
@@ -66,7 +66,7 @@ export async function addSavedQuestion(
   userId: string,
   questionData: Omit<SavedQuestion, "id" | "userId">,
 ): Promise<SavedQuestion> {
-  const result = await pool.query<DbSavedQuestion>(
+  const result = await getPool().query<DbSavedQuestion>(
     `INSERT INTO saved_questions
        (user_id, assessment, question_id, external_id, ibn, plain_question)
      VALUES ($1, $2, $3, $4, $5, $6)
@@ -108,7 +108,7 @@ export async function removeSavedQuestion(
   userId: string,
   questionId: string,
 ): Promise<boolean> {
-  const result = await pool.query(
+  const result = await getPool().query(
     `DELETE FROM saved_questions
      WHERE user_id = $1 AND question_id = $2`,
     [userId, questionId],

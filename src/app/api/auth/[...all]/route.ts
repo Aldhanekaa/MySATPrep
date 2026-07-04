@@ -8,10 +8,23 @@
  * - Sign out
  *
  * This catch-all route handler delegates all auth operations to Better Auth.
+ *
+ * NOTE: `createAuth()` is called inside each handler rather than at module
+ * scope. This is required for Cloudflare Workers — Neon WebSocket pool
+ * connections are I/O objects that cannot be reused across different request
+ * contexts. Creating them per-request avoids the "Cannot perform I/O on
+ * behalf of a different request" error on the OAuth callback.
  */
 
-import { auth } from "@/lib/auth";
+import { createAuth } from "@/lib/auth";
 import { toNextJsHandler } from "better-auth/next-js";
 
-// Export handlers for all HTTP methods
-export const { GET, POST } = toNextJsHandler(auth);
+export function GET(request: Request) {
+  const { auth } = createAuth();
+  return toNextJsHandler(auth).GET(request);
+}
+
+export function POST(request: Request) {
+  const { auth } = createAuth();
+  return toNextJsHandler(auth).POST(request);
+}

@@ -8,7 +8,7 @@
  * Validates: Requirements 7.8, 7.9, 8.10, 1.1, 1.7
  */
 
-import { pool } from "@/lib/auth";
+import { getPool } from "@/lib/db";
 import type { VocabularyProgress, UserPreferences } from "@/lib/types/userData";
 import type { QuestionNotes } from "@/types/questionNotes";
 import type { PracticePerformanceData } from "@/types/vocabulary";
@@ -34,7 +34,7 @@ export interface AnswerHistory {
 export async function getVocabularyProgress(
   userId: string,
 ): Promise<VocabularyProgress | null> {
-  const result = await pool.query<{ progressData: VocabularyProgress }>(
+  const result = await getPool().query<{ progressData: VocabularyProgress }>(
     `SELECT progress_data AS "progressData"
      FROM vocabulary_progress
      WHERE user_id = $1
@@ -53,7 +53,7 @@ export async function updateVocabularyProgress(
   userId: string,
   data: VocabularyProgress,
 ): Promise<VocabularyProgress> {
-  const result = await pool.query<{ progressData: VocabularyProgress }>(
+  const result = await getPool().query<{ progressData: VocabularyProgress }>(
     `INSERT INTO vocabulary_progress (user_id, progress_data)
      VALUES ($1, $2)
      ON CONFLICT (user_id) DO UPDATE SET
@@ -75,7 +75,7 @@ export async function updateVocabularyProgress(
 export async function getUserPreferences(
   userId: string,
 ): Promise<UserPreferences | null> {
-  const result = await pool.query<{ preferencesData: UserPreferences }>(
+  const result = await getPool().query<{ preferencesData: UserPreferences }>(
     `SELECT preferences_data AS "preferencesData"
      FROM user_preferences
      WHERE user_id = $1
@@ -94,7 +94,7 @@ export async function updateUserPreferences(
   userId: string,
   data: UserPreferences,
 ): Promise<UserPreferences> {
-  const result = await pool.query<{ preferencesData: UserPreferences }>(
+  const result = await getPool().query<{ preferencesData: UserPreferences }>(
     `INSERT INTO user_preferences (user_id, preferences_data)
      VALUES ($1, $2)
      ON CONFLICT (user_id) DO UPDATE SET
@@ -116,7 +116,7 @@ export async function updateUserPreferences(
 export async function getQuestionNotes(
   userId: string,
 ): Promise<QuestionNotes | null> {
-  const result = await pool.query<{ notesData: QuestionNotes }>(
+  const result = await getPool().query<{ notesData: QuestionNotes }>(
     `SELECT notes_data AS "notesData"
      FROM question_notes
      WHERE user_id = $1
@@ -135,7 +135,7 @@ export async function updateQuestionNotes(
   userId: string,
   data: QuestionNotes,
 ): Promise<QuestionNotes> {
-  const result = await pool.query<{ notesData: QuestionNotes }>(
+  const result = await getPool().query<{ notesData: QuestionNotes }>(
     `INSERT INTO question_notes (user_id, notes_data)
      VALUES ($1, $2)
      ON CONFLICT (user_id) DO UPDATE SET
@@ -156,7 +156,7 @@ export async function updateQuestionNotes(
 export async function getAnswerHistory(
   userId: string,
 ): Promise<AnswerHistory | null> {
-  const result = await pool.query<{ historyData: AnswerHistory }>(
+  const result = await getPool().query<{ historyData: AnswerHistory }>(
     `SELECT history_data AS "historyData"
      FROM answer_history
      WHERE user_id = $1
@@ -174,7 +174,7 @@ export async function updateAnswerHistory(
   userId: string,
   data: AnswerHistory,
 ): Promise<AnswerHistory> {
-  const result = await pool.query<{ historyData: AnswerHistory }>(
+  const result = await getPool().query<{ historyData: AnswerHistory }>(
     `INSERT INTO answer_history (user_id, history_data)
      VALUES ($1, $2)
      ON CONFLICT (user_id) DO UPDATE SET
@@ -207,7 +207,7 @@ const EMPTY_PRACTICE_PERFORMANCE: PracticePerformanceData = {
 export async function getVocabPracticePerformance(
   userId: string,
 ): Promise<PracticePerformanceData> {
-  const result = await pool.query<{ performanceData: PracticePerformanceData }>(
+  const result = await getPool().query<{ performanceData: PracticePerformanceData }>(
     `SELECT performance_data AS "performanceData"
      FROM vocab_practice_performance
      WHERE user_id = $1
@@ -225,7 +225,7 @@ export async function updateVocabPracticePerformance(
   userId: string,
   data: PracticePerformanceData,
 ): Promise<PracticePerformanceData> {
-  const result = await pool.query<{ performanceData: PracticePerformanceData }>(
+  const result = await getPool().query<{ performanceData: PracticePerformanceData }>(
     `INSERT INTO vocab_practice_performance (user_id, performance_data)
      VALUES ($1, $2)
      ON CONFLICT (user_id) DO UPDATE SET

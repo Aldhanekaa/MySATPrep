@@ -1,9 +1,11 @@
-import { neon } from "@neondatabase/serverless";
-import { pool } from "@/lib/auth";
+import postgres from "postgres";
 
-const databaseUrl = process.env.DATABASE_URL || process.env.NEON_DATABASE_URL;
+import { createAuth } from "@/lib/auth";
 
-const sql = databaseUrl ? neon(databaseUrl) : null;
+console.log("process.env.HYPERDRIVE", process.env.HYPERDRIVE)
+const databaseUrl = process.env.HYPERDRIVE || process.env.NEON_DATABASE_URL;
+
+const sql = databaseUrl ? postgres(databaseUrl) : null;
 
 // Revalidation presets for route-level caching
 export const REVALIDATE_LONG = 3600; // 1 hour
@@ -16,6 +18,10 @@ export const config = {
   REVALIDATE_MEDIUM,
 };
 
-// Re-export Pool for use in API routes and db operations
-// Validates: Requirements 1.3, 18.7
-export { pool };
+/**
+ * Returns a per-request Pool instance for use in API routes and db operations.
+ * Must be called inside a request handler — never at module scope.
+ */
+export function getPool() {
+  return createAuth().pool;
+}

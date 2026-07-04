@@ -9,7 +9,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { getSession } from "@/lib/auth";
 import { validateMigrationPayload } from "@/lib/validation/migrationSchema";
 import { migrateUserData } from "@/lib/db/migrationOperations";
 import { invalidateUserCache } from "@/lib/cache";
@@ -17,7 +17,7 @@ import { logError } from "@/lib/utils/errorLogger";
 
 export async function POST(request: NextRequest) {
   // Requirement 6.2, 6.12 – verify authentication
-  const session = await auth.api.getSession({ headers: request.headers });
+  const session = await getSession({ headers: request.headers });
   if (!session?.user?.id) {
     return NextResponse.json(
       { success: false, error: "Unauthorized" },

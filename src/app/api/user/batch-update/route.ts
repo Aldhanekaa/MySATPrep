@@ -13,7 +13,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { getSession } from "@/lib/auth";
 import { invalidateUserCache } from "@/lib/cache";
 import {
   updateUserProfile,
@@ -250,7 +250,7 @@ function validatePreferences(
 
 export async function POST(request: NextRequest) {
   // Require authentication
-  const session = await auth.api.getSession({ headers: request.headers });
+  const session = await getSession({ headers: request.headers });
   if (!session?.user?.id) {
     return NextResponse.json(
       { success: false, error: "Unauthorized" },
