@@ -626,6 +626,15 @@ export const migrateLocalStorageData = createAsyncThunk<MigrationSummary, void>(
       }
     })();
 
+    const questionNotes = (() => {
+      try {
+        const raw = localStorage.getItem("questionNotes");
+        return raw ? JSON.parse(raw) : null;
+      } catch {
+        return null;
+      }
+    })();
+
     const payload = {
       ...(profile ? { profile } : {}),
       ...(statistics ? { statistics } : {}),
@@ -634,6 +643,7 @@ export const migrateLocalStorageData = createAsyncThunk<MigrationSummary, void>(
       collections: collections ?? [],
       ...(vocabulary ? { vocabulary } : {}),
       ...(preferences ? { preferences } : {}),
+      ...(questionNotes ? { questionNotes } : {}),
       ...(practicePerformance ? { practicePerformance } : {}),
     };
 
@@ -789,6 +799,15 @@ export const syncLocalStorageData = createAsyncThunk<
       try {
         const raw = localStorage.getItem("practicePerformanceData");
         return raw ? (JSON.parse(raw) as PracticePerformanceData) : null;
+      } catch {
+        return null;
+      }
+    })();
+
+    const localQuestionNotes = (() => {
+      try {
+        const raw = localStorage.getItem("questionNotes");
+        return raw ? (JSON.parse(raw) as QuestionNotes) : null;
       } catch {
         return null;
       }
@@ -1027,6 +1046,54 @@ export const syncLocalStorageData = createAsyncThunk<
       } satisfies PracticePerformanceData;
     })();
 
+    // Question notes: merge by questionId key — union of per-question note
+    // arrays, deduped by note content. Local notes take precedence on conflict.
+    const mergedQuestionNotes = (() => {
+      const dbNotes = state.userData.questionNotes ?? {};
+      const lsNotes = localQuestionNotes ?? {};
+      if (!Object.keys(dbNotes).length && !Object.keys(lsNotes).length)
+        return null;
+
+      const allKeys = new Set([
+        ...Object.keys(dbNotes),
+        ...Object.keys(lsNotes),
+      ]);
+      const result: QuestionNotes = {};
+      for (const questionId of allKeys) {
+        const dbEntries = Array.isArray(
+          (dbNotes as Record<string, unknown>)[questionId],
+        )
+          ? ((dbNotes as Record<string, unknown[]>)[questionId] as unknown[])
+          : [];
+        const lsEntries = Array.isArray(
+          (lsNotes as Record<string, unknown>)[questionId],
+        )
+          ? ((lsNotes as Record<string, unknown[]>)[questionId] as unknown[])
+          : [];
+        // Union: local entries first (most recent edits), db entries fill in the rest
+        const seen = new Set<string>();
+        const merged: unknown[] = [];
+        for (const entry of [...lsEntries, ...dbEntries]) {
+          const key = JSON.stringify(entry);
+          if (!seen.has(key)) {
+            seen.add(key);
+            merged.push(entry);
+          }
+        }
+        result[questionId as keyof typeof result] = merged as never;
+      }
+      return result;
+    })();
+
+    // Answer history: merge by questionId key — union per-question attempt
+    // arrays. Answer history is never stored in localStorage; we just carry
+    // the Redux (DB) copy through so it isn't dropped from the sync payload.
+    const mergedAnswerHistory = (() => {
+      const dbHistory = state.userData.answerHistory ?? {};
+      if (!Object.keys(dbHistory).length) return null;
+      return dbHistory;
+    })();
+
     // ── Build sync payload ──────────────────────────────────────────────────
     const payload = {
       ...(mergedProfile ? { profile: mergedProfile } : {}),
@@ -1038,6 +1105,8 @@ export const syncLocalStorageData = createAsyncThunk<
       collections: mergedCollections,
       ...(mergedVocabulary ? { vocabulary: mergedVocabulary } : {}),
       ...(mergedPreferences ? { preferences: mergedPreferences } : {}),
+      ...(mergedQuestionNotes ? { questionNotes: mergedQuestionNotes } : {}),
+      ...(mergedAnswerHistory ? { answerHistory: mergedAnswerHistory } : {}),
       ...(mergedPracticePerformance
         ? { practicePerformance: mergedPracticePerformance }
         : {}),

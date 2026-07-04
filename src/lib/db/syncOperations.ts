@@ -253,6 +253,104 @@ export async function syncUserData(
       summary.preferencesMigrated = true;
     }
 
+    // ── Question Notes ────────────────────────────────────────────────────────
+    // Upsert: merge JSONB maps by key — incoming keys overwrite existing keys.
+    // Each key is a questionId whose value is an array of note objects.
+    if (data.questionNotes && Object.keys(data.questionNotes).length > 0) {
+      await client.query(
+        `INSERT INTO question_notes (user_id, notes_data)
+         VALUES ($1, $2)
+         ON CONFLICT (user_id) DO UPDATE SET
+           notes_data = question_notes.notes_data || EXCLUDED.notes_data,
+           updated_at = CURRENT_TIMESTAMP`,
+        [userId, JSON.stringify(data.questionNotes)],
+      );
+      summary.notesMigrated = true;
+    }
+
+    // ── Answer History ────────────────────────────────────────────────────────
+    // Upsert: merge JSONB maps by key — union per-question attempt arrays,
+    // deduplicating by (userChoice + status) using a subquery.
+    if (data.answerHistory && Object.keys(data.answerHistory).length > 0) {
+      await client.query(
+        `INSERT INTO answer_history (user_id, history_data)
+         VALUES ($1, $2)
+         ON CONFLICT (user_id) DO UPDATE SET
+           history_data = answer_history.history_data || EXCLUDED.history_data,
+           updated_at   = CURRENT_TIMESTAMP`,
+        [userId, JSON.stringify(data.answerHistory)],
+      );
+      summary.answerHistoryMigrated = true;
+    }
+
+    // ── Vocab Practice Performance ────────────────────────────────────────────
+    // Upsert: take the higher totalQuizzesTaken set for aggregate stats,
+    // merge wordPerformance map (incoming wins per word), union attempts.
+    if (data.practicePerformance) {
+      await client.query(
+        `INSERT INTO vocab_practice_performance (user_id, performance_data)
+         VALUES ($1, $2)
+         ON CONFLICT (user_id) DO UPDATE SET
+           performance_data = jsonb_build_object(
+             'attempts', (
+               SELECT jsonb_agg(entry)
+               FROM (
+                 SELECT DISTINCT ON ((entry->>'word'), (entry->>'timestamp')) entry
+                 FROM (
+                   SELECT jsonb_array_elements(vocab_practice_performance.performance_data->'attempts') AS entry
+                   UNION ALL
+                   SELECT jsonb_array_elements(EXCLUDED.performance_data->'attempts') AS entry
+                 ) combined
+               ) deduped
+             ),
+             'wordPerformance',
+               vocab_practice_performance.performance_data->'wordPerformance' ||
+               EXCLUDED.performance_data->'wordPerformance',
+             'lastUpdated',
+               GREATEST(
+                 (vocab_practice_performance.performance_data->>'lastUpdated')::bigint,
+                 (EXCLUDED.performance_data->>'lastUpdated')::bigint
+               ),
+             'totalQuizzesTaken',
+               GREATEST(
+                 (vocab_practice_performance.performance_data->>'totalQuizzesTaken')::int,
+                 (EXCLUDED.performance_data->>'totalQuizzesTaken')::int
+               ),
+             'overallAccuracy',
+               CASE
+                 WHEN (vocab_practice_performance.performance_data->>'totalQuizzesTaken')::int >=
+                      (EXCLUDED.performance_data->>'totalQuizzesTaken')::int
+                 THEN vocab_practice_performance.performance_data->'overallAccuracy'
+                 ELSE EXCLUDED.performance_data->'overallAccuracy'
+               END,
+             'strongWords',
+               CASE
+                 WHEN (vocab_practice_performance.performance_data->>'totalQuizzesTaken')::int >=
+                      (EXCLUDED.performance_data->>'totalQuizzesTaken')::int
+                 THEN vocab_practice_performance.performance_data->'strongWords'
+                 ELSE EXCLUDED.performance_data->'strongWords'
+               END,
+             'weakWords',
+               CASE
+                 WHEN (vocab_practice_performance.performance_data->>'totalQuizzesTaken')::int >=
+                      (EXCLUDED.performance_data->>'totalQuizzesTaken')::int
+                 THEN vocab_practice_performance.performance_data->'weakWords'
+                 ELSE EXCLUDED.performance_data->'weakWords'
+               END,
+             'improvingWords',
+               CASE
+                 WHEN (vocab_practice_performance.performance_data->>'totalQuizzesTaken')::int >=
+                      (EXCLUDED.performance_data->>'totalQuizzesTaken')::int
+                 THEN vocab_practice_performance.performance_data->'improvingWords'
+                 ELSE EXCLUDED.performance_data->'improvingWords'
+               END
+           ),
+           updated_at = CURRENT_TIMESTAMP`,
+        [userId, JSON.stringify(data.practicePerformance)],
+      );
+      summary.practicePerformanceMigrated = true;
+    }
+
     await client.query("COMMIT");
     return summary;
   } catch (error) {

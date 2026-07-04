@@ -20,6 +20,7 @@ import { selectIsAuthenticated } from "@/lib/redux/selectors";
 import {
   addBookmark as addBookmarkAction,
   removeBookmark as removeBookmarkAction,
+  addCollection as addCollectionAction,
   updateCollectionLocal,
 } from "@/lib/redux/slices/userDataSlice";
 import {
@@ -82,16 +83,17 @@ export function SaveButton({
 
   // Migrate collections that don't have questionDetails (backward compatibility)
   const migratedCollections = allCollections.map((collection, index) => {
-    if (!collection.questionDetails) {
+    if (!collection.questionDetails || !collection.questionIds) {
       return {
         ...collection,
-        id: collection.id || `collection_${index}_${Date.now()}`, // Ensure id exists
-        questionDetails: [], // Initialize empty array for legacy collections
+        id: collection.id || `collection_${index}_${Date.now()}`,
+        questionIds: collection.questionIds ?? [],
+        questionDetails: collection.questionDetails ?? [],
       };
     }
     return {
       ...collection,
-      id: collection.id || `collection_${index}_${Date.now()}`, // Ensure id exists
+      id: collection.id || `collection_${index}_${Date.now()}`,
     };
   });
 
@@ -102,7 +104,7 @@ export function SaveButton({
 
   // Check which collections contain this question
   const questionCollections = migratedCollections.filter((collection) =>
-    collection.questionIds.includes(questionId),
+    (collection.questionIds ?? []).includes(questionId),
   );
 
   // Check if question is saved in any collection (this means it's also saved)
@@ -237,11 +239,30 @@ export function SaveButton({
         questionDetails: [],
       };
 
-      const updatedCollections = {
-        ...savedCollections,
-        [newCollection.id]: newCollection,
-      };
-      setSavedCollections(updatedCollections);
+      // Optimistic update for authenticated users — Redux is the source of truth,
+      // so add it immediately so the list reflects the new collection right away.
+      if (isAuthenticated) {
+        reduxDispatch(
+          addCollectionAction({
+            collectionId: newCollection.id,
+            name: newCollection.name,
+            description: newCollection.description,
+            createdAt: newCollection.createdAt,
+            updatedAt: newCollection.updatedAt,
+            questionIds: newCollection.questionIds,
+            questionDetails: newCollection.questionDetails,
+            color: newCollection.color,
+          }),
+        );
+      } else {
+        // Unauthenticated: persist to local state
+        const updatedCollections = {
+          ...savedCollections,
+          [newCollection.id]: newCollection,
+        };
+        setSavedCollections(updatedCollections);
+      }
+
       // Sync: API for authenticated users, localStorage for unauthenticated
       saveCollection(
         { ...newCollection, collectionId: newCollection.id },
@@ -587,8 +608,9 @@ export function SaveButton({
             ) : (
               <div className="space-y-2">
                 {filteredCollections.map((collection) => {
-                  const isQuestionInCollection =
-                    collection.questionIds.includes(questionId);
+                  const isQuestionInCollection = (
+                    collection.questionIds ?? []
+                  ).includes(questionId);
                   return (
                     <div
                       key={collection.id}

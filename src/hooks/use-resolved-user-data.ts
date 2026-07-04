@@ -72,7 +72,7 @@ function collectionsToSavedCollections(
       createdAt: col.createdAt,
       updatedAt: col.updatedAt,
       questionIds: col.questionIds,
-      questionDetails: col.questionDetails.map((d) => ({
+      questionDetails: (col.questionDetails ?? []).map((d) => ({
         questionId: d.questionId,
         externalId: d.externalId ?? null,
         ibn: d.ibn ?? null,

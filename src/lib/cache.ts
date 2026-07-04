@@ -78,11 +78,13 @@ export async function getCachedOrFetch<T>(
   fetcher: () => Promise<T | null>,
 ): Promise<T | null> {
   const cached = cache.get(key);
+  // console.log("cached", cached);
   if (cached !== undefined) {
     return cached === NULL_SENTINEL ? null : (cached as T);
   }
 
   const data = await fetcher();
+
   cache.set(key, data === null ? NULL_SENTINEL : data);
   return data;
 }
