@@ -54,5 +54,8 @@
    * Note: Use secrets to store sensitive data.
    * https://developers.cloudflare.com/workers/configuration/secrets/
    */
-  "vars": { "NEXT_PUBLIC_URL": "https://mysatprep.aldhanekadev.workers.dev" },
+  "vars": {
+    "NEXT_PUBLIC_URL": "https://mysatprep.aldhanekadev.workers.dev",
+    "BETTER_AUTH_URL": "https://mysatprep.aldhanekadev.workers.dev",
+  },
 }
