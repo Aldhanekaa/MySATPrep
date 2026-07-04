@@ -32,9 +32,6 @@
   "observability": {
     "enabled": true,
   },
-  "limits": {
-    "cpu_ms": 30000,
-  },
 
   "upload_source_maps": true,
   /**
@@ -56,6 +53,7 @@
    */
   "vars": {
     "NEXT_PUBLIC_URL": "https://mysatprep.aldhanekadev.workers.dev",
+    "NEXT_PUBLIC_BASE_URL": "https://mysatprep.aldhanekadev.workers.dev",
     "BETTER_AUTH_URL": "https://mysatprep.aldhanekadev.workers.dev",
   },
 }
