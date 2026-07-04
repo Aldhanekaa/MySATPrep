@@ -7,9 +7,14 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "db:migrate": "node scripts/migrate-db.mjs"
+    "db:migrate": "node scripts/migrate-db.mjs",
+    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
+    "upload": "opennextjs-cloudflare build && opennextjs-cloudflare upload",
+    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "cf-typegen": "wrangler types --env-interface CloudflareEnv ./cloudflare-env.d.ts"
   },
   "dependencies": {
+    "@opennextjs/cloudflare": "^1.19.9",
     "@ai-sdk/deepseek": "^1.0.15",
     "@ai-sdk/react": "^2.0.34",
     "@floating-ui/react": "^0.27.16",
@@ -69,6 +74,7 @@
     "motion": "^12.38.0",
     "next": "^15.4.10",
     "pg": "^8.21.0",
+    "pnpm": "^11.9.0",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-hotkeys-hook": "^5.1.0",
@@ -105,6 +111,7 @@
     "ts-jest": "^29.4.11",
     "ts-node": "^10.9.2",
     "tw-animate-css": "^1.3.6",
-    "typescript": "^5"
+    "typescript": "^5",
+    "wrangler": "^4.107.0"
   }
 }

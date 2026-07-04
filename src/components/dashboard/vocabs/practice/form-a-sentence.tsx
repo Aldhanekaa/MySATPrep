@@ -366,57 +366,72 @@ export default function VocabsFormaSentencePractice({
     timeSpent: number,
   ) => {
     setPracticePerformance((prevData) => {
-      const updatedData = { ...prevData };
+      const prevWordPerf = prevData.wordPerformance[word];
+      const wordPerf: WordPerformance = prevWordPerf
+        ? {
+            ...prevWordPerf,
+            strugglingAreas: [...prevWordPerf.strugglingAreas],
+          }
+        : {
+            word,
+            totalAttempts: 0,
+            correctAttempts: 0,
+            incorrectAttempts: 0,
+            lastAttemptTimestamp: Date.now(),
+            averageTimeSpent: 0,
+            strugglingAreas: [],
+            masteryLevel: "learning" as const,
+            consecutiveCorrect: 0,
+            consecutiveIncorrect: 0,
+          };
 
-      // Create or update word performance
-      const wordPerf = updatedData.wordPerformance[word] || {
-        word,
-        totalAttempts: 0,
-        correctAttempts: 0,
-        incorrectAttempts: 0,
-        lastAttemptTimestamp: Date.now(),
-        averageTimeSpent: 0,
-        strugglingAreas: [],
-        masteryLevel: "learning" as const,
-        consecutiveCorrect: 0,
-        consecutiveIncorrect: 0,
-      };
-
-      // Update statistics
-      wordPerf.totalAttempts++;
-      wordPerf.lastAttemptTimestamp = Date.now();
-
-      if (isCorrect) {
-        wordPerf.correctAttempts++;
-        wordPerf.consecutiveCorrect++;
-        wordPerf.consecutiveIncorrect = 0;
-      } else {
-        wordPerf.incorrectAttempts++;
-        wordPerf.consecutiveIncorrect++;
-        wordPerf.consecutiveCorrect = 0;
-
-        // Add to struggling areas if not already there
-        if (!wordPerf.strugglingAreas.includes("sentence")) {
-          wordPerf.strugglingAreas.push("sentence");
-        }
-      }
-
-      // Update average time spent
+      const newTotalAttempts = wordPerf.totalAttempts + 1;
+      const newCorrectAttempts = isCorrect
+        ? wordPerf.correctAttempts + 1
+        : wordPerf.correctAttempts;
+      const newIncorrectAttempts = isCorrect
+        ? wordPerf.incorrectAttempts
+        : wordPerf.incorrectAttempts + 1;
+      const newConsecutiveCorrect = isCorrect
+        ? wordPerf.consecutiveCorrect + 1
+        : 0;
+      const newConsecutiveIncorrect = isCorrect
+        ? 0
+        : wordPerf.consecutiveIncorrect + 1;
+      const newStrugglingAreas =
+        !isCorrect && !wordPerf.strugglingAreas.includes("sentence")
+          ? ([
+              ...wordPerf.strugglingAreas,
+              "sentence",
+            ] as WordPerformance["strugglingAreas"])
+          : wordPerf.strugglingAreas;
       const totalTime =
-        wordPerf.averageTimeSpent * (wordPerf.totalAttempts - 1) + timeSpent;
-      wordPerf.averageTimeSpent = totalTime / wordPerf.totalAttempts;
-
-      // Update mastery level
-      wordPerf.masteryLevel = calculateMasteryLevel(
-        wordPerf.correctAttempts,
-        wordPerf.totalAttempts,
-        wordPerf.consecutiveCorrect,
+        wordPerf.averageTimeSpent * wordPerf.totalAttempts + timeSpent;
+      const newAverageTimeSpent = totalTime / newTotalAttempts;
+      const newMasteryLevel = calculateMasteryLevel(
+        newCorrectAttempts,
+        newTotalAttempts,
+        newConsecutiveCorrect,
       );
 
-      // Update word performance in data
-      updatedData.wordPerformance[word] = wordPerf;
+      const updatedWordPerf: WordPerformance = {
+        ...wordPerf,
+        totalAttempts: newTotalAttempts,
+        correctAttempts: newCorrectAttempts,
+        incorrectAttempts: newIncorrectAttempts,
+        lastAttemptTimestamp: Date.now(),
+        averageTimeSpent: newAverageTimeSpent,
+        consecutiveCorrect: newConsecutiveCorrect,
+        consecutiveIncorrect: newConsecutiveIncorrect,
+        strugglingAreas: newStrugglingAreas,
+        masteryLevel: newMasteryLevel,
+      };
 
-      // Create quiz attempt record
+      const updatedWordPerformance = {
+        ...prevData.wordPerformance,
+        [word]: updatedWordPerf,
+      };
+
       const attempt: QuizAttempt = {
         word,
         questionType: "sentence",
@@ -428,51 +443,51 @@ export default function VocabsFormaSentencePractice({
         difficulty: currentQuestion.word.difficulty,
       };
 
-      // Add attempt to history
-      updatedData.attempts.push(attempt);
+      const updatedAttempts = [...prevData.attempts, attempt];
+      const totalCorrect = updatedAttempts.filter((a) => a.isCorrect).length;
+      const overallAccuracy = totalCorrect / updatedAttempts.length;
 
-      // Update overall statistics
-      updatedData.lastUpdated = Date.now();
-      const totalCorrect = updatedData.attempts.filter(
-        (a) => a.isCorrect,
-      ).length;
-      updatedData.overallAccuracy = totalCorrect / updatedData.attempts.length;
-
-      // Categorize words based on performance
-      const allWords = Object.values(updatedData.wordPerformance);
-      updatedData.strongWords = allWords
+      const allWords = Object.values(updatedWordPerformance);
+      const strongWords = allWords
         .filter(
           (w) =>
             w.masteryLevel === "mastered" || w.masteryLevel === "proficient",
         )
         .map((w) => w.word);
-
-      updatedData.weakWords = allWords
+      const weakWords = allWords
         .filter((w) => w.masteryLevel === "struggling")
         .map((w) => w.word);
-
-      updatedData.improvingWords = allWords
+      const improvingWords = allWords
         .filter(
           (w) => w.masteryLevel === "learning" && w.consecutiveCorrect > 0,
         )
         .map((w) => w.word);
 
-      return updatedData;
+      return {
+        ...prevData,
+        wordPerformance: updatedWordPerformance,
+        attempts: updatedAttempts,
+        lastUpdated: Date.now(),
+        overallAccuracy,
+        strongWords,
+        weakWords,
+        improvingWords,
+      };
     });
   };
 
   // Save user sentence to userSentences when they get it right
   const saveUserSentence = (word: string, sentence: string) => {
     setVocabsData((prevData) => {
-      const updatedData = { ...prevData };
-      if (!updatedData.userSentences[word]) {
-        updatedData.userSentences[word] = [];
-      }
-      // Only add if it's not already there
-      if (!updatedData.userSentences[word].includes(sentence)) {
-        updatedData.userSentences[word].push(sentence);
-      }
-      return updatedData;
+      const existing = prevData.userSentences[word] ?? [];
+      if (existing.includes(sentence)) return prevData;
+      return {
+        ...prevData,
+        userSentences: {
+          ...prevData.userSentences,
+          [word]: [...existing, sentence],
+        },
+      };
     });
   };
 

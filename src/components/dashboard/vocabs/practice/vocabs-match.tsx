@@ -320,57 +320,74 @@ export default function VocabsMatchPractice({
     timeSpent: number,
   ) => {
     setPracticePerformance((prevData) => {
-      const updatedData = { ...prevData };
+      const prevWordPerf = prevData.wordPerformance[word];
+      const wordPerf: WordPerformance = prevWordPerf
+        ? {
+            ...prevWordPerf,
+            strugglingAreas: [...prevWordPerf.strugglingAreas],
+          }
+        : {
+            word,
+            totalAttempts: 0,
+            correctAttempts: 0,
+            incorrectAttempts: 0,
+            lastAttemptTimestamp: Date.now(),
+            averageTimeSpent: 0,
+            strugglingAreas: [],
+            masteryLevel: "learning" as const,
+            consecutiveCorrect: 0,
+            consecutiveIncorrect: 0,
+          };
 
-      // Create or update word performance
-      const wordPerf = updatedData.wordPerformance[word] || {
-        word,
-        totalAttempts: 0,
-        correctAttempts: 0,
-        incorrectAttempts: 0,
-        lastAttemptTimestamp: Date.now(),
-        averageTimeSpent: 0,
-        strugglingAreas: [],
-        masteryLevel: "learning" as const,
-        consecutiveCorrect: 0,
-        consecutiveIncorrect: 0,
-      };
-
-      // Update statistics
-      wordPerf.totalAttempts++;
-      wordPerf.lastAttemptTimestamp = Date.now();
-
-      if (isCorrect) {
-        wordPerf.correctAttempts++;
-        wordPerf.consecutiveCorrect++;
-        wordPerf.consecutiveIncorrect = 0;
-      } else {
-        wordPerf.incorrectAttempts++;
-        wordPerf.consecutiveIncorrect++;
-        wordPerf.consecutiveCorrect = 0;
-
-        // Add to struggling areas if not already there
-        if (!wordPerf.strugglingAreas.includes("vocabs-match")) {
-          wordPerf.strugglingAreas.push("vocabs-match");
-        }
-      }
-
-      // Update average time spent
+      const newTotalAttempts = wordPerf.totalAttempts + 1;
+      const newCorrectAttempts = isCorrect
+        ? wordPerf.correctAttempts + 1
+        : wordPerf.correctAttempts;
+      const newIncorrectAttempts = isCorrect
+        ? wordPerf.incorrectAttempts
+        : wordPerf.incorrectAttempts + 1;
+      const newConsecutiveCorrect = isCorrect
+        ? wordPerf.consecutiveCorrect + 1
+        : 0;
+      const newConsecutiveIncorrect = isCorrect
+        ? 0
+        : wordPerf.consecutiveIncorrect + 1;
+      const newStrugglingAreas =
+        !isCorrect && !wordPerf.strugglingAreas.includes("vocabs-match")
+          ? ([
+              ...wordPerf.strugglingAreas,
+              "vocabs-match",
+            ] as WordPerformance["strugglingAreas"])
+          : wordPerf.strugglingAreas;
       const totalTime =
-        wordPerf.averageTimeSpent * (wordPerf.totalAttempts - 1) + timeSpent;
-      wordPerf.averageTimeSpent = totalTime / wordPerf.totalAttempts;
-
-      // Update mastery level
-      wordPerf.masteryLevel = calculateMasteryLevel(
-        wordPerf.correctAttempts,
-        wordPerf.totalAttempts,
-        wordPerf.consecutiveCorrect,
+        wordPerf.averageTimeSpent * wordPerf.totalAttempts + timeSpent;
+      const newAverageTimeSpent = totalTime / newTotalAttempts;
+      const newMasteryLevel = calculateMasteryLevel(
+        newCorrectAttempts,
+        newTotalAttempts,
+        newConsecutiveCorrect,
       );
 
-      // Update word performance in data
-      updatedData.wordPerformance[word] = wordPerf;
+      const updatedWordPerf: WordPerformance = {
+        ...wordPerf,
+        totalAttempts: newTotalAttempts,
+        correctAttempts: newCorrectAttempts,
+        incorrectAttempts: newIncorrectAttempts,
+        lastAttemptTimestamp: Date.now(),
+        averageTimeSpent: newAverageTimeSpent,
+        consecutiveCorrect: newConsecutiveCorrect,
+        consecutiveIncorrect: newConsecutiveIncorrect,
+        strugglingAreas: newStrugglingAreas,
+        masteryLevel: newMasteryLevel,
+      };
 
-      return updatedData;
+      return {
+        ...prevData,
+        wordPerformance: {
+          ...prevData.wordPerformance,
+          [word]: updatedWordPerf,
+        },
+      };
     });
   };
 
