@@ -238,7 +238,10 @@ export async function fetchQuestionData(
     );
 
     if (internalResponse.ok) {
-      const internalData = await internalResponse.json();
+      const internalData = (await internalResponse.json()) as {
+        success: boolean;
+        data?: API_Response_Question;
+      };
       if (internalData.success && internalData.data) {
         return {
           success: true,

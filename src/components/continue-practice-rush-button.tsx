@@ -47,7 +47,9 @@ export default function ContinuePracticeRushButton() {
             setHasActiveSession(false);
             return null;
           }
-          return res.json();
+          return res.json() as Promise<{
+            data?: { session?: PracticeSession };
+          }>;
         })
         .then((json) => {
           if (!json) return;

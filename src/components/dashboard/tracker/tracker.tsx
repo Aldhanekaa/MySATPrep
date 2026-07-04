@@ -139,9 +139,11 @@ export default function Tracker() {
           ...rwDomains,
         ].join(",")}`,
       );
-      const fetchData = await fetchResponse.json();
+      const fetchData = (await fetchResponse.json()) as {
+        data?: PlainQuestionType[];
+      };
 
-      if ("data" in fetchData) {
+      if (fetchData.data) {
         const allQuestions: PlainQuestionType[] = fetchData.data;
         dispatch({ type: "FETCH_SUCCESS", payload: allQuestions });
       } else {

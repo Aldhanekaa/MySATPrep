@@ -166,7 +166,10 @@ export async function GET(request: NextRequest) {
       );
 
       if (internalResponse.ok) {
-        const internalData = await internalResponse.json();
+        const internalData = (await internalResponse.json()) as {
+          success: boolean;
+          data?: API_Response_Question_List;
+        };
         if (internalData.success && internalData.data) {
           questions = [...questions, ...(internalData.data || [])];
         }

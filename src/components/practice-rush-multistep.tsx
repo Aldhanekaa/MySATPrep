@@ -1952,14 +1952,13 @@ export default function PracticeRushMultistep({
           dispatch({ type: "SET_QUESTIONS_PROCESSED_COUNT", payload: i + 1 });
         }
 
-        const questionData: API_Response_Question =
-          await fetchQuestionsbyIBN_ExternalId(
-            question.external_id
-              ? question.external_id
-              : question.ibn
-                ? question.ibn
-                : "",
-          );
+        const questionData = await fetchQuestionsbyIBN_ExternalId(
+          question.external_id
+            ? question.external_id
+            : question.ibn
+              ? question.ibn
+              : "",
+        );
 
         if (questionData && questionData.correct_answer)
           questions.push({ plainQuestion: question, data: questionData });
@@ -2145,7 +2144,13 @@ export default function PracticeRushMultistep({
 
         let lookupData: LookupRequest | undefined = state.lookupData;
         const lookupResponse = await fetch("/api/lookup")
-          .then((res) => res.json())
+          .then(
+            (res) =>
+              res.json() as Promise<{
+                data?: LookupRequest;
+                success?: boolean;
+              }>,
+          )
           .catch((error) => {
             console.error("Error fetching questions:", error);
             toast.error("Failed to Fetch Questions", {
@@ -2153,12 +2158,12 @@ export default function PracticeRushMultistep({
                 "Unable to load practice questions. Please check your connection and try again.",
               duration: 5000,
             });
-            return [];
+            return {} as { data?: LookupRequest; success?: boolean };
           });
 
         console.log("lookupResponse", lookupResponse);
         if ("data" in lookupResponse) {
-          lookupData = lookupResponse.data || null;
+          lookupData = lookupResponse.data ?? undefined;
           console.log("lookupData", lookupData);
 
           if (lookupData) {
@@ -2342,7 +2347,10 @@ export default function PracticeRushMultistep({
               .map((s) => s.skill_cd)
               .join(",")}${otherParams}`,
           )
-            .then((res) => res.json())
+            .then(
+              (res) =>
+                res.json() as Promise<{ data?: API_Response_Question_List }>,
+            )
             .catch((error) => {
               console.error("Error fetching questions:", error);
               toast.error("Failed to Fetch Questions", {
@@ -2350,9 +2358,9 @@ export default function PracticeRushMultistep({
                   "Unable to load practice questions. Please check your connection and try again.",
                 duration: 5000,
               });
-              return [];
+              return {} as { data?: API_Response_Question_List };
             });
-          questionsData = questionsResponse.data || null;
+          questionsData = questionsResponse.data ?? null;
 
           // Cache the questions data with the selections hash for future reuse
         }
@@ -2708,20 +2716,18 @@ export default function PracticeRushMultistep({
   ]);
 
   async function fetchQuestionsbyIBN_ExternalId(id: string) {
-    const questionResponse: { data: API_Response_Question } = await fetch(
-      `/api/question/${id}`,
-    )
-      .then((res) => res.json())
+    const questionResponse = await fetch(`/api/question/${id}`)
+      .then((res) => res.json() as Promise<{ data: API_Response_Question }>)
       .catch((error) => {
         console.error("Error fetching question:", error);
         toast.error("Failed to Load Question", {
           description: `Unable to load question ${id}. This question will be skipped.`,
           duration: 4000,
         });
-        return null;
+        return null as null;
       });
 
-    return questionResponse.data;
+    return questionResponse?.data;
   }
 
   const loadNextBatch = useCallback(async () => {
@@ -2839,14 +2845,13 @@ export default function PracticeRushMultistep({
           payload: i + 1,
         });
 
-        const questionData: API_Response_Question =
-          await fetchQuestionsbyIBN_ExternalId(
-            question.ibn
-              ? question.ibn
-              : question.external_id
-                ? question.external_id
-                : "",
-          );
+        const questionData = await fetchQuestionsbyIBN_ExternalId(
+          question.ibn
+            ? question.ibn
+            : question.external_id
+              ? question.external_id
+              : "",
+        );
 
         if (questionData) questions.push(questionData);
       }

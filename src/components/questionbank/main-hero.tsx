@@ -97,7 +97,7 @@ type MainHeroAction =
 
 const mainHeroReducer = (
   state: MainHeroState,
-  action: MainHeroAction
+  action: MainHeroAction,
 ): MainHeroState => {
   switch (action.type) {
     case "SET_SELECTED":
@@ -221,7 +221,7 @@ export function QB_MainHero() {
       const newUrl = `${window.location.pathname}?${params.toString()}`;
       router.push(newUrl, { scroll: false });
     },
-    [router, searchParams]
+    [router, searchParams],
   );
 
   // Initialize form state from URL parameters on component mount
@@ -281,7 +281,7 @@ export function QB_MainHero() {
         label: domain.text,
         description: `${domain.skill.length} skills`,
         id: domain.id,
-      })
+      }),
     );
   }, [state.selectedSubject]);
 
@@ -296,7 +296,7 @@ export function QB_MainHero() {
         </div>
       </div>
     ),
-    []
+    [],
   );
 
   const renderSelectedDomains = useCallback((value: string[]) => {
@@ -374,7 +374,7 @@ export function QB_MainHero() {
     updateURLParams(
       state.selectedAssessment,
       state.selectedSubject,
-      state.selected
+      state.selected,
     );
 
     // Save applied filters
@@ -405,10 +405,14 @@ export function QB_MainHero() {
       const response = await fetch(
         `/api/get-questions?assessment=${
           state.selectedAssessment
-        }&domains=${state.selected.join(",")}`
+        }&domains=${state.selected.join(",")}`,
       );
 
-      const responseData = await response.json();
+      const responseData = (await response.json()) as {
+        success?: boolean;
+        data?: PlainQuestionType[];
+        error?: string;
+      };
       // console.log("API response:", responseData);
 
       if (responseData && responseData.success && responseData.data) {
@@ -427,7 +431,10 @@ export function QB_MainHero() {
       if (state.bluebookExternalIds.mathLiveItems.length == 0) {
         // now fetch the Bluebook's questions
         const responseLookup = await fetch(`/api/lookup`);
-        const responseLookupData = await responseLookup.json();
+        const responseLookupData = (await responseLookup.json()) as {
+          success?: boolean;
+          data?: { mathLiveItems?: string[]; readingLiveItems?: string[] };
+        };
 
         // console.log("responseLookupData", responseLookupData);
         // console.log("responseLookupData", responseLookupData.data);
@@ -657,7 +664,7 @@ export function QB_MainHero() {
                                     >
                                       {assessment.text}
                                     </SelectItem>
-                                  )
+                                  ),
                                 )}
                               </SelectContent>
                             </Select>
@@ -821,10 +828,11 @@ export function QB_MainHero() {
                                 state.selected.length === 0
                                   ? "bg-gray-100 text-gray-500 cursor-not-allowed"
                                   : state.isLoading
-                                  ? "bg-gray-300 text-gray-600 cursor-not-allowed"
-                                  : hasAppliedFilters() && !hasFiltersChanged()
-                                  ? "bg-gradient-to-b from-green-400 to-green-500 hover:from-green-500 hover:to-green-600 text-white shadow-[0_4px_0_0_theme(colors.green.600),0_8px_20px_theme(colors.green.500/0.25)] hover:shadow-[0_6px_0_0_theme(colors.green.700),0_10px_25px_theme(colors.green.500/0.3)] active:shadow-[0_2px_0_0_theme(colors.green.600),0_4px_10px_theme(colors.green.500/0.2)] active:translate-y-0.5"
-                                  : "hover:cursor-pointer bg-gradient-to-b from-blue-400 to-blue-500 hover:from-blue-500 hover:to-blue-600 text-white shadow-[0_4px_0_0_theme(colors.blue.600),0_8px_20px_theme(colors.blue.500/0.25)] hover:shadow-[0_6px_0_0_theme(colors.blue.700),0_10px_25px_theme(colors.blue.500/0.3)] active:shadow-[0_2px_0_0_theme(colors.blue.600),0_4px_10px_theme(colors.blue.500/0.2)] active:translate-y-0.5"
+                                    ? "bg-gray-300 text-gray-600 cursor-not-allowed"
+                                    : hasAppliedFilters() &&
+                                        !hasFiltersChanged()
+                                      ? "bg-gradient-to-b from-green-400 to-green-500 hover:from-green-500 hover:to-green-600 text-white shadow-[0_4px_0_0_theme(colors.green.600),0_8px_20px_theme(colors.green.500/0.25)] hover:shadow-[0_6px_0_0_theme(colors.green.700),0_10px_25px_theme(colors.green.500/0.3)] active:shadow-[0_2px_0_0_theme(colors.green.600),0_4px_10px_theme(colors.green.500/0.2)] active:translate-y-0.5"
+                                      : "hover:cursor-pointer bg-gradient-to-b from-blue-400 to-blue-500 hover:from-blue-500 hover:to-blue-600 text-white shadow-[0_4px_0_0_theme(colors.blue.600),0_8px_20px_theme(colors.blue.500/0.25)] hover:shadow-[0_6px_0_0_theme(colors.blue.700),0_10px_25px_theme(colors.blue.500/0.3)] active:shadow-[0_2px_0_0_theme(colors.blue.600),0_4px_10px_theme(colors.blue.500/0.2)] active:translate-y-0.5"
                               }`}
                             >
                               <motion.span
@@ -832,9 +840,9 @@ export function QB_MainHero() {
                                   state.isLoading
                                     ? "loading"
                                     : hasAppliedFilters() &&
-                                      !hasFiltersChanged()
-                                    ? "applied"
-                                    : "apply"
+                                        !hasFiltersChanged()
+                                      ? "applied"
+                                      : "apply"
                                 }
                                 initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
@@ -844,18 +852,19 @@ export function QB_MainHero() {
                                 {state.isLoading
                                   ? "Loading Questions..."
                                   : state.error
-                                  ? "Error - Try Again"
-                                  : hasAppliedFilters() && !hasFiltersChanged()
-                                  ? `Filter Applied (${
-                                      state.selected.length
-                                    } domain${
-                                      state.selected.length !== 1 ? "s" : ""
-                                    })`
-                                  : `Apply Filter (${
-                                      state.selected.length
-                                    } domain${
-                                      state.selected.length !== 1 ? "s" : ""
-                                    } selected)`}
+                                    ? "Error - Try Again"
+                                    : hasAppliedFilters() &&
+                                        !hasFiltersChanged()
+                                      ? `Filter Applied (${
+                                          state.selected.length
+                                        } domain${
+                                          state.selected.length !== 1 ? "s" : ""
+                                        })`
+                                      : `Apply Filter (${
+                                          state.selected.length
+                                        } domain${
+                                          state.selected.length !== 1 ? "s" : ""
+                                        } selected)`}
                               </motion.span>
                             </Button>
                           </motion.div>
@@ -879,10 +888,13 @@ export function QB_MainHero() {
             selectedDomains={state.selected
               .map((domainId) => primaryClassCdObjectData[domainId])
               .filter(Boolean)
-              .reduce((acc, domain) => {
-                acc[domain.primaryClassCd] = domain;
-                return acc;
-              }, {} as Record<string, (typeof primaryClassCdObjectData)[string]>)}
+              .reduce(
+                (acc, domain) => {
+                  acc[domain.primaryClassCd] = domain;
+                  return acc;
+                },
+                {} as Record<string, (typeof primaryClassCdObjectData)[string]>,
+              )}
             assessmentName={
               Assessments[state.selectedAssessment as keyof typeof Assessments]
                 ?.text || state.selectedAssessment

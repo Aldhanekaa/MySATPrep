@@ -217,7 +217,11 @@ export function AnsweredTab({ selectedAssessment }: AnsweredTabProps) {
           throw new Error(`Failed to fetch question: ${response.status}`);
         }
 
-        const result = await response.json();
+        const result = (await response.json()) as {
+          success: boolean;
+          data?: QuestionById_Data;
+          message?: string;
+        };
 
         if (result.success && result.data) {
           return result.data;

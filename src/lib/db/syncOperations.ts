@@ -30,6 +30,7 @@ export async function syncUserData(
     preferencesMigrated: false,
     notesMigrated: false,
     answerHistoryMigrated: false,
+    practicePerformanceMigrated: false,
   };
 
   try {

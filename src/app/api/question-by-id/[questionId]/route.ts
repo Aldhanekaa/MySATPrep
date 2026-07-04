@@ -6,6 +6,7 @@ import {
   DomainItemsArray,
   API_Response_Question_List,
   StatsAPIErrorResponse,
+  QuestionById_Response,
 } from "@/types";
 import { fetchQuestionData } from "@/lib/questionFetcher";
 
@@ -151,7 +152,10 @@ export async function GET(
     }
 
     if (!response.ok) {
-      const errorData = await response.json();
+      const errorData = (await response.json()) as {
+        error?: string;
+        details?: string;
+      };
       return NextResponse.json(
         {
           success: false,
@@ -162,7 +166,7 @@ export async function GET(
       );
     }
 
-    const data = await response.json();
+    const data = (await response.json()) as QuestionById_Response;
 
     return NextResponse.json(
       {

@@ -32,7 +32,7 @@ export async function fetchCbJwtToken(): Promise<{
     };
   }
 
-  const data = await response.json();
+  const data = (await response.json()) as { cbJwtToken?: string };
   return {
     cbJwtToken: data["cbJwtToken"] ?? null,
     status: 200,

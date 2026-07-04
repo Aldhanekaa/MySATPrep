@@ -12,6 +12,7 @@ import type {
   PlainQuestionType,
 } from "@/types";
 import type { PracticePerformanceData } from "@/types/vocabulary";
+import type { QuestionNotes } from "@/types/questionNotes";
 
 // Saved question with database fields
 export interface SavedQuestion {

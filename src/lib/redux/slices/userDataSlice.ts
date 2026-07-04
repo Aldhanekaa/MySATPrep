@@ -47,7 +47,11 @@ export const fetchUserData = createAsyncThunk<UserData | null, void>(
         throw new Error(`Failed to fetch user data: ${response.status}`);
       }
 
-      const json = await response.json();
+      const json = (await response.json()) as {
+        data?: unknown;
+        summary?: unknown;
+        error?: string;
+      };
       return (json.data as UserData) ?? null;
     } catch (error) {
       return rejectWithValue(
@@ -78,13 +82,19 @@ export const updateUserProfile = createAsyncThunk<
     }
 
     if (!response.ok) {
-      const json = await response.json().catch(() => ({}));
+      const json = (await response.json().catch(() => ({}))) as {
+        error?: string;
+      };
       throw new Error(
         json.error ?? `Failed to update profile: ${response.status}`,
       );
     }
 
-    const json = await response.json();
+    const json = (await response.json()) as {
+      data?: unknown;
+      summary?: unknown;
+      error?: string;
+    };
     return json.data as UserProfileWithHistory;
   } catch (error) {
     return rejectWithValue(
@@ -116,13 +126,19 @@ export const updateUserStatistics = createAsyncThunk<
       }
 
       if (!response.ok) {
-        const json = await response.json().catch(() => ({}));
+        const json = (await response.json().catch(() => ({}))) as {
+          error?: string;
+        };
         throw new Error(
           json.error ?? `Failed to update statistics: ${response.status}`,
         );
       }
 
-      const json = await response.json();
+      const json = (await response.json()) as {
+        data?: unknown;
+        summary?: unknown;
+        error?: string;
+      };
       return json.data as PracticeStatistics;
     } catch (error) {
       return rejectWithValue(
@@ -157,13 +173,19 @@ export const createSession = createAsyncThunk<PracticeSession, PracticeSession>(
       }
 
       if (!response.ok) {
-        const json = await response.json().catch(() => ({}));
+        const json = (await response.json().catch(() => ({}))) as {
+          error?: string;
+        };
         throw new Error(
           json.error ?? `Failed to create session: ${response.status}`,
         );
       }
 
-      const json = await response.json();
+      const json = (await response.json()) as {
+        data?: unknown;
+        summary?: unknown;
+        error?: string;
+      };
       return json.data as PracticeSession;
     } catch (error) {
       return rejectWithValue(
@@ -196,13 +218,19 @@ export const updateSessionThunk = createAsyncThunk<
       }
 
       if (!response.ok) {
-        const json = await response.json().catch(() => ({}));
+        const json = (await response.json().catch(() => ({}))) as {
+          error?: string;
+        };
         throw new Error(
           json.error ?? `Failed to update session: ${response.status}`,
         );
       }
 
-      const json = await response.json();
+      const json = (await response.json()) as {
+        data?: unknown;
+        summary?: unknown;
+        error?: string;
+      };
       return json.data as PracticeSession;
     } catch (error) {
       return rejectWithValue(
@@ -233,13 +261,19 @@ export const addBookmarkThunk = createAsyncThunk<
     }
 
     if (!response.ok) {
-      const json = await response.json().catch(() => ({}));
+      const json = (await response.json().catch(() => ({}))) as {
+        error?: string;
+      };
       throw new Error(
         json.error ?? `Failed to add bookmark: ${response.status}`,
       );
     }
 
-    const json = await response.json();
+    const json = (await response.json()) as {
+      data?: unknown;
+      summary?: unknown;
+      error?: string;
+    };
     return json.data as SavedQuestion;
   } catch (error) {
     return rejectWithValue(
@@ -266,7 +300,9 @@ export const removeBookmarkThunk = createAsyncThunk<string, string>(
       }
 
       if (!response.ok) {
-        const json = await response.json().catch(() => ({}));
+        const json = (await response.json().catch(() => ({}))) as {
+          error?: string;
+        };
         throw new Error(
           json.error ?? `Failed to remove bookmark: ${response.status}`,
         );
@@ -302,13 +338,19 @@ export const createCollection = createAsyncThunk<
     }
 
     if (!response.ok) {
-      const json = await response.json().catch(() => ({}));
+      const json = (await response.json().catch(() => ({}))) as {
+        error?: string;
+      };
       throw new Error(
         json.error ?? `Failed to create collection: ${response.status}`,
       );
     }
 
-    const json = await response.json();
+    const json = (await response.json()) as {
+      data?: unknown;
+      summary?: unknown;
+      error?: string;
+    };
     return json.data as SavedCollection;
   } catch (error) {
     return rejectWithValue(
@@ -340,13 +382,19 @@ export const updateCollectionThunk = createAsyncThunk<
       }
 
       if (!response.ok) {
-        const json = await response.json().catch(() => ({}));
+        const json = (await response.json().catch(() => ({}))) as {
+          error?: string;
+        };
         throw new Error(
           json.error ?? `Failed to update collection: ${response.status}`,
         );
       }
 
-      const json = await response.json();
+      const json = (await response.json()) as {
+        data?: unknown;
+        summary?: unknown;
+        error?: string;
+      };
       return json.data as SavedCollection;
     } catch (error) {
       return rejectWithValue(
@@ -374,7 +422,9 @@ export const deleteCollection = createAsyncThunk<string, string>(
       }
 
       if (!response.ok) {
-        const json = await response.json().catch(() => ({}));
+        const json = (await response.json().catch(() => ({}))) as {
+          error?: string;
+        };
         throw new Error(
           json.error ?? `Failed to delete collection: ${response.status}`,
         );
@@ -410,13 +460,19 @@ export const updateVocabularyThunk = createAsyncThunk<
     }
 
     if (!response.ok) {
-      const json = await response.json().catch(() => ({}));
+      const json = (await response.json().catch(() => ({}))) as {
+        error?: string;
+      };
       throw new Error(
         json.error ?? `Failed to update vocabulary: ${response.status}`,
       );
     }
 
-    const json = await response.json();
+    const json = (await response.json()) as {
+      data?: unknown;
+      summary?: unknown;
+      error?: string;
+    };
     return json.data as VocabularyProgress;
   } catch (error) {
     return rejectWithValue(
@@ -448,13 +504,19 @@ export const updatePreferencesThunk = createAsyncThunk<
       }
 
       if (!response.ok) {
-        const json = await response.json().catch(() => ({}));
+        const json = (await response.json().catch(() => ({}))) as {
+          error?: string;
+        };
         throw new Error(
           json.error ?? `Failed to update preferences: ${response.status}`,
         );
       }
 
-      const json = await response.json();
+      const json = (await response.json()) as {
+        data?: unknown;
+        summary?: unknown;
+        error?: string;
+      };
       return json.data as UserPreferences;
     } catch (error) {
       return rejectWithValue(
@@ -588,11 +650,17 @@ export const migrateLocalStorageData = createAsyncThunk<MigrationSummary, void>(
       }
 
       if (!response.ok) {
-        const json = await response.json().catch(() => ({}));
+        const json = (await response.json().catch(() => ({}))) as {
+          error?: string;
+        };
         throw new Error(json.error ?? `Migration failed: ${response.status}`);
       }
 
-      const json = await response.json();
+      const json = (await response.json()) as {
+        data?: unknown;
+        summary?: unknown;
+        error?: string;
+      };
       const summary = json.summary as MigrationSummary;
 
       // After successful migration, refresh user data from the database
@@ -988,11 +1056,17 @@ export const syncLocalStorageData = createAsyncThunk<
       }
 
       if (!response.ok) {
-        const json = await response.json().catch(() => ({}));
+        const json = (await response.json().catch(() => ({}))) as {
+          error?: string;
+        };
         throw new Error(json.error ?? `Sync failed: ${response.status}`);
       }
 
-      const json = await response.json();
+      const json = (await response.json()) as {
+        data?: unknown;
+        summary?: unknown;
+        error?: string;
+      };
       const summary = json.summary as MigrationSummary;
 
       // After successful sync, refresh user data from the database
@@ -1051,11 +1125,17 @@ export const batchUpdateUserData = createAsyncThunk<
     }
 
     if (!response.ok) {
-      const json = await response.json().catch(() => ({}));
+      const json = (await response.json().catch(() => ({}))) as {
+        error?: string;
+      };
       throw new Error(json.error ?? `Batch update failed: ${response.status}`);
     }
 
-    const json = await response.json();
+    const json = (await response.json()) as {
+      data?: unknown;
+      summary?: unknown;
+      error?: string;
+    };
     return json.data as BatchUpdateResult;
   } catch (error) {
     return rejectWithValue(
@@ -1081,7 +1161,9 @@ export const fetchSessions = createAsyncThunk<PracticeSession[], void>(
       if (response.status === 401) return rejectWithValue("Unauthorized");
       if (!response.ok)
         throw new Error(`Failed to fetch sessions: ${response.status}`);
-      const json = await response.json();
+      const json = (await response.json()) as {
+        data?: { sessions?: PracticeSession[] };
+      };
       return (json.data?.sessions ?? []) as PracticeSession[];
     } catch (error) {
       return rejectWithValue(
@@ -1107,7 +1189,9 @@ export const fetchBookmarksAndCollections = createAsyncThunk<
     if (response.status === 401) return rejectWithValue("Unauthorized");
     if (!response.ok)
       throw new Error(`Failed to fetch bookmarks: ${response.status}`);
-    const json = await response.json();
+    const json = (await response.json()) as {
+      data?: { bookmarks?: SavedQuestion[]; collections?: SavedCollection[] };
+    };
     return {
       bookmarks: (json.data?.bookmarks ?? []) as SavedQuestion[],
       collections: (json.data?.collections ?? []) as SavedCollection[],
@@ -1135,7 +1219,9 @@ export const fetchVocabulary = createAsyncThunk<
     if (response.status === 401) return rejectWithValue("Unauthorized");
     if (!response.ok)
       throw new Error(`Failed to fetch vocabulary: ${response.status}`);
-    const json = await response.json();
+    const json = (await response.json()) as {
+      data?: { vocabulary?: VocabularyProgress };
+    };
     return (json.data?.vocabulary ?? null) as VocabularyProgress | null;
   } catch (error) {
     return rejectWithValue(
@@ -1159,7 +1245,9 @@ export const fetchAnswerHistory = createAsyncThunk<AnswerHistory | null, void>(
       if (response.status === 401) return rejectWithValue("Unauthorized");
       if (!response.ok)
         throw new Error(`Failed to fetch answer history: ${response.status}`);
-      const json = await response.json();
+      const json = (await response.json()) as {
+        data?: { answerHistory?: AnswerHistory };
+      };
       return (json.data?.answerHistory ?? null) as AnswerHistory | null;
     } catch (error) {
       return rejectWithValue(
@@ -1188,7 +1276,11 @@ export const fetchNotes = createAsyncThunk<QuestionNotes | null, void>(
       if (response.status === 401) return rejectWithValue("Unauthorized");
       if (!response.ok)
         throw new Error(`Failed to fetch notes: ${response.status}`);
-      const json = await response.json();
+      const json = (await response.json()) as {
+        data?: unknown;
+        summary?: unknown;
+        error?: string;
+      };
       return (json.data ?? null) as QuestionNotes | null;
     } catch (error) {
       return rejectWithValue(
@@ -1216,7 +1308,9 @@ export const fetchVocabPracticePerformance = createAsyncThunk<
       throw new Error(
         `Failed to fetch vocab practice performance: ${response.status}`,
       );
-    const json = await response.json();
+    const json = (await response.json()) as {
+      data?: { performance?: PracticePerformanceData };
+    };
     return (json.data?.performance ?? null) as PracticePerformanceData | null;
   } catch (error) {
     return rejectWithValue(
@@ -1247,15 +1341,19 @@ export const updateVocabPracticePerformanceThunk = createAsyncThunk<
       if (response.status === 401) throw new Error("Unauthorized");
 
       if (!response.ok) {
-        const json = await response.json().catch(() => ({}));
+        const json = (await response.json().catch(() => ({}))) as {
+          error?: string;
+        };
         throw new Error(
           json.error ??
             `Failed to update vocab practice performance: ${response.status}`,
         );
       }
 
-      const json = await response.json();
-      return json.data.performance as PracticePerformanceData;
+      const json = (await response.json()) as {
+        data?: { performance?: PracticePerformanceData };
+      };
+      return json.data?.performance as PracticePerformanceData;
     } catch (error) {
       return rejectWithValue(
         error instanceof Error

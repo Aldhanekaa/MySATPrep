@@ -302,7 +302,13 @@ export function MigrationChecker() {
           return;
         }
 
-        const json = await response.json();
+        const json = (await response.json()) as {
+          data?: Parameters<typeof isDatabaseEmpty>[0] & {
+            sessions?: unknown[];
+            bookmarks?: unknown[];
+            collections?: unknown[];
+          };
+        };
         const userData = json.data;
 
         if (!userData) return;

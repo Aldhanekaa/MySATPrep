@@ -2,7 +2,7 @@ import { QuestionById_Data } from "@/types/question";
 
 // Fetch question data from API (memoized)
 export const fetchQuestionData = async (
-  questionId: string
+  questionId: string,
 ): Promise<QuestionById_Data | null> => {
   try {
     const response = await fetch(`/api/question-by-id/${questionId}`);
@@ -11,7 +11,11 @@ export const fetchQuestionData = async (
       throw new Error(`Failed to fetch question: ${response.status}`);
     }
 
-    const result = await response.json();
+    const result = (await response.json()) as {
+      success: boolean;
+      data?: QuestionById_Data;
+      message?: string;
+    };
 
     if (result.success && result.data) {
       return result.data;
