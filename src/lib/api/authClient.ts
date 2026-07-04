@@ -5,6 +5,7 @@
  * Validates: Requirements 2.1, 2.2, 3.1, 3.2, 17.1
  */
 
+import { cloudflareClient } from "better-auth-cloudflare/client";
 import { createAuthClient } from "better-auth/react";
 import type {
   LoginCredentials,
@@ -15,6 +16,7 @@ import type {
 // Initialize the Better Auth client
 const authClient = createAuthClient({
   baseURL: process.env.NEXT_PUBLIC_BASE_URL,
+  plugins: [cloudflareClient()],
 });
 
 /**
