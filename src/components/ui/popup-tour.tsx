@@ -17,20 +17,12 @@ import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
 import { Logo } from "../logo";
 import PlatformAnnouncementBanner from "@/src/platform-announcement-banner.png";
-import LastAnnouncementBanner from "@/src/last-announcement-banner.png";
-import Insights from "@/src/insights.png";
+import ImportData from "@/src/ImportData.png";
 
-import NewDashboard from "@/src/new-dashboard.png";
-import QuestionbankDemo from "@/src/questionbank-demo.gif";
-import AdvancedFilterDemo from "@/src/advanced-filter-demo.gif";
-import QB_Custom_demo from "@/src/questionbank-custom-demo.gif";
+import FeatureAnnouncement from "@/src/fourthJuly.png";
+import SignInMethod from "@/src/SignInMethod.png";
 
-import QB_Tracker from "@/src/qb-tracker.png";
-import Vocabs_Tracker from "@/src/vocabs-tracker.png";
-import Vocabs_Flashcard from "@/src/vocabs-flashcard.png";
-import Vocabs_Practice from "@/src/vocabs-practice.png";
-import Vocabs_AI from "@/src/sat-vocab-ai-demo.gif";
-import BookmarkFolder from "@/src/bookmark-folder.gif";
+import SyncDataAcrossDevices from "@/src/SyncDataAcrossDevices.png";
 
 export default function Dialog02() {
   const [step, setStep] = useState(0);
@@ -45,75 +37,28 @@ export default function Dialog02() {
       image: PlatformAnnouncementBanner,
     },
     {
-      title: "New Dashboard Design",
+      title: "You Can Now Sign In With Google or Email",
       description:
         "The dashboard has been redesigned to provide more intuitive and user-friendly experience for mobile, tablet, and desktop users.",
-      image: NewDashboard,
+      image: FeatureAnnouncement,
     },
     {
-      title: "Personalized Insights & Statistics",
+      title: "Choose Your Preferred Sign In Method!",
+      description:
+        "The dashboard has been redesigned to provide more intuitive and user-friendly experience for mobile, tablet, and desktop users.",
+      image: SignInMethod,
+    },
+    {
+      title: "Import Your Local Browser Data to Cloud!",
       description:
         "You can get personalized insights and statistics based on your performance on each subject's topics.",
-      image: Insights,
+      image: ImportData,
     },
     {
-      title: "Bookmark Questions with Folders",
+      title: "Sync Data Across Devices",
       description:
         "You can now bookmark questions and organize them with folders.",
-      image: BookmarkFolder,
-    },
-    {
-      title: "Questionbank Page is Here",
-      description:
-        "We just added a new Question Bank page like in Collegeboard. Yup, it directly fetches from Collegeboard's Question Bank collections.",
-      image: QuestionbankDemo,
-    },
-    {
-      title: "Questionbank Custom Look",
-      description:
-        "You can even choose the UI of question bank to be in list view or slide, whichever you prefer.",
-      image: QB_Custom_demo,
-    },
-    {
-      title: "Questionbank Advanced Filters",
-      description:
-        "We have more filter options to help you narrow down your search and find exactly what you're looking for in the question bank. You can even know what the latest questions that just added by the Collegeboard.",
-      image: AdvancedFilterDemo,
-    },
-    {
-      title: "Questionbank Tracker",
-      description:
-        "You can now track your collegeboard's question bank progress thoroughly within this platform.",
-      image: QB_Tracker,
-    },
-
-    {
-      title: "SAT Vocab is Here",
-      description: `Learn more than 800+ SAT vocab words compiled from various sources.`,
-      image: Vocabs_Tracker,
-    },
-    {
-      title: "Learn 800+ Vocabs with Flashcards",
-      description:
-        "Practice & learn more than 800+ SAT vocab words with flashcards. Data saved locally within your browser's localstorage.",
-      image: Vocabs_Flashcard,
-    },
-    {
-      title: "Practice 800+ Vocabs",
-      description: `Practice with various modes to help you memorize the words better.`,
-      image: Vocabs_Practice,
-    },
-    {
-      title: "Practice Vocabs with AI",
-      description:
-        "We use deepseek to help you do personalized practice with SAT Vocabs and most importantly instant feedback from AI!",
-      image: Vocabs_AI,
-    },
-    {
-      title: "Lastly, it's all free, forever!",
-      description:
-        "Yes, you heard that right! PracticeSAT is will be completely free to use, now and always. Our platform is ad-free and will remain so, it's also open source btw. ",
-      image: LastAnnouncementBanner,
+      image: SyncDataAcrossDevices,
     },
   ];
 
@@ -159,7 +104,7 @@ export default function Dialog02() {
           "max-w-3xl p-0 overflow-hidden rounded-xl border shadow-2xl",
           "bg-white text-black",
           "dark:bg-black dark:text-white dark:border-neutral-800",
-          "data-[state=open]:animate-none data-[state=closed]:animate-none max-h-[80vh] overflow-y-auto"
+          "data-[state=open]:animate-none data-[state=closed]:animate-none max-h-[80vh] overflow-y-auto",
         )}
       >
         <div className="flex flex-col md:flex-row w-full h-full">
@@ -185,7 +130,7 @@ export default function Dialog02() {
                       "flex items-center gap-2 text-sm transition cursor-pointer",
                       index === step
                         ? "font-semibold"
-                        : "opacity-60 hover:opacity-100"
+                        : "opacity-60 hover:opacity-100",
                     )}
                     onClick={() => setStep(index)}
                   >
