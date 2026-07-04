@@ -16,11 +16,6 @@ export const config = {
   REVALIDATE_MEDIUM,
 };
 
-// Re-export pg Pool for use in API routes and db operations
+// Re-export Pool for use in API routes and db operations
 // Validates: Requirements 1.3, 18.7
 export { pool };
-
-// Handle connection errors
-pool.on("error", (err) => {
-  console.error("Unexpected PostgreSQL pool error:", err);
-});

@@ -1,36 +1,33 @@
 /**
  * Better Auth Configuration
  *
- * Configures Better Auth with PostgreSQL, Google OAuth, and email/password authentication
+ * Configures Better Auth with PostgreSQL, Google OAuth, and email/password authentication.
+ *
+ * Uses @neondatabase/serverless instead of `pg` so that database connections
+ * work in the Cloudflare Workers runtime (which has no Node.js TCP sockets).
+ * The Neon serverless driver uses HTTP/WebSocket, both of which are available
+ * in Workers.
  */
 
 import { betterAuth } from "better-auth";
-import { Pool } from "pg";
+import { Pool, neonConfig } from "@neondatabase/serverless";
+import ws from "ws";
 import { env } from "./config/env";
 
-// Strip SSL-related params that conflict with the `ssl` option object in pg.
-// When sslmode/channel_binding are present in the URL, pg's connection-string
-// parser overrides the `ssl` option, preventing proper certificate verification.
-function stripSslParams(url: string): string {
-  return url
-    .replace(/[?&]sslmode=[^&]*/g, "")
-    .replace(/[?&]channel_binding=[^&]*/g, "")
-    .replace(/&&/g, "&")
-    .replace(/\?&/, "?")
-    .replace(/[?&]$/, "");
+// Use the `ws` package as the WebSocket implementation when running outside
+// the browser (i.e. in Node.js during `next dev`) so the Neon serverless
+// driver can open WebSocket connections.  In the Cloudflare Workers runtime
+// the global `WebSocket` is already available, so this is only needed locally.
+if (typeof WebSocket === "undefined") {
+  neonConfig.webSocketConstructor = ws;
 }
 
 /**
  * Application query pool — uses the Neon pooler endpoint (PgBouncer).
- * This is the pool used for all user-facing DB queries. The pooler can
- * handle many concurrent connections without exhausting Postgres limits.
+ * Uses @neondatabase/serverless Pool which works in Cloudflare Workers via WebSocket.
  */
 const pool = new Pool({
-  connectionString: stripSslParams(env.DATABASE_URL),
-  ssl: { rejectUnauthorized: false },
-  max: 10,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 15000,
+  connectionString: env.DATABASE_URL,
 });
 
 /**
@@ -39,11 +36,7 @@ const pool = new Pool({
  * with PgBouncer's transaction-mode pooling, so it needs a direct connection.
  */
 const authPool = new Pool({
-  connectionString: stripSslParams(env.DATABASE_URL_UNPOOLED),
-  ssl: { rejectUnauthorized: false },
-  max: 3,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 15000,
+  connectionString: env.DATABASE_URL_UNPOOLED,
 });
 
 console.log(
