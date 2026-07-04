@@ -1,8 +1,7 @@
 import React, { useCallback, useEffect, useReducer } from "react";
 import { Button } from "@/components/ui/button";
 import { AssessmentWorkspace } from "@/app/dashboard/types";
-import { useLocalStorage } from "@/lib/useLocalStorage";
-import { PracticeStatistics } from "@/types/statistics";
+import { useResolvedPracticeStatistics } from "@/hooks/use-resolved-user-data";
 import { QuestionById_Data } from "@/types/question";
 import { Card, CardContent } from "@/components/ui/card-v2";
 import { Badge } from "../ui/badge";
@@ -87,7 +86,7 @@ function questionsReducer(state: State, action: Action): State {
     case "INITIALIZE":
       const sortedQuestions = [...action.payload].sort(
         (a, b) =>
-          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
       );
       const initialQuestions = sortedQuestions.slice(0, 15).map((q) => ({
         ...q,
@@ -108,14 +107,14 @@ function questionsReducer(state: State, action: Action): State {
       return {
         ...state,
         questionsWithData: state.questionsWithData.map((q, i) =>
-          i === action.payload.index ? { ...q, ...action.payload.question } : q
+          i === action.payload.index ? { ...q, ...action.payload.question } : q,
         ),
       };
 
     case "LOAD_MORE":
       const nextCount = Math.min(
         state.displayedQuestionsCount + 15,
-        state.allAnsweredQuestions.length
+        state.allAnsweredQuestions.length,
       );
       const newQuestions = state.allAnsweredQuestions
         .slice(state.displayedQuestionsCount, nextCount)
@@ -176,7 +175,7 @@ function questionsReducer(state: State, action: Action): State {
                 hasError: false,
                 errorMessage: undefined,
               }
-            : q
+            : q,
         ),
       };
 
@@ -186,11 +185,7 @@ function questionsReducer(state: State, action: Action): State {
 }
 
 export function AnsweredTab({ selectedAssessment }: AnsweredTabProps) {
-  // Load practice statistics from localStorage
-  const [practiceStatistics] = useLocalStorage<PracticeStatistics>(
-    "practiceStatistics",
-    {}
-  );
+  const practiceStatistics = useResolvedPracticeStatistics();
 
   const [state, dispatch] = useReducer(questionsReducer, initialState);
   const loadMoreRef = React.useRef<HTMLDivElement>(null);
@@ -209,7 +204,7 @@ export function AnsweredTab({ selectedAssessment }: AnsweredTabProps) {
 
       return assessmentMap[assessment.name] || "SAT";
     },
-    []
+    [],
   );
 
   // Fetch question data from API
@@ -222,7 +217,11 @@ export function AnsweredTab({ selectedAssessment }: AnsweredTabProps) {
           throw new Error(`Failed to fetch question: ${response.status}`);
         }
 
-        const result = await response.json();
+        const result = (await response.json()) as {
+          success: boolean;
+          data?: QuestionById_Data;
+          message?: string;
+        };
 
         if (result.success && result.data) {
           return result.data;
@@ -234,7 +233,7 @@ export function AnsweredTab({ selectedAssessment }: AnsweredTabProps) {
         throw error;
       }
     },
-    []
+    [],
   );
 
   // Retry function for failed questions
@@ -271,7 +270,7 @@ export function AnsweredTab({ selectedAssessment }: AnsweredTabProps) {
             question.isLoading &&
             !question.questionData &&
             !question.hasError &&
-            !state.fetchedQuestionIds.has(question.questionId)
+            !state.fetchedQuestionIds.has(question.questionId),
         );
 
       if (questionsToFetch.length === 0) return;
@@ -361,7 +360,7 @@ export function AnsweredTab({ selectedAssessment }: AnsweredTabProps) {
           loadMoreQuestions();
         }
       },
-      { threshold: 0.1 }
+      { threshold: 0.1 },
     );
 
     observer.observe(currentLoadMoreRef);
@@ -383,7 +382,7 @@ export function AnsweredTab({ selectedAssessment }: AnsweredTabProps) {
   // Calculate statistics from all answered questions, not just displayed ones
   const totalQuestions = state.allAnsweredQuestions.length;
   const correctQuestions = state.allAnsweredQuestions.filter(
-    (q) => q.isCorrect
+    (q) => q.isCorrect,
   ).length;
   const accuracy =
     totalQuestions > 0
@@ -475,8 +474,8 @@ export function AnsweredTab({ selectedAssessment }: AnsweredTabProps) {
                   state.filterValue == "all"
                     ? ListFilterIcon
                     : state.filterValue == "correct"
-                    ? CheckIcon
-                    : CircleOffIcon
+                      ? CheckIcon
+                      : CircleOffIcon
                 }
                 className="w-full lg:w-[80%] bg-background"
               >
@@ -505,8 +504,8 @@ export function AnsweredTab({ selectedAssessment }: AnsweredTabProps) {
                   state.filterSubject === "all"
                     ? ListFilterIcon
                     : state.filterSubject == "math"
-                    ? SigmaIcon
-                    : PencilRuler
+                      ? SigmaIcon
+                      : PencilRuler
                 }
                 className="w-full lg:w-[80%] bg-background"
               >
@@ -547,7 +546,7 @@ export function AnsweredTab({ selectedAssessment }: AnsweredTabProps) {
                 if (
                   state.filterSubject === "math" &&
                   mathDomains.includes(
-                    question.questionData?.question.primary_class_cd
+                    question.questionData?.question.primary_class_cd,
                   )
                 ) {
                   return true;
@@ -556,7 +555,7 @@ export function AnsweredTab({ selectedAssessment }: AnsweredTabProps) {
                 if (
                   state.filterSubject === "reading" &&
                   rwDomains.includes(
-                    question.questionData?.question.primary_class_cd
+                    question.questionData?.question.primary_class_cd,
                   )
                 ) {
                   return true;

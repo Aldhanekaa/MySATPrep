@@ -2,7 +2,7 @@
 import { AnsweredTab } from "@/components/dashboard";
 import { useAssessment } from "@/contexts/assessment-context";
 
-export default function SessionsPage() {
+export default function AnsweredPage() {
   const { state } = useAssessment();
 
   return (

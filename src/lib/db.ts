@@ -1,4 +1,5 @@
 import { neon } from "@neondatabase/serverless";
+import { pool } from "@/lib/auth";
 
 const databaseUrl = process.env.DATABASE_URL || process.env.NEON_DATABASE_URL;
 
@@ -14,3 +15,7 @@ export const config = {
   REVALIDATE_LONG,
   REVALIDATE_MEDIUM,
 };
+
+// Re-export Pool for use in API routes and db operations
+// Validates: Requirements 1.3, 18.7
+export { pool };

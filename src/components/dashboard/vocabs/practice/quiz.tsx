@@ -1,7 +1,10 @@
 "use client";
 
 import React, { useReducer, useEffect, useMemo } from "react";
-import { useLocalStorage } from "@/lib/useLocalStorage";
+import {
+  useResolvedVocabsData,
+  useResolvedPracticePerformanceData,
+} from "@/hooks/use-resolved-user-data";
 import {
   vocabs_database,
   VocabsData,
@@ -192,32 +195,16 @@ export default function VocabsQuizPractice({
   // Quiz state managed by reducer
   const [quizState, dispatch] = useReducer(quizReducer, initialQuizState);
 
-  // Use the useLocalStorage hook
-  const [vocabsData, setVocabsData] = useLocalStorage<VocabsData>(
-    "vocabsData",
-    {
-      learntVocabs: [],
-      userSentences: {},
-    }
-  );
+  const [vocabsData, setVocabsData] = useResolvedVocabsData();
 
-  // Practice performance tracking
+  // Practice performance tracking — authenticated: cloud (Redux/API), unauthenticated: localStorage
   const [practicePerformance, setPracticePerformance] =
-    useLocalStorage<PracticePerformanceData>("practicePerformanceData", {
-      attempts: [],
-      wordPerformance: {},
-      lastUpdated: Date.now(),
-      totalQuizzesTaken: 0,
-      overallAccuracy: 0,
-      strongWords: [],
-      weakWords: [],
-      improvingWords: [],
-    });
+    useResolvedPracticePerformanceData();
 
   // Get learned vocabulary words
   const learnedWords = useMemo(() => {
     return vocabs_database.filter((word) =>
-      vocabsData.learntVocabs.includes(word.word)
+      vocabsData.learntVocabs.includes(word.word),
     );
   }, [vocabsData.learntVocabs]);
 
@@ -262,7 +249,7 @@ export default function VocabsQuizPractice({
     // Shuffle each category separately
     Object.keys(categorizedWords).forEach((key) => {
       categorizedWords[key as keyof typeof categorizedWords].sort(
-        () => Math.random() - 0.5
+        () => Math.random() - 0.5,
       );
     });
 
@@ -278,7 +265,7 @@ export default function VocabsQuizPractice({
     return prioritizedWords.map((word) => {
       // First, try to get wrong answers with the same part of speech
       const samePartOfSpeechWords = vocabs_database.filter(
-        (w) => w.word !== word.word && w.part_of_speech === word.part_of_speech
+        (w) => w.word !== word.word && w.part_of_speech === word.part_of_speech,
       );
 
       let wrongAnswers: string[] = [];
@@ -296,7 +283,7 @@ export default function VocabsQuizPractice({
         const otherWords = vocabs_database
           .filter(
             (w) =>
-              w.word !== word.word && w.part_of_speech !== word.part_of_speech
+              w.word !== word.word && w.part_of_speech !== word.part_of_speech,
           )
           .sort(() => Math.random() - 0.5)
           .slice(0, 3 - samePoSAnswers.length)
@@ -307,7 +294,7 @@ export default function VocabsQuizPractice({
 
       // Create options array with correct answer
       const options = [word.definition, ...wrongAnswers].sort(
-        () => Math.random() - 0.5
+        () => Math.random() - 0.5,
       );
 
       return {
@@ -362,7 +349,7 @@ export default function VocabsQuizPractice({
   const calculateMasteryLevel = (
     correctAttempts: number,
     totalAttempts: number,
-    consecutiveCorrect: number
+    consecutiveCorrect: number,
   ): WordPerformance["masteryLevel"] => {
     if (totalAttempts === 0) return "learning";
 
@@ -378,58 +365,77 @@ export default function VocabsQuizPractice({
   const updateWordPerformance = (
     word: string,
     isCorrect: boolean,
-    timeSpent: number
+    timeSpent: number,
   ) => {
     setPracticePerformance((prevData) => {
-      const updatedData = { ...prevData };
-
-      // Create or update word performance
-      const wordPerf = updatedData.wordPerformance[word] || {
-        word,
-        totalAttempts: 0,
-        correctAttempts: 0,
-        incorrectAttempts: 0,
-        lastAttemptTimestamp: Date.now(),
-        averageTimeSpent: 0,
-        strugglingAreas: [],
-        masteryLevel: "learning" as const,
-        consecutiveCorrect: 0,
-        consecutiveIncorrect: 0,
-      };
+      // Deep-copy the specific word entry so we never mutate frozen Redux state
+      const prevWordPerf = prevData.wordPerformance[word];
+      const wordPerf: WordPerformance = prevWordPerf
+        ? {
+            ...prevWordPerf,
+            strugglingAreas: [...prevWordPerf.strugglingAreas],
+          }
+        : {
+            word,
+            totalAttempts: 0,
+            correctAttempts: 0,
+            incorrectAttempts: 0,
+            lastAttemptTimestamp: Date.now(),
+            averageTimeSpent: 0,
+            strugglingAreas: [],
+            masteryLevel: "learning" as const,
+            consecutiveCorrect: 0,
+            consecutiveIncorrect: 0,
+          };
 
       // Update statistics
-      wordPerf.totalAttempts++;
-      wordPerf.lastAttemptTimestamp = Date.now();
-
-      if (isCorrect) {
-        wordPerf.correctAttempts++;
-        wordPerf.consecutiveCorrect++;
-        wordPerf.consecutiveIncorrect = 0;
-      } else {
-        wordPerf.incorrectAttempts++;
-        wordPerf.consecutiveIncorrect++;
-        wordPerf.consecutiveCorrect = 0;
-
-        // Add to struggling areas if not already there
-        if (!wordPerf.strugglingAreas.includes("definition-quiz")) {
-          wordPerf.strugglingAreas.push("definition-quiz");
-        }
-      }
-
-      // Update average time spent
+      const newTotalAttempts = wordPerf.totalAttempts + 1;
+      const newCorrectAttempts = isCorrect
+        ? wordPerf.correctAttempts + 1
+        : wordPerf.correctAttempts;
+      const newIncorrectAttempts = isCorrect
+        ? wordPerf.incorrectAttempts
+        : wordPerf.incorrectAttempts + 1;
+      const newConsecutiveCorrect = isCorrect
+        ? wordPerf.consecutiveCorrect + 1
+        : 0;
+      const newConsecutiveIncorrect = isCorrect
+        ? 0
+        : wordPerf.consecutiveIncorrect + 1;
+      const newStrugglingAreas =
+        !isCorrect && !wordPerf.strugglingAreas.includes("definition-quiz")
+          ? ([
+              ...wordPerf.strugglingAreas,
+              "definition-quiz",
+            ] as WordPerformance["strugglingAreas"])
+          : wordPerf.strugglingAreas;
       const totalTime =
-        wordPerf.averageTimeSpent * (wordPerf.totalAttempts - 1) + timeSpent;
-      wordPerf.averageTimeSpent = totalTime / wordPerf.totalAttempts;
-
-      // Update mastery level
-      wordPerf.masteryLevel = calculateMasteryLevel(
-        wordPerf.correctAttempts,
-        wordPerf.totalAttempts,
-        wordPerf.consecutiveCorrect
+        wordPerf.averageTimeSpent * wordPerf.totalAttempts + timeSpent;
+      const newAverageTimeSpent = totalTime / newTotalAttempts;
+      const newMasteryLevel = calculateMasteryLevel(
+        newCorrectAttempts,
+        newTotalAttempts,
+        newConsecutiveCorrect,
       );
 
-      // Update word performance in data
-      updatedData.wordPerformance[word] = wordPerf;
+      const updatedWordPerf: WordPerformance = {
+        ...wordPerf,
+        totalAttempts: newTotalAttempts,
+        correctAttempts: newCorrectAttempts,
+        incorrectAttempts: newIncorrectAttempts,
+        lastAttemptTimestamp: Date.now(),
+        averageTimeSpent: newAverageTimeSpent,
+        consecutiveCorrect: newConsecutiveCorrect,
+        consecutiveIncorrect: newConsecutiveIncorrect,
+        strugglingAreas: newStrugglingAreas,
+        masteryLevel: newMasteryLevel,
+      };
+
+      // Build new wordPerformance map (shallow copy of the map + updated entry)
+      const updatedWordPerformance = {
+        ...prevData.wordPerformance,
+        [word]: updatedWordPerf,
+      };
 
       // Create quiz attempt record
       const attempt: QuizAttempt = {
@@ -443,36 +449,40 @@ export default function VocabsQuizPractice({
         difficulty: currentQuestion.word.difficulty,
       };
 
-      // Add attempt to history
-      updatedData.attempts.push(attempt);
+      // Build new attempts array (never mutate the frozen original)
+      const updatedAttempts = [...prevData.attempts, attempt];
 
-      // Update overall statistics
-      updatedData.lastUpdated = Date.now();
-      const totalCorrect = updatedData.attempts.filter(
-        (a) => a.isCorrect
-      ).length;
-      updatedData.overallAccuracy = totalCorrect / updatedData.attempts.length;
+      // Recalculate aggregate stats
+      const totalCorrect = updatedAttempts.filter((a) => a.isCorrect).length;
+      const overallAccuracy = totalCorrect / updatedAttempts.length;
 
-      // Categorize words based on performance
-      const allWords = Object.values(updatedData.wordPerformance);
-      updatedData.strongWords = allWords
+      // Categorize words
+      const allWords = Object.values(updatedWordPerformance);
+      const strongWords = allWords
         .filter(
           (w) =>
-            w.masteryLevel === "mastered" || w.masteryLevel === "proficient"
+            w.masteryLevel === "mastered" || w.masteryLevel === "proficient",
         )
         .map((w) => w.word);
-
-      updatedData.weakWords = allWords
+      const weakWords = allWords
         .filter((w) => w.masteryLevel === "struggling")
         .map((w) => w.word);
-
-      updatedData.improvingWords = allWords
+      const improvingWords = allWords
         .filter(
-          (w) => w.masteryLevel === "learning" && w.consecutiveCorrect > 0
+          (w) => w.masteryLevel === "learning" && w.consecutiveCorrect > 0,
         )
         .map((w) => w.word);
 
-      return updatedData;
+      return {
+        ...prevData,
+        wordPerformance: updatedWordPerformance,
+        attempts: updatedAttempts,
+        lastUpdated: Date.now(),
+        overallAccuracy,
+        strongWords,
+        weakWords,
+        improvingWords,
+      };
     });
   };
 
@@ -490,7 +500,7 @@ export default function VocabsQuizPractice({
     const isCorrect =
       quizState.selectedAnswer === currentQuestion.correctAnswer;
     const timeSpent = Math.round(
-      (Date.now() - quizState.questionStartTime) / 1000
+      (Date.now() - quizState.questionStartTime) / 1000,
     ); // Convert to seconds
 
     // Update quiz state
@@ -577,7 +587,7 @@ export default function VocabsQuizPractice({
   // Quiz complete screen
   if (quizState.isQuizComplete) {
     const percentage = Math.round(
-      (quizState.score / quizQuestions.length) * 100
+      (quizState.score / quizQuestions.length) * 100,
     );
 
     return (
@@ -601,8 +611,8 @@ export default function VocabsQuizPractice({
               {percentage >= 80
                 ? "Excellent work! You really know your vocabulary!"
                 : percentage >= 60
-                ? "Good job! Keep practicing to improve even more!"
-                : "Keep studying! Practice makes perfect!"}
+                  ? "Good job! Keep practicing to improve even more!"
+                  : "Keep studying! Practice makes perfect!"}
             </p>
           </div>
 
@@ -728,11 +738,11 @@ export default function VocabsQuizPractice({
                         ? shouldHighlight
                           ? "border-green-500 bg-green-50"
                           : isWrong
-                          ? "border-red-500 bg-red-50"
-                          : "border-gray-200 bg-gray-50"
+                            ? "border-red-500 bg-red-50"
+                            : "border-gray-200 bg-gray-50"
                         : isSelected
-                        ? "border-blue-500 bg-blue-50"
-                        : "border-gray-200 hover:border-blue-300 bg-white"
+                          ? "border-blue-500 bg-blue-50"
+                          : "border-gray-200 hover:border-blue-300 bg-white"
                     }`}
                   >
                     <div className="flex items-start gap-4">

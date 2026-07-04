@@ -63,43 +63,45 @@ export function News({ articles }: { articles: NewsArticle[] }) {
       data-active={cardCount !== 0}
     >
       <div className="relative size-full">
-        {cards.toReversed().map(({ id, href, title, summary, image }, idx) => (
-          <div
-            key={id}
-            className={cn(
-              "absolute left-0 top-0 size-full scale-[var(--scale)] transition-[opacity,transform] duration-200",
-              cardCount - idx > 3
-                ? [
-                    "opacity-0 sm:group-hover:translate-y-[var(--y)] sm:group-hover:opacity-[var(--opacity)]",
-                    "sm:group-has-[*[data-dragging=true]]:translate-y-[var(--y)] sm:group-has-[*[data-dragging=true]]:opacity-[var(--opacity)]",
-                  ]
-                : "translate-y-[var(--y)] opacity-[var(--opacity)]"
-            )}
-            style={
-              {
-                "--y": `-${(cardCount - (idx + 1)) * OFFSET_FACTOR}%`,
-                "--scale": 1 - (cardCount - (idx + 1)) * SCALE_FACTOR,
-                "--opacity":
-                  cardCount - (idx + 1) >= 6
-                    ? 0
-                    : 1 - (cardCount - (idx + 1)) * OPACITY_FACTOR,
-              } as React.CSSProperties
-            }
-            aria-hidden={idx !== cardCount - 1}
-          >
-            <NewsCard
-              title={title}
-              description={summary}
-              image={image}
-              href={href}
-              hideContent={cardCount - idx > 2}
-              active={idx === cardCount - 1}
-              onDismiss={() =>
-                setDismissedNews([id, ...dismissedNews.slice(0, 50)])
+        {[...cards]
+          .reverse()
+          .map(({ id, href, title, summary, image }, idx) => (
+            <div
+              key={id}
+              className={cn(
+                "absolute left-0 top-0 size-full scale-[var(--scale)] transition-[opacity,transform] duration-200",
+                cardCount - idx > 3
+                  ? [
+                      "opacity-0 sm:group-hover:translate-y-[var(--y)] sm:group-hover:opacity-[var(--opacity)]",
+                      "sm:group-has-[*[data-dragging=true]]:translate-y-[var(--y)] sm:group-has-[*[data-dragging=true]]:opacity-[var(--opacity)]",
+                    ]
+                  : "translate-y-[var(--y)] opacity-[var(--opacity)]",
+              )}
+              style={
+                {
+                  "--y": `-${(cardCount - (idx + 1)) * OFFSET_FACTOR}%`,
+                  "--scale": 1 - (cardCount - (idx + 1)) * SCALE_FACTOR,
+                  "--opacity":
+                    cardCount - (idx + 1) >= 6
+                      ? 0
+                      : 1 - (cardCount - (idx + 1)) * OPACITY_FACTOR,
+                } as React.CSSProperties
               }
-            />
-          </div>
-        ))}
+              aria-hidden={idx !== cardCount - 1}
+            >
+              <NewsCard
+                title={title}
+                description={summary}
+                image={image}
+                href={href}
+                hideContent={cardCount - idx > 2}
+                active={idx === cardCount - 1}
+                onDismiss={() =>
+                  setDismissedNews([id, ...dismissedNews.slice(0, 50)])
+                }
+              />
+            </div>
+          ))}
         <div className="pointer-events-none invisible" aria-hidden>
           <NewsCard title="Title" description="Description" />
         </div>
@@ -172,7 +174,7 @@ function NewsCard({
     // Dismiss card
     animation.current = ref.current.animate(
       { opacity: 0, transform: `translateX(${translateX}px)` },
-      { duration: 150, easing: "ease-in-out", fill: "forwards" }
+      { duration: 150, easing: "ease-in-out", fill: "forwards" },
     );
     animation.current.onfinish = () => onDismiss?.();
   };
@@ -191,7 +193,7 @@ function NewsCard({
     // Animate back to original position
     animation.current = ref.current.animate(
       { transform: "translateX(0)" },
-      { duration: 150, easing: "ease-in-out" }
+      { duration: 150, easing: "ease-in-out" },
     );
     animation.current.onfinish = () =>
       ref.current?.style.setProperty("--dx", "0");
@@ -244,7 +246,7 @@ function NewsCard({
       className={cn(
         "relative select-none gap-2 p-3 text-[0.8125rem]",
         "translate-x-[calc(var(--dx)*1px)] rotate-[calc(var(--dx)*0.05deg)] opacity-[calc(1-max(var(--dx),-1*var(--dx))/var(--w)/2)]",
-        "transition-shadow data-[dragging=true]:shadow-md"
+        "transition-shadow data-[dragging=true]:shadow-md",
       )}
       data-dragging={dragging}
       onPointerDown={onPointerDown}
@@ -274,7 +276,7 @@ function NewsCard({
         <div
           className={cn(
             "h-0 overflow-hidden opacity-0 transition-[height,opacity] duration-200",
-            "sm:group-has-[*[data-dragging=true]]:h-7 sm:group-has-[*[data-dragging=true]]:opacity-100 sm:group-hover:group-data-[active=true]:h-7 sm:group-hover:group-data-[active=true]:opacity-100"
+            "sm:group-has-[*[data-dragging=true]]:h-7 sm:group-has-[*[data-dragging=true]]:opacity-100 sm:group-hover:group-data-[active=true]:h-7 sm:group-hover:group-data-[active=true]:opacity-100",
           )}
         >
           <div className="flex items-center justify-between pt-3 text-xs">

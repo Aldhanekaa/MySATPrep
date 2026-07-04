@@ -175,7 +175,7 @@ export default function PracticeOnboarding({
         const domain = getSubjectDomains().find((d) => d.id === domainId);
         const domainSkillIds = domain?.skill?.map((skill) => skill.id) || [];
         setSelectedSkills((prevSkills) =>
-          prevSkills.filter((skillId) => !domainSkillIds.includes(skillId))
+          prevSkills.filter((skillId) => !domainSkillIds.includes(skillId)),
         );
         return prev.filter((id) => id !== domainId);
       } else {
@@ -265,10 +265,10 @@ export default function PracticeOnboarding({
         {step === 1
           ? "Choose Your Practice Method"
           : step === 2
-          ? "Choose Assessment"
-          : step === 3
-          ? "Choose Subject"
-          : "Choose Domains, Skills & Difficulty"}
+            ? "Choose Assessment"
+            : step === 3
+              ? "Choose Subject"
+              : "Choose Domains, Skills & Difficulty"}
       </motion.h1>
 
       <AnimatePresence mode="wait">
@@ -298,7 +298,7 @@ export default function PracticeOnboarding({
                   {items.map((item) => (
                     <label
                       key={`${id}-${item.value}`}
-                      className="w-full px-4 py-6 relative flex cursor-pointer flex-col items-center gap-3 rounded-2xl border-2 border-input text-center shadow-[0_4px_0_0_theme(colors.gray.300),0_8px_20px_theme(colors.gray.300/0.15)] hover:shadow-[0_6px_0_0_theme(colors.gray.400),0_10px_25px_theme(colors.gray.300/0.2)] outline-offset-2 transition-all duration-150 has-[[data-disabled]]:cursor-not-allowed has-[[data-state=checked]]:border-blue-500 has-[[data-state=checked]]:bg-blue-50 has-[[data-state=checked]]:shadow-[0_4px_0_0_theme(colors.blue.500),0_8px_20px_theme(colors.blue.500/0.25)] has-[[data-disabled]]:opacity-50 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-ring/70 active:shadow-[0_2px_0_0_theme(colors.gray.300),0_4px_10px_theme(colors.gray.300/0.15)] active:translate-y-0.5 has-[[data-state=checked]]:active:shadow-[0_2px_0_0_theme(colors.blue.500),0_4px_10px_theme(colors.blue.500/0.2)]"
+                      className="w-full px-4 py-6 relative flex cursor-pointer flex-col items-center gap-3 rounded-2xl border-2 border-input text-center shadow-[0_4px_0_0_theme(colors.gray.300),0_8px_20px_theme(colors.gray.300/0.15)] dark:shadow-[0_4px_0_0_theme(colors.neutral.600),0_8px_20px_theme(colors.neutral.900/0.3)] hover:shadow-[0_6px_0_0_theme(colors.gray.400),0_10px_25px_theme(colors.gray.300/0.2)] outline-offset-2 transition-all duration-150 has-[[data-disabled]]:cursor-not-allowed has-[[data-state=checked]]:border-blue-500 has-[[data-state=checked]]:bg-blue-50 dark:has-[[data-state=checked]]:bg-blue-950/40 has-[[data-state=checked]]:shadow-[0_4px_0_0_theme(colors.blue.500),0_8px_20px_theme(colors.blue.500/0.25)] has-[[data-disabled]]:opacity-50 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-ring/70 active:shadow-[0_2px_0_0_theme(colors.gray.300),0_4px_10px_theme(colors.gray.300/0.15)] active:translate-y-0.5 has-[[data-state=checked]]:active:shadow-[0_2px_0_0_theme(colors.blue.500),0_4px_10px_theme(colors.blue.500/0.2)]"
                     >
                       <RadioGroupItem
                         id={`${id}-${item.value}`}
@@ -361,7 +361,7 @@ export default function PracticeOnboarding({
                   {assessmentItems.map((item) => (
                     <label
                       key={`${id}-assessment-${item.value}`}
-                      className="w-full px-4 py-6 relative flex cursor-pointer flex-col items-center gap-3 rounded-2xl border-2 border-input text-center shadow-[0_4px_0_0_theme(colors.gray.300),0_8px_20px_theme(colors.gray.300/0.15)] hover:shadow-[0_6px_0_0_theme(colors.gray.400),0_10px_25px_theme(colors.gray.300/0.2)] outline-offset-2 transition-all duration-150 has-[[data-disabled]]:cursor-not-allowed has-[[data-state=checked]]:border-blue-500 has-[[data-state=checked]]:bg-blue-50 has-[[data-state=checked]]:shadow-[0_4px_0_0_theme(colors.blue.500),0_8px_20px_theme(colors.blue.500/0.25)] has-[[data-disabled]]:opacity-50 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-ring/70 active:shadow-[0_2px_0_0_theme(colors.gray.300),0_4px_10px_theme(colors.gray.300/0.15)] active:translate-y-0.5 has-[[data-state=checked]]:active:shadow-[0_2px_0_0_theme(colors.blue.500),0_4px_10px_theme(colors.blue.500/0.2)]"
+                      className="w-full px-4 py-6 relative flex cursor-pointer flex-col items-center gap-3 rounded-2xl border-2 border-input text-center shadow-[0_4px_0_0_theme(colors.gray.300),0_8px_20px_theme(colors.gray.300/0.15)] dark:shadow-[0_4px_0_0_theme(colors.neutral.600),0_8px_20px_theme(colors.neutral.900/0.3)] hover:shadow-[0_6px_0_0_theme(colors.gray.400),0_10px_25px_theme(colors.gray.300/0.2)] outline-offset-2 transition-all duration-150 has-[[data-disabled]]:cursor-not-allowed has-[[data-state=checked]]:border-blue-500 has-[[data-state=checked]]:bg-blue-50 dark:has-[[data-state=checked]]:bg-blue-950/40 has-[[data-state=checked]]:shadow-[0_4px_0_0_theme(colors.blue.500),0_8px_20px_theme(colors.blue.500/0.25)] has-[[data-disabled]]:opacity-50 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-ring/70 active:shadow-[0_2px_0_0_theme(colors.gray.300),0_4px_10px_theme(colors.gray.300/0.15)] active:translate-y-0.5 has-[[data-state=checked]]:active:shadow-[0_2px_0_0_theme(colors.blue.500),0_4px_10px_theme(colors.blue.500/0.2)]"
                     >
                       <RadioGroupItem
                         id={`${id}-assessment-${item.value}`}
@@ -432,7 +432,7 @@ export default function PracticeOnboarding({
                   {subjectItems.map((item) => (
                     <label
                       key={`${id}-subject-${item.value}`}
-                      className="w-full px-4 py-6 relative flex cursor-pointer flex-col items-center gap-3 rounded-2xl border-2 border-input text-center shadow-[0_4px_0_0_theme(colors.gray.300),0_8px_20px_theme(colors.gray.300/0.15)] hover:shadow-[0_6px_0_0_theme(colors.gray.400),0_10px_25px_theme(colors.gray.300/0.2)] outline-offset-2 transition-all duration-150 has-[[data-disabled]]:cursor-not-allowed has-[[data-state=checked]]:border-blue-500 has-[[data-state=checked]]:bg-blue-50 has-[[data-state=checked]]:shadow-[0_4px_0_0_theme(colors.blue.500),0_8px_20px_theme(colors.blue.500/0.25)] has-[[data-disabled]]:opacity-50 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-ring/70 active:shadow-[0_2px_0_0_theme(colors.gray.300),0_4px_10px_theme(colors.gray.300/0.15)] active:translate-y-0.5 has-[[data-state=checked]]:active:shadow-[0_2px_0_0_theme(colors.blue.500),0_4px_10px_theme(colors.blue.500/0.2)]"
+                      className="w-full px-4 py-6 relative flex cursor-pointer flex-col items-center gap-3 rounded-2xl border-2 border-input text-center shadow-[0_4px_0_0_theme(colors.gray.300),0_8px_20px_theme(colors.gray.300/0.15)] dark:shadow-[0_4px_0_0_theme(colors.neutral.600),0_8px_20px_theme(colors.neutral.900/0.3)] hover:shadow-[0_6px_0_0_theme(colors.gray.400),0_10px_25px_theme(colors.gray.300/0.2)] outline-offset-2 transition-all duration-150 has-[[data-disabled]]:cursor-not-allowed has-[[data-state=checked]]:border-blue-500 has-[[data-state=checked]]:bg-blue-50 dark:has-[[data-state=checked]]:bg-blue-950/40 has-[[data-state=checked]]:shadow-[0_4px_0_0_theme(colors.blue.500),0_8px_20px_theme(colors.blue.500/0.25)] has-[[data-disabled]]:opacity-50 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-ring/70 active:shadow-[0_2px_0_0_theme(colors.gray.300),0_4px_10px_theme(colors.gray.300/0.15)] active:translate-y-0.5 has-[[data-state=checked]]:active:shadow-[0_2px_0_0_theme(colors.blue.500),0_4px_10px_theme(colors.blue.500/0.2)]"
                     >
                       <RadioGroupItem
                         id={`${id}-subject-${item.value}`}
@@ -494,7 +494,7 @@ export default function PracticeOnboarding({
               <motion.div variants={cardVariants}>
                 <div className="space-y-6">
                   <div className="text-center mb-6">
-                    <p className="text-gray-600 mb-4">
+                    <p className="text-muted-foreground mb-4">
                       Select domains and then choose specific skills within each
                       domain. You must select at least one skill to continue.
                     </p>
@@ -511,7 +511,7 @@ export default function PracticeOnboarding({
                         variant="outline"
                         size="sm"
                         onClick={clearAllSkills}
-                        className="px-4 py-2 rounded-2xl font-bold shadow-[0_3px_0_0_theme(colors.gray.300),0_6px_15px_theme(colors.gray.300/0.25)] hover:shadow-[0_4px_0_0_theme(colors.gray.400),0_8px_20px_theme(colors.gray.300/0.3)] hover:bg-gray-50 active:shadow-[0_1px_0_0_theme(colors.gray.300),0_3px_8px_theme(colors.gray.300/0.2)] active:translate-y-0.5 transform transition-all duration-150 dark:shadow-[0_3px_0_0_theme(colors.gray.600),0_6px_15px_theme(colors.gray.700/0.25)] dark:hover:shadow-[0_4px_0_0_theme(colors.gray.500),0_8px_20px_theme(colors.gray.700/0.3)] dark:hover:bg-gray-800 cursor-pointer"
+                        className="px-4 py-2 rounded-2xl font-bold shadow-[0_3px_0_0_theme(colors.gray.300),0_6px_15px_theme(colors.gray.300/0.25)] hover:shadow-[0_4px_0_0_theme(colors.gray.400),0_8px_20px_theme(colors.gray.300/0.3)] hover:bg-gray-50 dark:hover:bg-neutral-800 active:shadow-[0_1px_0_0_theme(colors.gray.300),0_3px_8px_theme(colors.gray.300/0.2)] active:translate-y-0.5 transform transition-all duration-150 dark:shadow-[0_3px_0_0_theme(colors.gray.600),0_6px_15px_theme(colors.gray.700/0.25)] dark:hover:shadow-[0_4px_0_0_theme(colors.gray.500),0_8px_20px_theme(colors.gray.700/0.3)] cursor-pointer"
                       >
                         Clear All Skills
                       </Button>
@@ -524,8 +524,8 @@ export default function PracticeOnboarding({
                         key={`${id}-${domain.id}`}
                         className={`cursor-pointer relative p-6 rounded-2xl border-2 transition-all duration-200 ${
                           selectedDomains.includes(domain.id)
-                            ? "border-blue-500 bg-blue-50"
-                            : "border-gray-200 bg-white"
+                            ? "border-blue-500 bg-blue-50 dark:bg-blue-950/30"
+                            : "border-border bg-background"
                         }`}
                         onClick={() => toggleDomain(domain.id)}
                       >
@@ -537,7 +537,7 @@ export default function PracticeOnboarding({
                               className={`w-6 h-6 rounded-full flex items-center justify-center ${
                                 selectedDomains.includes(domain.id)
                                   ? "bg-blue-500"
-                                  : "border-2 border-gray-300 bg-white"
+                                  : "border-2 border-border bg-background"
                               }`}
                             >
                               {selectedDomains.includes(domain.id) && (
@@ -558,31 +558,31 @@ export default function PracticeOnboarding({
 
                           {/* Icon */}
                           <div className="mb-4">
-                            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                            <div className="w-12 h-12 bg-blue-100 dark:bg-blue-950 rounded-lg flex items-center justify-center">
                               <span className="text-2xl">
                                 {domain.primaryClassCd === "H"
                                   ? "📊"
                                   : domain.primaryClassCd === "P"
-                                  ? "🧮"
-                                  : domain.primaryClassCd === "Q"
-                                  ? "📈"
-                                  : domain.primaryClassCd === "S"
-                                  ? "📐"
-                                  : domain.primaryClassCd === "INI"
-                                  ? "💡"
-                                  : domain.primaryClassCd === "CAS"
-                                  ? "🏗️"
-                                  : domain.primaryClassCd === "EOI"
-                                  ? "✍️"
-                                  : domain.primaryClassCd === "SEC"
-                                  ? "📝"
-                                  : "📚"}
+                                    ? "🧮"
+                                    : domain.primaryClassCd === "Q"
+                                      ? "📈"
+                                      : domain.primaryClassCd === "S"
+                                        ? "📐"
+                                        : domain.primaryClassCd === "INI"
+                                          ? "💡"
+                                          : domain.primaryClassCd === "CAS"
+                                            ? "🏗️"
+                                            : domain.primaryClassCd === "EOI"
+                                              ? "✍️"
+                                              : domain.primaryClassCd === "SEC"
+                                                ? "📝"
+                                                : "📚"}
                               </span>
                             </div>
                           </div>
 
                           {/* Title */}
-                          <h3 className="text-lg font-semibold mb-3 text-gray-900">
+                          <h3 className="text-lg font-semibold mb-3 text-foreground">
                             {domain.text}
                           </h3>
                         </div>
@@ -590,10 +590,10 @@ export default function PracticeOnboarding({
                         {/* Skills Section - Only show when domain is selected */}
                         {selectedDomains.includes(domain.id) && (
                           <div
-                            className="mt-4 pt-4 border-t border-gray-200"
+                            className="mt-4 pt-4 border-t border-border"
                             onClick={(e) => e.stopPropagation()}
                           >
-                            <h4 className="text-sm font-medium text-gray-700 mb-3">
+                            <h4 className="text-sm font-medium text-muted-foreground mb-3">
                               Select Skills:
                             </h4>
                             <div className="space-y-2">
@@ -602,8 +602,8 @@ export default function PracticeOnboarding({
                                   key={skill.id}
                                   className={`p-3 rounded-lg relative border cursor-pointer transition-all duration-200 ${
                                     selectedSkills.includes(skill.id)
-                                      ? "border-blue-400 bg-blue-100"
-                                      : "border-gray-200 hover:border-blue-300 bg-white"
+                                      ? "border-blue-400 bg-blue-100 dark:bg-blue-950/40"
+                                      : "border-border hover:border-blue-300 bg-background"
                                   }`}
                                   onClick={(e) => {
                                     e.stopPropagation();
@@ -612,7 +612,7 @@ export default function PracticeOnboarding({
                                 >
                                   <div className="flex items-center justify-between">
                                     <div className="flex-1">
-                                      <p className="text-sm font-medium text-gray-900">
+                                      <p className="text-sm font-medium text-foreground">
                                         {skill.text}
                                       </p>
                                     </div>
@@ -620,7 +620,7 @@ export default function PracticeOnboarding({
                                       className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${
                                         selectedSkills.includes(skill.id)
                                           ? "bg-blue-500 border-blue-500"
-                                          : "border-gray-300"
+                                          : "border-border"
                                       }`}
                                     >
                                       {selectedSkills.includes(skill.id) && (
@@ -650,14 +650,14 @@ export default function PracticeOnboarding({
                             {domain.skill?.slice(0, 3).map((skill, index) => (
                               <div
                                 key={index}
-                                className="flex items-center text-sm text-gray-600"
+                                className="flex items-center text-sm text-muted-foreground"
                               >
-                                <span className="w-1 h-1 bg-gray-400 rounded-full mr-2"></span>
+                                <span className="w-1 h-1 bg-muted-foreground rounded-full mr-2"></span>
                                 {skill.text}
                               </div>
                             ))}
                             {(domain.skill?.length || 0) > 3 && (
-                              <div className="text-sm text-gray-500 mt-2">
+                              <div className="text-sm text-muted-foreground mt-2">
                                 +{(domain.skill?.length || 0) - 3} more skills
                               </div>
                             )}
@@ -671,14 +671,14 @@ export default function PracticeOnboarding({
                   <div className="space-y-4">
                     {selectedDomains.length > 0 &&
                       !hasSkillsFromSelectedDomains() && (
-                        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-center">
-                          <p className="text-amber-800 text-sm font-medium">
+                        <div className="bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg p-4 text-center">
+                          <p className="text-amber-800 dark:text-amber-300 text-sm font-medium">
                             Please select at least one skill from your chosen
                             domains before proceeding.
                           </p>
                         </div>
                       )}
-                    <h2 className="text-xl font-semibold text-gray-900 text-center">
+                    <h2 className="text-xl font-semibold text-foreground text-center">
                       Select Difficulty Levels
                     </h2>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -693,17 +693,17 @@ export default function PracticeOnboarding({
                           key={`${id}-difficulty-${difficulty.value}`}
                           className={`relative flex flex-col items-start gap-4 rounded-2xl border-2 p-4 cursor-pointer transition-all duration-150 ${
                             selectedDifficulties.includes(difficulty.value)
-                              ? "border-blue-500 bg-blue-50 shadow-[0_4px_0_0_theme(colors.blue.500),0_8px_20px_theme(colors.blue.500/0.25)]"
-                              : "border-gray-300 bg-white shadow-[0_4px_0_0_theme(colors.gray.300),0_8px_20px_theme(colors.gray.300/0.15)] hover:shadow-[0_6px_0_0_theme(colors.gray.400),0_10px_25px_theme(colors.gray.300/0.2)]"
+                              ? "border-blue-500 bg-blue-50 dark:bg-blue-950/30 shadow-[0_4px_0_0_theme(colors.blue.500),0_8px_20px_theme(colors.blue.500/0.25)]"
+                              : "border-border bg-background shadow-[0_4px_0_0_theme(colors.gray.300),0_8px_20px_theme(colors.gray.300/0.15)] hover:shadow-[0_6px_0_0_theme(colors.gray.400),0_10px_25px_theme(colors.gray.300/0.2)] dark:shadow-[0_4px_0_0_theme(colors.gray.600),0_8px_20px_theme(colors.gray.700/0.25)]"
                           } active:shadow-[0_2px_0_0_theme(colors.gray.300),0_4px_10px_theme(colors.gray.300/0.15)] active:translate-y-0.5 has-[[data-state=checked]]:active:shadow-[0_2px_0_0_theme(colors.blue.500),0_4px_10px_theme(colors.blue.500/0.2)]`}
                           onClick={() => {
                             const isChecked = selectedDifficulties.includes(
-                              difficulty.value
+                              difficulty.value,
                             );
                             if (isChecked) {
                               playSound("tap-checkbox-unchecked.wav");
                               setSelectedDifficulties((prev) =>
-                                prev.filter((d) => d !== difficulty.value)
+                                prev.filter((d) => d !== difficulty.value),
                               );
                             } else {
                               playSound("tap-checkbox-checked.wav");
@@ -719,11 +719,11 @@ export default function PracticeOnboarding({
                               className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all duration-150 ${
                                 selectedDifficulties.includes(difficulty.value)
                                   ? "bg-blue-500 border-blue-500"
-                                  : "border-gray-300 bg-white"
+                                  : "border-border bg-background"
                               }`}
                             >
                               {selectedDifficulties.includes(
-                                difficulty.value
+                                difficulty.value,
                               ) && (
                                 <svg
                                   className="w-4 h-4 text-white"
@@ -746,7 +746,7 @@ export default function PracticeOnboarding({
                           <Checkbox
                             id={`${id}-difficulty-${difficulty.value}`}
                             checked={selectedDifficulties.includes(
-                              difficulty.value
+                              difficulty.value,
                             )}
                             onChange={() => {}} // Prevent default behavior
                             className="sr-only"
@@ -760,7 +760,7 @@ export default function PracticeOnboarding({
                   <div className="flex flex-col md:flex-row md:space-x-6 mt-8">
                     {/* Question Order Selection */}
                     <div className="space-y-4 flex-1 mb-8 md:mb-0">
-                      <h2 className="text-xl font-semibold text-gray-900 text-center">
+                      <h2 className="text-xl font-semibold text-foreground text-center">
                         Question Order
                       </h2>
                       <DuolingoToggle
@@ -802,7 +802,7 @@ export default function PracticeOnboarding({
 
                     {/* Bluebook Questions Selection */}
                     <div className="space-y-4 flex-1">
-                      <h2 className="text-xl font-semibold text-gray-900 text-center">
+                      <h2 className="text-xl font-semibold text-foreground text-center">
                         Question Source
                       </h2>
                       <DuolingoToggle

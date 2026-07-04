@@ -29,33 +29,33 @@ export function DuolingoToggle({
   const colorClasses = {
     blue: {
       enabled:
-        "border-blue-500 bg-blue-50 shadow-[0_4px_0_0_theme(colors.blue.500),0_8px_20px_theme(colors.blue.500/0.25)]",
+        "border-blue-500 bg-blue-50 dark:bg-blue-950/40 shadow-[0_4px_0_0_theme(colors.blue.500),0_8px_20px_theme(colors.blue.500/0.25)]",
       disabled:
-        "border-gray-300 bg-white shadow-[0_4px_0_0_theme(colors.gray.300),0_8px_20px_theme(colors.gray.300/0.15)] hover:shadow-[0_6px_0_0_theme(colors.gray.400),0_10px_25px_theme(colors.gray.300/0.2)]",
+        "border-gray-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 shadow-[0_4px_0_0_theme(colors.gray.300),0_8px_20px_theme(colors.gray.300/0.15)] dark:shadow-[0_4px_0_0_theme(colors.neutral.600),0_8px_20px_theme(colors.neutral.900/0.3)] hover:shadow-[0_6px_0_0_theme(colors.gray.400),0_10px_25px_theme(colors.gray.300/0.2)]",
       toggle: "bg-blue-500",
       icon: "bg-blue-500 text-white",
     },
     green: {
       enabled:
-        "border-green-500 bg-green-50 shadow-[0_4px_0_0_theme(colors.green.500),0_8px_20px_theme(colors.green.500/0.25)]",
+        "border-green-500 bg-green-50 dark:bg-green-950/40 shadow-[0_4px_0_0_theme(colors.green.500),0_8px_20px_theme(colors.green.500/0.25)]",
       disabled:
-        "border-gray-300 bg-white shadow-[0_4px_0_0_theme(colors.gray.300),0_8px_20px_theme(colors.gray.300/0.15)] hover:shadow-[0_6px_0_0_theme(colors.gray.400),0_10px_25px_theme(colors.gray.300/0.2)]",
+        "border-gray-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 shadow-[0_4px_0_0_theme(colors.gray.300),0_8px_20px_theme(colors.gray.300/0.15)] dark:shadow-[0_4px_0_0_theme(colors.neutral.600),0_8px_20px_theme(colors.neutral.900/0.3)] hover:shadow-[0_6px_0_0_theme(colors.gray.400),0_10px_25px_theme(colors.gray.300/0.2)]",
       toggle: "bg-green-500",
       icon: "bg-green-500 text-white",
     },
     purple: {
       enabled:
-        "border-purple-500 bg-purple-50 shadow-[0_4px_0_0_theme(colors.purple.500),0_8px_20px_theme(colors.purple.500/0.25)]",
+        "border-purple-500 bg-purple-50 dark:bg-purple-950/40 shadow-[0_4px_0_0_theme(colors.purple.500),0_8px_20px_theme(colors.purple.500/0.25)]",
       disabled:
-        "border-gray-300 bg-white shadow-[0_4px_0_0_theme(colors.gray.300),0_8px_20px_theme(colors.gray.300/0.15)] hover:shadow-[0_6px_0_0_theme(colors.gray.400),0_10px_25px_theme(colors.gray.300/0.2)]",
+        "border-gray-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 shadow-[0_4px_0_0_theme(colors.gray.300),0_8px_20px_theme(colors.gray.300/0.15)] dark:shadow-[0_4px_0_0_theme(colors.neutral.600),0_8px_20px_theme(colors.neutral.900/0.3)] hover:shadow-[0_6px_0_0_theme(colors.gray.400),0_10px_25px_theme(colors.gray.300/0.2)]",
       toggle: "bg-purple-500",
       icon: "bg-purple-500 text-white",
     },
     orange: {
       enabled:
-        "border-orange-500 bg-orange-50 shadow-[0_4px_0_0_theme(colors.orange.500),0_8px_20px_theme(colors.orange.500/0.25)]",
+        "border-orange-500 bg-orange-50 dark:bg-orange-950/40 shadow-[0_4px_0_0_theme(colors.orange.500),0_8px_20px_theme(colors.orange.500/0.25)]",
       disabled:
-        "border-gray-300 bg-white shadow-[0_4px_0_0_theme(colors.gray.300),0_8px_20px_theme(colors.gray.300/0.15)] hover:shadow-[0_6px_0_0_theme(colors.gray.400),0_10px_25px_theme(colors.gray.300/0.2)]",
+        "border-gray-300 dark:border-neutral-600 bg-white dark:bg-neutral-800 shadow-[0_4px_0_0_theme(colors.gray.300),0_8px_20px_theme(colors.gray.300/0.15)] dark:shadow-[0_4px_0_0_theme(colors.neutral.600),0_8px_20px_theme(colors.neutral.900/0.3)] hover:shadow-[0_6px_0_0_theme(colors.gray.400),0_10px_25px_theme(colors.gray.300/0.2)]",
       toggle: "bg-orange-500",
       icon: "bg-orange-500 text-white",
     },
@@ -104,7 +104,7 @@ export function DuolingoToggle({
         {/* Duolingo-style toggle switch */}
         <div
           className={`relative flex-shrink-0 w-12 h-7 rounded-full transition-all duration-300 mt-1 ${
-            isEnabled ? currentColors.toggle : "bg-gray-300"
+            isEnabled ? currentColors.toggle : "bg-gray-300 dark:bg-neutral-600"
           }`}
         >
           <div
@@ -115,8 +115,10 @@ export function DuolingoToggle({
         </div>
 
         <div className="flex flex-col flex-grow min-w-0">
-          <span className="text-lg font-semibold text-gray-900">{title}</span>
-          <span className="text-sm text-gray-600 break-words">
+          <span className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            {title}
+          </span>
+          <span className="text-sm text-gray-600 dark:text-gray-400 break-words">
             {isEnabled ? enabledDescription : disabledDescription}
           </span>
         </div>
@@ -124,7 +126,9 @@ export function DuolingoToggle({
         {/* Duolingo-style icon */}
         <div
           className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 self-start mt-1 ${
-            isEnabled ? currentColors.icon : "bg-gray-200 text-gray-500"
+            isEnabled
+              ? currentColors.icon
+              : "bg-gray-200 dark:bg-neutral-700 text-gray-500 dark:text-gray-400"
           }`}
         >
           {isEnabled

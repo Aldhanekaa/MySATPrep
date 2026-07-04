@@ -18,7 +18,7 @@ export function SessionInfoDisplay({
   showDetailedInfo = true,
 }: SessionInfoDisplayProps) {
   const [sessionInfo, setSessionInfo] = React.useState<PracticeSession | null>(
-    null
+    null,
   );
   const hasActiveSession = useHasActivePracticeSession();
 
@@ -67,28 +67,28 @@ export function SessionInfoDisplay({
     : 0;
   const hoursAgo = Math.floor(timeSinceStart / (1000 * 60 * 60));
   const minutesAgo = Math.floor(
-    (timeSinceStart % (1000 * 60 * 60)) / (1000 * 60)
+    (timeSinceStart % (1000 * 60 * 60)) / (1000 * 60),
   );
 
   const timeAgoText =
     hoursAgo > 0
       ? `${hoursAgo}h ${minutesAgo}m ago`
       : minutesAgo > 0
-      ? `${minutesAgo}m ago`
-      : "Just now";
+        ? `${minutesAgo}m ago`
+        : "Just now";
 
   if (!showDetailedInfo) {
     // Simple version - just the continue button
     return (
-      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4 mb-6">
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border border-blue-200 dark:border-blue-800 rounded-xl p-4 mb-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
             <div>
-              <h3 className="font-semibold text-gray-900">
+              <h3 className="font-semibold text-foreground">
                 Active Practice Session
               </h3>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-muted-foreground">
                 Question {currentQuestionNumber} of {totalQuestions} •{" "}
                 {answeredCount} answered
               </p>
@@ -107,15 +107,15 @@ export function SessionInfoDisplay({
 
   // Detailed version with stats
   return (
-    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6 mb-6">
+    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border border-blue-200 dark:border-blue-800 rounded-xl p-6 mb-6">
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
           <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
           <div>
-            <h3 className="text-lg font-bold text-gray-900">
+            <h3 className="text-lg font-bold text-foreground">
               Resume Your Practice
             </h3>
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-muted-foreground">
               {sessionInfo.practiceSelections?.subject === "math"
                 ? "Math"
                 : "Reading & Writing"}{" "}
@@ -135,11 +135,11 @@ export function SessionInfoDisplay({
 
       {/* Progress Bar */}
       <div className="mb-4">
-        <div className="flex justify-between text-sm text-gray-600 mb-2">
+        <div className="flex justify-between text-sm text-muted-foreground mb-2">
           <span>Progress</span>
           <span>{Math.round(progressPercentage)}% complete</span>
         </div>
-        <div className="w-full bg-gray-200 rounded-full h-2">
+        <div className="w-full bg-muted rounded-full h-2">
           <div
             className="bg-gradient-to-r from-blue-500 to-indigo-500 h-2 rounded-full transition-all duration-300"
             style={{ width: `${progressPercentage}%` }}
@@ -150,42 +150,42 @@ export function SessionInfoDisplay({
       {/* Stats Grid */}
       <div className="grid grid-cols-3 gap-4">
         <div className="text-center">
-          <div className="flex items-center justify-center w-8 h-8 bg-blue-100 rounded-lg mx-auto mb-2">
-            <Target className="w-4 h-4 text-blue-600" />
+          <div className="flex items-center justify-center w-8 h-8 bg-blue-100 dark:bg-blue-900/40 rounded-lg mx-auto mb-2">
+            <Target className="w-4 h-4 text-blue-600 dark:text-blue-400" />
           </div>
-          <div className="text-2xl font-bold text-gray-900">
+          <div className="text-2xl font-bold text-foreground">
             {currentQuestionNumber}
           </div>
-          <div className="text-xs text-gray-600">Current Question</div>
+          <div className="text-xs text-muted-foreground">Current Question</div>
         </div>
 
         <div className="text-center">
-          <div className="flex items-center justify-center w-8 h-8 bg-green-100 rounded-lg mx-auto mb-2">
-            <BarChart3 className="w-4 h-4 text-green-600" />
+          <div className="flex items-center justify-center w-8 h-8 bg-green-100 dark:bg-green-900/40 rounded-lg mx-auto mb-2">
+            <BarChart3 className="w-4 h-4 text-green-600 dark:text-green-400" />
           </div>
-          <div className="text-2xl font-bold text-gray-900">
+          <div className="text-2xl font-bold text-foreground">
             {answeredCount}
           </div>
-          <div className="text-xs text-gray-600">Answered</div>
+          <div className="text-xs text-muted-foreground">Answered</div>
         </div>
 
         <div className="text-center">
-          <div className="flex items-center justify-center w-8 h-8 bg-purple-100 rounded-lg mx-auto mb-2">
-            <Clock className="w-4 h-4 text-purple-600" />
+          <div className="flex items-center justify-center w-8 h-8 bg-purple-100 dark:bg-purple-900/40 rounded-lg mx-auto mb-2">
+            <Clock className="w-4 h-4 text-purple-600 dark:text-purple-400" />
           </div>
-          <div className="text-2xl font-bold text-gray-900">
+          <div className="text-2xl font-bold text-foreground">
             {sessionInfo.totalTimeSpent
               ? Math.round(sessionInfo.totalTimeSpent / 1000 / 60)
               : 0}
           </div>
-          <div className="text-xs text-gray-600">Minutes</div>
+          <div className="text-xs text-muted-foreground">Minutes</div>
         </div>
       </div>
 
       {/* Additional session details */}
       {sessionInfo.practiceSelections?.domains && (
-        <div className="mt-4 pt-4 border-t border-blue-200">
-          <div className="text-sm text-gray-600">
+        <div className="mt-4 pt-4 border-t border-blue-200 dark:border-blue-800">
+          <div className="text-sm text-muted-foreground">
             <strong>Domains:</strong>{" "}
             {sessionInfo.practiceSelections.domains
               .map((d) => d.text)

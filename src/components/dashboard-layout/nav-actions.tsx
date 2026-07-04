@@ -25,11 +25,11 @@ export function NavActions() {
     <div className="flex flex-wrap items-center justify-start gap-2">
       <Button
         variant="default"
-        className="flex group cursor-pointer items-center gap-1 md:gap-2 font-bold py-2 md:py-3 px-3 md:px-6 rounded-xl md:rounded-2xl border-b-4 shadow-md hover:shadow-lg transform transition-all duration-200 active:translate-y-0.5 active:border-b-2 bg-white hover:bg-gray-50 text-gray-700 border-neutral-300 hover:border-neutral-200 text-xs md:text-sm"
+        className="flex group cursor-pointer items-center gap-1 md:gap-2 font-bold py-2 md:py-3 px-3 md:px-6 rounded-xl md:rounded-2xl border-b-4 shadow-md hover:shadow-lg transform transition-all duration-200 active:translate-y-0.5 active:border-b-2 bg-background hover:bg-muted text-foreground border-border hover:border-border text-xs md:text-sm"
         onClick={() => {
           playSound("button-pressed.wav");
           setIsReferencePopupOpen(
-            (isReferencePopupOpen) => !isReferencePopupOpen
+            (isReferencePopupOpen) => !isReferencePopupOpen,
           );
         }}
       >

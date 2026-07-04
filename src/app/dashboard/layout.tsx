@@ -1,5 +1,6 @@
 import { AppSidebar } from "@/components/dashboard-layout/app-sidebar";
 import NavHeader from "@/components/dashboard-layout/nav-header";
+import { DashboardLoadingGuard } from "@/components/dashboard-layout/DashboardLoadingGuard";
 
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 
@@ -13,7 +14,9 @@ export default function DashboardLayout({
       <AppSidebar />
       <SidebarInset>
         <NavHeader />
-        <main>{children}</main>
+        <main>
+          <DashboardLoadingGuard>{children}</DashboardLoadingGuard>
+        </main>
       </SidebarInset>
     </SidebarProvider>
   );

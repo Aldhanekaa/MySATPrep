@@ -14,8 +14,8 @@ import {
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
-import { getUserProfile } from "@/lib/userProfile";
-import { UserProfileWithHistory } from "@/types/userProfile";
+import { useResolvedUserProfile } from "@/hooks/use-resolved-user-data";
+import type { UserProfileWithHistory } from "@/types/userProfile";
 import {
   Card,
   CardContent,
@@ -302,6 +302,7 @@ export function ActivityCard({
   onViewDetails,
   className,
 }: ActivityCardProps) {
+  const resolvedProfile = useResolvedUserProfile();
   const [isHovering, setIsHovering] = useState<string | null>(null);
   const [goals, setGoals] = useState<Goal[]>([]);
   const [metrics, setMetrics] = useState<Metric[]>([]);
@@ -328,7 +329,8 @@ export function ActivityCard({
         return;
       }
 
-      const profile = getUserProfile();
+      const profile = resolvedProfile;
+      if (!profile) return;
 
       // Calculate metrics based on user data
       const calculatedMetrics: Metric[] = [
@@ -382,7 +384,7 @@ export function ActivityCard({
     } catch (error) {
       console.error("Error loading user data:", error);
     }
-  }, [externalMetrics, externalStreakDays]);
+  }, [externalMetrics, externalStreakDays, resolvedProfile]);
 
   // Calculate streak days based on user activity
   const calculateStreakDays = (profile: UserProfileWithHistory): number => {

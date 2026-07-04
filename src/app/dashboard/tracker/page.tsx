@@ -1,4 +1,4 @@
-import Tracker from "@/components/dashboard/tracker/tracker";
+import TrackerPageClient from "@/components/dashboard/tracker/TrackerPageClient";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -343,7 +343,7 @@ export default function SessionsPage() {
       />
 
       <section className="space-y-4 max-w-4xl lg:max-w-5xl xl:max-w-7xl w-full mx-auto px-3 py-10 ">
-        <Tracker />
+        <TrackerPageClient />
       </section>
 
       {/* Hidden SEO Elements */}

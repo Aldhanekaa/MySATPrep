@@ -1,25 +1,11 @@
+import getInternalAPITargetURL from "@/lib/getInternalAPITargetURL";
+
 export async function fetchCbJwtTokenInternal(): Promise<{
   cbJwtToken: string | null;
   status: number;
   error?: string;
 }> {
-  const targetUrl = `${
-    process.env.NEXT_PUBLIC_URL
-      ? process.env.NEXT_PUBLIC_URL
-      : process.env.NEXT_PUBLIC_VERCEL_ENV !== "production"
-        ? `${
-            process.env.VERCEL_BRANCH_URL
-              ? `https://${process.env.VERCEL_BRANCH_URL}`
-              : "http://localhost:3000"
-          }`
-        : `${
-            process.env.NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL
-              ? `https://${process.env.NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL}`
-              : "http://localhost:3000"
-          }`
-  }`;
-
-  const apiUrl = `${targetUrl}/api/credentials`;
+  const apiUrl = `${getInternalAPITargetURL()}/api/credentials`;
   const response = await fetch(apiUrl, {
     method: "GET",
     headers: {
@@ -36,7 +22,7 @@ export async function fetchCbJwtTokenInternal(): Promise<{
     };
   }
 
-  const data = await response.json();
+  const data = (await response.json()) as { cbJwtToken?: string };
   return {
     cbJwtToken: data["cbJwtToken"] ?? null,
     status: 200,

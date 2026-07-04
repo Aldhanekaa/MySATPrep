@@ -1,7 +1,7 @@
 import { API_Response_Question, QuestionById_Data } from "@/types";
 
 export const FetchQuestionByID = async (
-  questionId: string
+  questionId: string,
 ): Promise<API_Response_Question | null> => {
   try {
     // either externalId or ibn
@@ -11,7 +11,11 @@ export const FetchQuestionByID = async (
       throw new Error(`Failed to fetch question: ${response.status}`);
     }
 
-    const result = await response.json();
+    const result = (await response.json()) as {
+      success: boolean;
+      data?: API_Response_Question;
+      message?: string;
+    };
 
     if (result.success && result.data) {
       return result.data;

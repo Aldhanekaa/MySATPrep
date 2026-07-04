@@ -13,8 +13,22 @@ import { SavedQuestions, SavedQuestion } from "@/types/savedQuestions";
 import { SavedCollections, SavedCollection } from "@/types/savedCollections";
 import { QuestionById_Data } from "@/types";
 import { playSound } from "@/lib/playSound";
-import { useLocalStorage } from "@/lib/useLocalStorage";
+import { useResolvedCollections } from "@/hooks/use-resolved-user-data";
 import { useState, useId, useEffect } from "react";
+import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
+import { selectIsAuthenticated } from "@/lib/redux/selectors";
+import {
+  addBookmark as addBookmarkAction,
+  removeBookmark as removeBookmarkAction,
+  updateCollectionLocal,
+} from "@/lib/redux/slices/userDataSlice";
+import {
+  saveBookmark,
+  removeBookmark as syncRemoveBookmark,
+  saveCollection,
+  updateCollection,
+  removeCollection,
+} from "@/lib/utils/dataSync";
 
 interface SaveButtonProps {
   question: QuestionById_Data;
@@ -50,54 +64,16 @@ export function SaveButton({
   setSavedQuestions,
 }: SaveButtonProps) {
   const id = useId();
-  const [savedCollections, setSavedCollections] =
-    useLocalStorage<SavedCollections>("savedCollections", {});
+  const reduxDispatch = useAppDispatch();
+  const reduxState = useAppSelector((s) => s);
+  const isAuthenticated = useAppSelector(selectIsAuthenticated);
+  const [savedCollections, setSavedCollections] = useResolvedCollections();
   const [searchTerm, setSearchTerm] = useState("");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [newCollectionName, setNewCollectionName] = useState("");
   const [editingCollection, setEditingCollection] =
     useState<SavedCollection | null>(null);
   const [hoverCardOpen, setHoverCardOpen] = useState(false);
-
-  // Effect to keep savedCollections updated with latest localStorage data
-  useEffect(() => {
-    const updateCollections = () => {
-      try {
-        const currentCollections =
-          window.localStorage.getItem("savedCollections");
-        const parsedCollections = currentCollections
-          ? JSON.parse(currentCollections)
-          : {};
-
-        // Only update if the data has actually changed
-        if (
-          JSON.stringify(savedCollections) !== JSON.stringify(parsedCollections)
-        ) {
-          setSavedCollections(parsedCollections);
-        }
-      } catch (error) {
-        console.error("Error syncing savedCollections:", error);
-      }
-    };
-
-    // Update on storage events (changes from other tabs/windows)
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === "savedCollections") {
-        updateCollections();
-      }
-    };
-
-    // Update periodically to catch any missed changes
-    const interval = setInterval(updateCollections, 1000);
-
-    // Listen for storage events
-    window.addEventListener("storage", handleStorageChange);
-
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener("storage", handleStorageChange);
-    };
-  }, [savedCollections, setSavedCollections]);
 
   const questionId = question.question.questionId;
 
@@ -121,12 +97,12 @@ export function SaveButton({
 
   // Filter collections based on search term
   const filteredCollections = migratedCollections.filter((collection) =>
-    collection.name?.toLowerCase().includes(searchTerm.toLowerCase())
+    collection.name?.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   // Check which collections contain this question
   const questionCollections = migratedCollections.filter((collection) =>
-    collection.questionIds.includes(questionId)
+    collection.questionIds.includes(questionId),
   );
 
   // Check if question is saved in any collection (this means it's also saved)
@@ -146,11 +122,11 @@ export function SaveButton({
 
       // Check if question is already saved in savedQuestions
       const questionIndex = updatedSavedQuestions[assessment].findIndex(
-        (q: SavedQuestion) => q.questionId === questionId
+        (q: SavedQuestion) => q.questionId === questionId,
       );
 
       if (questionIndex === -1 && !isQuestionInAnyCollection) {
-        // Question not saved anywhere, so save it to savedQuestions
+        // Question not saved anywhere, so save it
         playSound("tap-checkbox-checked.wav");
         const newSavedQuestion: SavedQuestion = {
           questionId: questionId,
@@ -160,6 +136,18 @@ export function SaveButton({
           timestamp: new Date().toISOString(),
         };
         updatedSavedQuestions[assessment].push(newSavedQuestion);
+
+        // Optimistic update for authenticated users
+        if (isAuthenticated) {
+          reduxDispatch(addBookmarkAction({ ...newSavedQuestion, assessment }));
+        }
+
+        // Sync: API for authenticated users, localStorage for unauthenticated
+        saveBookmark(
+          { ...newSavedQuestion, assessment },
+          reduxDispatch,
+          reduxState,
+        );
         toast.success("Question saved!");
       } else {
         // Question is saved somewhere, so remove it completely
@@ -172,26 +160,58 @@ export function SaveButton({
 
         // Also remove from all collections
         const updatedCollections = { ...savedCollections };
-
-        // Find and update collections that contain this question
-        Object.keys(updatedCollections).forEach((collectionId) => {
-          const collection = updatedCollections[collectionId];
-          if (collection.questionIds.includes(questionId)) {
-            updatedCollections[collectionId] = {
-              ...collection,
-              questionIds: collection.questionIds.filter(
-                (id: string) => id !== questionId
+        Object.keys(updatedCollections).forEach((collId) => {
+          const col = updatedCollections[collId];
+          if (col.questionIds.includes(questionId)) {
+            const updatedCol = {
+              ...col,
+              questionIds: col.questionIds.filter(
+                (id: string) => id !== questionId,
               ),
               questionDetails:
-                collection.questionDetails?.filter(
-                  (detail) => detail.questionId !== questionId
+                col.questionDetails?.filter(
+                  (detail) => detail.questionId !== questionId,
                 ) || [],
               updatedAt: new Date().toISOString(),
             };
+            updatedCollections[collId] = updatedCol;
+
+            // Optimistic update for authenticated users
+            if (isAuthenticated) {
+              reduxDispatch(
+                updateCollectionLocal({
+                  collectionId: collId,
+                  name: updatedCol.name || "",
+                  description: updatedCol.description,
+                  createdAt: updatedCol.createdAt || new Date().toISOString(),
+                  updatedAt: updatedCol.updatedAt,
+                  questionIds: updatedCol.questionIds,
+                  questionDetails: (updatedCol.questionDetails || []).map(
+                    (d) => ({
+                      questionId: d.questionId,
+                      externalId: d.externalId ?? null,
+                      ibn: d.ibn ?? null,
+                    }),
+                  ),
+                  color: updatedCol.color,
+                }),
+              );
+            }
+
+            // Sync collection update
+            updateCollection(collId, updatedCol, reduxDispatch, reduxState);
           }
         });
 
         setSavedCollections(updatedCollections);
+
+        // Optimistic update for authenticated users
+        if (isAuthenticated) {
+          reduxDispatch(removeBookmarkAction(questionId));
+        }
+
+        // Sync bookmark removal
+        syncRemoveBookmark(questionId, reduxDispatch, reduxState);
         toast.success("Question removed from saved and all collections!");
       }
 
@@ -206,8 +226,6 @@ export function SaveButton({
     if (!newCollectionName.trim()) return;
 
     try {
-      const updatedCollections = { ...savedCollections };
-
       const newCollection: SavedCollection = {
         id: `collection_${Date.now()}_${Math.random()
           .toString(36)
@@ -216,11 +234,20 @@ export function SaveButton({
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         questionIds: [],
-        questionDetails: [], // Initialize empty questionDetails array
+        questionDetails: [],
       };
 
-      updatedCollections[newCollection.id] = newCollection;
+      const updatedCollections = {
+        ...savedCollections,
+        [newCollection.id]: newCollection,
+      };
       setSavedCollections(updatedCollections);
+      // Sync: API for authenticated users, localStorage for unauthenticated
+      saveCollection(
+        { ...newCollection, collectionId: newCollection.id },
+        reduxDispatch,
+        reduxState,
+      );
       setNewCollectionName("");
       setIsCreateDialogOpen(false);
       playSound("tap-checkbox-checked.wav");
@@ -239,6 +266,8 @@ export function SaveButton({
       if (collectionToDelete) {
         delete updatedCollections[collectionId];
         setSavedCollections(updatedCollections);
+        // Sync: API for authenticated users, localStorage for unauthenticated
+        removeCollection(collectionId, reduxDispatch, reduxState);
         playSound("tap-checkbox-unchecked.wav");
         toast.success(`Collection "${collectionToDelete.name}" deleted!`);
       }
@@ -255,12 +284,15 @@ export function SaveButton({
       const updatedCollections = { ...savedCollections };
 
       if (updatedCollections[collectionId]) {
-        updatedCollections[collectionId] = {
+        const updatedCol = {
           ...updatedCollections[collectionId],
           name: newName.trim(),
           updatedAt: new Date().toISOString(),
         };
+        updatedCollections[collectionId] = updatedCol;
         setSavedCollections(updatedCollections);
+        // Sync: API for authenticated users, localStorage for unauthenticated
+        updateCollection(collectionId, updatedCol, reduxDispatch, reduxState);
         setEditingCollection(null);
         playSound("button-pressed.wav");
         toast.success("Collection renamed!");
@@ -279,24 +311,52 @@ export function SaveButton({
       const collection = updatedCollections[collectionId];
       if (!collection) return;
 
+      const collectionName = collection.name || "Untitled Collection";
       const questionExists = collection.questionIds.includes(questionId);
 
       if (questionExists) {
         // Remove question from collection
-        updatedCollections[collectionId] = {
+        const updatedCol = {
           ...collection,
           questionIds: collection.questionIds.filter(
-            (id: string) => id !== questionId
+            (id: string) => id !== questionId,
           ),
           questionDetails:
             collection.questionDetails?.filter(
-              (detail) => detail.questionId !== questionId
+              (detail) => detail.questionId !== questionId,
             ) || [],
           updatedAt: new Date().toISOString(),
         };
+        updatedCollections[collectionId] = updatedCol;
+
+        // Optimistic Redux update (authenticated users)
+        if (isAuthenticated) {
+          reduxDispatch(
+            updateCollectionLocal({
+              collectionId,
+              name: updatedCol.name || "",
+              description: updatedCol.description,
+              createdAt: updatedCol.createdAt || new Date().toISOString(),
+              updatedAt: updatedCol.updatedAt,
+              questionIds: updatedCol.questionIds,
+              questionDetails: (updatedCol.questionDetails || []).map((d) => ({
+                questionId: d.questionId,
+                externalId: d.externalId ?? null,
+                ibn: d.ibn ?? null,
+              })),
+              color: updatedCol.color,
+            }),
+          );
+        }
+
+        setSavedCollections(updatedCollections);
+        // Sync collection update
+        updateCollection(collectionId, updatedCol, reduxDispatch, reduxState);
+        playSound("tap-checkbox-unchecked.wav");
+        toast.success(`Removed from "${collectionName}"`);
       } else {
         // Add question to collection
-        updatedCollections[collectionId] = {
+        const updatedCol = {
           ...collection,
           questionIds: [...collection.questionIds, questionId],
           questionDetails: [
@@ -309,18 +369,39 @@ export function SaveButton({
           ],
           updatedAt: new Date().toISOString(),
         };
+        updatedCollections[collectionId] = updatedCol;
 
-        // If we're adding the question to a collection and it's not in savedQuestions, add it there too
-        // Initialize array if it doesn't exist
+        // Optimistic Redux update (authenticated users)
+        if (isAuthenticated) {
+          reduxDispatch(
+            updateCollectionLocal({
+              collectionId,
+              name: updatedCol.name || "",
+              description: updatedCol.description,
+              createdAt: updatedCol.createdAt || new Date().toISOString(),
+              updatedAt: updatedCol.updatedAt,
+              questionIds: updatedCol.questionIds,
+              questionDetails: updatedCol.questionDetails.map((d) => ({
+                questionId: d.questionId,
+                externalId: d.externalId ?? null,
+                ibn: d.ibn ?? null,
+              })),
+              color: updatedCol.color,
+            }),
+          );
+        }
+
+        setSavedCollections(updatedCollections);
+        // Sync collection update
+        updateCollection(collectionId, updatedCol, reduxDispatch, reduxState);
+
+        // Also ensure question is in savedQuestions / Redux bookmarks
         if (!updatedSavedQuestions[assessment]) {
           updatedSavedQuestions[assessment] = [];
         }
-
-        // Check if question is already in savedQuestions
         const questionIndex = updatedSavedQuestions[assessment].findIndex(
-          (q: SavedQuestion) => q.questionId === questionId
+          (q: SavedQuestion) => q.questionId === questionId,
         );
-
         if (questionIndex === -1) {
           const newSavedQuestion: SavedQuestion = {
             questionId: questionId,
@@ -331,11 +412,25 @@ export function SaveButton({
           };
           updatedSavedQuestions[assessment].push(newSavedQuestion);
           setSavedQuestions(updatedSavedQuestions);
-        }
-      }
 
-      setSavedCollections(updatedCollections);
-      playSound("tap-checkbox-checked.wav");
+          // Optimistic Redux update for bookmark
+          if (isAuthenticated) {
+            reduxDispatch(
+              addBookmarkAction({ ...newSavedQuestion, assessment }),
+            );
+          }
+
+          // Sync bookmark addition
+          saveBookmark(
+            { ...newSavedQuestion, assessment },
+            reduxDispatch,
+            reduxState,
+          );
+        }
+
+        playSound("tap-checkbox-checked.wav");
+        toast.success(`Saved to "${collectionName}"`);
+      }
     } catch (error) {
       console.error("Failed to toggle question in collection:", error);
       toast.error("Failed to update collection");
@@ -389,11 +484,11 @@ export function SaveButton({
         </HoverCardTrigger>
         <HoverCardContent
           align="end"
-          className="w-80 p-0 border-2 border-b-4 border-gray-300 rounded-xl md:rounded-2xl shadow-md hover:shadow-lg bg-white"
+          className="w-80 p-0 border-2 border-b-4 border-gray-300 dark:border-neutral-600 rounded-xl md:rounded-2xl shadow-md hover:shadow-lg bg-white dark:bg-neutral-900"
         >
           {/* Search Input */}
           <div className="p-4">
-            <div className="relative border-2 border-gray-200 rounded-xl overflow-hidden focus:border-blue-500  bg-gray-50 hover:bg-white">
+            <div className="relative border-2 border-gray-200 dark:border-neutral-700 rounded-xl overflow-hidden focus:border-blue-500 bg-gray-50 dark:bg-neutral-800 hover:bg-white dark:hover:bg-neutral-700">
               <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
               <Input
                 type="search"
@@ -405,12 +500,12 @@ export function SaveButton({
             </div>
           </div>
 
-          <div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent mx-4"></div>
+          <div className="h-px bg-gradient-to-r from-transparent via-gray-200 dark:via-neutral-700 to-transparent mx-4"></div>
 
           {/* Collections List */}
           <div className="px-4 pt-2 pb-4 max-h-60 overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
-              <div className="text-sm font-semibold text-gray-800">
+              <div className="text-sm font-semibold text-gray-800 dark:text-gray-200">
                 Collections ({migratedCollections.length})
               </div>
               <Dialog
@@ -427,9 +522,9 @@ export function SaveButton({
                     New
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="sm:max-w-md border-2 border-b-4 border-gray-300 rounded-xl shadow-lg">
+                <DialogContent className="sm:max-w-md border-2 border-b-4 border-gray-300 dark:border-neutral-600 rounded-xl shadow-lg">
                   <DialogHeader>
-                    <DialogTitle className="text-lg font-bold text-gray-800">
+                    <DialogTitle className="text-lg font-bold text-gray-800 dark:text-gray-200">
                       Create New Collection
                     </DialogTitle>
                   </DialogHeader>
@@ -453,7 +548,7 @@ export function SaveButton({
                         setIsCreateDialogOpen(false);
                         setNewCollectionName("");
                       }}
-                      className="border-2 rounded-xl hover:bg-gray-50"
+                      className="border-2 rounded-xl hover:bg-gray-50 dark:hover:bg-neutral-800"
                     >
                       Cancel
                     </Button>
@@ -470,16 +565,16 @@ export function SaveButton({
             </div>
 
             {filteredCollections.length === 0 ? (
-              <div className="text-center py-8 text-sm text-gray-500">
+              <div className="text-center py-8 text-sm text-gray-500 dark:text-gray-400">
                 {migratedCollections.length === 0 ? (
                   <div className="flex flex-col items-center">
-                    <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center mb-3">
-                      <Folder className="h-6 w-6 text-gray-400" />
+                    <div className="w-12 h-12 bg-gray-100 dark:bg-neutral-800 rounded-xl flex items-center justify-center mb-3">
+                      <Folder className="h-6 w-6 text-gray-400 dark:text-gray-500" />
                     </div>
-                    <div className="font-medium text-gray-600 mb-1">
+                    <div className="font-medium text-gray-600 dark:text-gray-400 mb-1">
                       No collections yet
                     </div>
-                    <div className="text-xs text-gray-500">
+                    <div className="text-xs text-gray-500 dark:text-gray-500">
                       Create one to organize your saved questions!
                     </div>
                   </div>
@@ -497,7 +592,7 @@ export function SaveButton({
                   return (
                     <div
                       key={collection.id}
-                      className="flex items-center gap-3 group p-2 rounded-lg hover:bg-gray-50 transition-colors"
+                      className="flex items-center gap-3 group p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors"
                     >
                       <Checkbox
                         id={`${id}-${collection.id}`}
@@ -522,7 +617,7 @@ export function SaveButton({
                             if (e.key === "Enter" && editingCollection) {
                               handleRenameCollection(
                                 collection.id,
-                                editingCollection.name
+                                editingCollection.name,
                               );
                             } else if (e.key === "Escape") {
                               setEditingCollection(null);
@@ -532,7 +627,7 @@ export function SaveButton({
                             editingCollection &&
                             handleRenameCollection(
                               collection.id,
-                              editingCollection.name
+                              editingCollection.name,
                             )
                           }
                           className="h-7 text-sm flex-1 border-2 rounded-lg focus:border-blue-500 focus:ring-0"
@@ -541,7 +636,7 @@ export function SaveButton({
                       ) : (
                         <Label
                           htmlFor={`${id}-${collection.id}`}
-                          className="font-medium flex-1 cursor-pointer truncate text-gray-700 text-sm"
+                          className="font-medium flex-1 cursor-pointer truncate text-gray-700 dark:text-gray-300 text-sm"
                           title={collection.name || "Untitled Collection"}
                         >
                           {collection.name || "Untitled Collection"}
@@ -552,7 +647,7 @@ export function SaveButton({
                         <Button
                           size="sm"
                           variant="ghost"
-                          className="h-7 w-7 p-0 hover:bg-blue-100 rounded-lg"
+                          className="h-7 w-7 p-0 hover:bg-blue-100 dark:hover:bg-blue-900 rounded-lg"
                           onClick={() => setEditingCollection(collection)}
                         >
                           <Pencil className="h-3 w-3" />
@@ -560,13 +655,13 @@ export function SaveButton({
                         <Button
                           size="sm"
                           variant="ghost"
-                          className="h-7 w-7 p-0 text-red-500 hover:text-red-600 hover:bg-red-50 rounded-lg"
+                          className="h-7 w-7 p-0 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950 rounded-lg"
                           onClick={() => handleDeleteCollection(collection.id)}
                         >
                           <Trash2 className="h-3 w-3" />
                         </Button>
                       </div>
-                      <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-md min-w-0">
+                      <span className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-neutral-800 px-2 py-1 rounded-md min-w-0">
                         {collection.questionIds.length}
                       </span>
                     </div>
@@ -578,9 +673,9 @@ export function SaveButton({
 
           {questionCollections.length > 0 && (
             <>
-              <div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent mx-4"></div>
+              <div className="h-px bg-gradient-to-r from-transparent via-gray-200 dark:via-neutral-700 to-transparent mx-4"></div>
               <div className="px-4 py-3">
-                <div className="text-xs text-gray-600">
+                <div className="text-xs text-gray-600 dark:text-gray-400">
                   <div className="font-medium mb-2">
                     This question is saved in {questionCollections.length}{" "}
                     collection{questionCollections.length !== 1 ? "s" : ""}:
@@ -589,7 +684,7 @@ export function SaveButton({
                     {questionCollections.map((collection) => (
                       <span
                         key={collection.id}
-                        className="inline-flex items-center px-3 py-1 rounded-lg bg-blue-100 text-blue-700 text-xs font-medium border border-blue-200"
+                        className="inline-flex items-center px-3 py-1 rounded-lg bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 text-xs font-medium border border-blue-200 dark:border-blue-700"
                       >
                         {collection.name || "Untitled Collection"}
                       </span>

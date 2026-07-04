@@ -14,6 +14,12 @@ import { Banner } from "@/components/ui/banner";
 import { AssessmentProvider } from "@/contexts/assessment-context";
 import Dialog02 from "@/components/ui/popup-tour";
 import AnnouncementSection from "@/components/announcement-section";
+import { ReduxProvider } from "@/lib/redux/Provider";
+import { AuthSessionProvider } from "@/components/auth/AuthSessionProvider";
+import { SessionInitializer } from "@/components/auth/SessionInitializer";
+import { MigrationChecker } from "@/components/auth/MigrationChecker";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { ThemeApplier } from "@/components/ThemeApplier";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -185,11 +191,18 @@ export default function RootLayout({
           height="2rem"
           variant="rainbow"
         /> */}
-        <AssessmentProvider>
-          <MathJaxContext version={3} config={config}>
-            <AnnouncementSection />
-          </MathJaxContext>
-        </AssessmentProvider>
+        <ErrorBoundary>
+          <AssessmentProvider>
+            <MathJaxContext version={3} config={config}>
+              <ReduxProvider>
+                <ThemeApplier />
+                <SessionInitializer />
+                <MigrationChecker />
+                <AuthSessionProvider>{children}</AuthSessionProvider>
+              </ReduxProvider>
+            </MathJaxContext>
+          </AssessmentProvider>
+        </ErrorBoundary>
 
         <Dialog02 />
 

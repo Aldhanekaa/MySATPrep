@@ -140,6 +140,7 @@ export interface PracticeSession {
   averageTimePerQuestion: number;
   totalTimeSpent: number;
   totalXPReceived?: number; // XP gained/lost during this session
+  currentSession?: boolean; // true when this is the active in-progress session (at most one per user)
 }
 
 // Extended session with additional analytics
@@ -232,7 +233,7 @@ export interface SessionComparison {
 
 // Type guards for session validation
 export const isValidPracticeSession = (
-  obj: unknown
+  obj: unknown,
 ): obj is PracticeSession => {
   return (
     obj !== null &&
@@ -260,7 +261,7 @@ export const isValidPracticeSession = (
 };
 
 export const isValidPracticeSelections = (
-  obj: unknown
+  obj: unknown,
 ): obj is PracticeSelections => {
   return (
     obj !== null &&
@@ -291,7 +292,7 @@ export type SerializedSession = Omit<PracticeSession, "timestamp"> & {
 
 // Session utility functions
 export const createPracticeSession = (
-  options: CreateSessionOptions
+  options: CreateSessionOptions,
 ): PracticeSession => {
   return {
     sessionId: `practice-${Date.now()}`,
@@ -311,7 +312,7 @@ export const createPracticeSession = (
 
 export const updateSessionProgress = (
   session: PracticeSession,
-  payload: SessionUpdatePayload
+  payload: SessionUpdatePayload,
 ): PracticeSession => {
   const updatedAnswers = {
     ...session.questionAnswers,
@@ -324,12 +325,12 @@ export const updateSessionProgress = (
   };
 
   const answeredQuestions = Object.keys(updatedAnswers).filter(
-    (id) => updatedAnswers[id] !== null
+    (id) => updatedAnswers[id] !== null,
   );
 
   const totalTimeSpent = Object.values(updatedTimes).reduce(
     (sum, time) => sum + time,
-    0
+    0,
   );
 
   const averageTimePerQuestion =

@@ -1,6 +1,11 @@
 /**
  * Practice Statistics Utilities
- * Functions for managing practice statistics in localStorage
+ * Functions for managing practice statistics in localStorage, with optional
+ * cloud sync for authenticated users.
+ *
+ * Functions that write data accept an optional `{ dispatch, state }` context.
+ * When provided and the user is authenticated, changes are also persisted to
+ * the cloud via the same Redux thunks used by dataSync.ts.
  */
 
 import {
@@ -18,10 +23,53 @@ import {
 import { DomainItems, SkillCd_Variants } from "@/types/lookup";
 import { PlainQuestionType } from "@/types/question";
 import { PracticeSession } from "@/types/session";
+import type { AppDispatch, RootState } from "@/lib/redux/store";
+import {
+  updateUserStatistics,
+  updateSessionThunk,
+} from "@/lib/redux/slices/userDataSlice";
+import { withRetry } from "@/lib/utils/retry";
+import { showNetworkError } from "@/lib/utils/notifications";
 
 // localStorage key for practice statistics
 const PRACTICE_STATISTICS_KEY = "practiceStatistics";
 const LEGACY_PRACTICE_RUSH_STATISTICS_KEY = "practiceRushStatistics";
+
+// ─── Cloud sync context ───────────────────────────────────────────────────────
+
+/**
+ * Optional Redux context passed to write functions.
+ * When present and the user is authenticated, writes are mirrored to the cloud.
+ */
+export interface SyncContext {
+  dispatch: AppDispatch;
+  state: RootState;
+}
+
+function isAuthenticated(ctx: SyncContext): boolean {
+  return ctx.state.auth.isAuthenticated;
+}
+
+/**
+ * Sync the full statistics object to the cloud for authenticated users.
+ * Fires-and-forgets with retry; errors surface as a toast notification.
+ */
+function syncStatisticsToCloud(
+  statistics: PracticeStatistics,
+  ctx: SyncContext,
+): void {
+  if (!isAuthenticated(ctx)) return;
+  withRetry(
+    () =>
+      ctx.dispatch(
+        updateUserStatistics(statistics),
+      ) as unknown as Promise<unknown>,
+  ).catch(() => {
+    showNetworkError(
+      "Failed to save statistics. Please check your connection.",
+    );
+  });
+}
 
 /**
  * Get practice statistics from localStorage (with migration from legacy key)
@@ -34,7 +82,7 @@ export function getPracticeStatistics(): PracticeStatistics {
     // If not found, try legacy key and migrate
     if (!stored) {
       const legacyStored = localStorage.getItem(
-        LEGACY_PRACTICE_RUSH_STATISTICS_KEY
+        LEGACY_PRACTICE_RUSH_STATISTICS_KEY,
       );
       if (legacyStored) {
         const legacyData = JSON.parse(legacyStored);
@@ -83,9 +131,14 @@ export function savePracticeStatistics(statistics: PracticeStatistics): void {
 }
 
 /**
- * Add a question statistic to the practice statistics
+ * Add a question statistic to the practice statistics.
+ * Always writes to localStorage. When `ctx` is provided and the user is
+ * authenticated, the full updated statistics object is also synced to the cloud.
  */
-export function addQuestionStatistic(entry: StatisticEntry): void {
+export function addQuestionStatistic(
+  entry: StatisticEntry,
+  ctx?: SyncContext,
+): void {
   console.log("Saving question statistic for:", entry.questionId);
   const statistics = getPracticeStatistics();
 
@@ -129,10 +182,15 @@ export function addQuestionStatistic(entry: StatisticEntry): void {
 
   // Save back to localStorage
   savePracticeStatistics(statistics);
+
+  // Sync to cloud for authenticated users
+  if (ctx) syncStatisticsToCloud(statistics, ctx);
 }
 
 /**
- * Add a detailed answered question with difficulty and metadata
+ * Add a detailed answered question with difficulty and metadata.
+ * Always writes to localStorage. When `ctx` is provided and the user is
+ * authenticated, the full updated statistics object is also synced to the cloud.
  */
 export function addAnsweredQuestion(
   assessment: AssessmentType,
@@ -141,7 +199,8 @@ export function addAnsweredQuestion(
   isCorrect: boolean,
   timeSpent: number,
   plainQuestion?: PlainQuestionType,
-  selectedAnswer?: string
+  selectedAnswer?: string,
+  ctx?: SyncContext,
 ): void {
   console.log("Adding detailed answered question:", questionId);
   const statistics = getPracticeStatistics();
@@ -159,7 +218,7 @@ export function addAnsweredQuestion(
 
   // Check if this question is already in the detailed list
   const existingIndex = assessmentStats.answeredQuestionsDetailed.findIndex(
-    (q) => q.questionId === questionId
+    (q) => q.questionId === questionId,
   );
 
   const answeredQuestion: AnsweredQuestion = {
@@ -187,6 +246,9 @@ export function addAnsweredQuestion(
 
   // Save back to localStorage
   savePracticeStatistics(statistics);
+
+  // Sync to cloud for authenticated users
+  if (ctx) syncStatisticsToCloud(statistics, ctx);
 }
 
 /**
@@ -196,7 +258,7 @@ export function getQuestionStatistic(
   assessment: AssessmentType,
   primaryClassCd: DomainItems,
   skillCd: SkillCd_Variants,
-  questionId: string
+  questionId: string,
 ): QuestionStatistic | null {
   const statistics = getPracticeStatistics();
 
@@ -213,7 +275,7 @@ export function getQuestionStatistic(
 export function getSkillSummary(
   assessment: AssessmentType,
   primaryClassCd: DomainItems,
-  skillCd: SkillCd_Variants
+  skillCd: SkillCd_Variants,
 ): SkillSummary | null {
   const statistics = getPracticeStatistics();
   const skillStats =
@@ -244,7 +306,7 @@ export function getSkillSummary(
  */
 export function getDomainSummary(
   assessment: AssessmentType,
-  primaryClassCd: DomainItems
+  primaryClassCd: DomainItems,
 ): DomainSummary | null {
   const statistics = getPracticeStatistics();
   const domainStats = statistics[assessment]?.statistics[primaryClassCd];
@@ -286,7 +348,7 @@ export function getDomainSummary(
  * Calculate summary statistics for an entire assessment
  */
 export function getAssessmentSummary(
-  assessment: AssessmentType
+  assessment: AssessmentType,
 ): AssessmentSummary | null {
   const statistics = getPracticeStatistics();
   const assessmentStats = statistics[assessment];
@@ -304,7 +366,7 @@ export function getAssessmentSummary(
   let totalTime = 0;
 
   for (const primaryClassCd of Object.keys(
-    assessmentStats.statistics
+    assessmentStats.statistics,
   ) as DomainItems[]) {
     const domainSummary = getDomainSummary(assessment, primaryClassCd);
     if (domainSummary) {
@@ -368,9 +430,15 @@ export function importStatistics(jsonData: string): boolean {
 }
 
 /**
- * Update XP for a specific session in practice history
+ * Update XP for a specific session in practice history.
+ * Always writes to localStorage. When `ctx` is provided and the user is
+ * authenticated, also dispatches updateSessionThunk to keep the DB in sync.
  */
-export function updateSessionXP(sessionId: string, xpChange: number): void {
+export function updateSessionXP(
+  sessionId: string,
+  xpChange: number,
+  ctx?: SyncContext,
+): void {
   try {
     const existingSessions = localStorage.getItem("practiceHistory");
     const sessions: PracticeSession[] = existingSessions
@@ -379,18 +447,37 @@ export function updateSessionXP(sessionId: string, xpChange: number): void {
 
     // Find the session and update its totalXPReceived
     const existingIndex = sessions.findIndex(
-      (session) => session.sessionId === sessionId
+      (session) => session.sessionId === sessionId,
     );
 
     if (existingIndex !== -1) {
       const currentXP = sessions[existingIndex].totalXPReceived || 0;
-      sessions[existingIndex].totalXPReceived = currentXP + xpChange;
+      const newXP = currentXP + xpChange;
+      sessions[existingIndex].totalXPReceived = newXP;
       localStorage.setItem("practiceHistory", JSON.stringify(sessions));
       console.log(
-        `📊 Updated session ${sessionId} XP: ${currentXP} + ${xpChange} = ${
-          currentXP + xpChange
-        }`
+        `📊 Updated session ${sessionId} XP: ${currentXP} + ${xpChange} = ${newXP}`,
       );
+
+      // Sync to cloud for authenticated users
+      if (ctx && isAuthenticated(ctx)) {
+        const updatedSession = sessions[existingIndex];
+        withRetry(
+          () =>
+            ctx.dispatch(
+              updateSessionThunk({
+                id: sessionId,
+                sessionData: {
+                  totalXPReceived: updatedSession.totalXPReceived,
+                },
+              }),
+            ) as unknown as Promise<unknown>,
+        ).catch(() => {
+          showNetworkError(
+            "Failed to sync session XP. Please check your connection.",
+          );
+        });
+      }
     } else {
       console.warn(`Session ${sessionId} not found in practice history`);
     }
@@ -418,7 +505,7 @@ export function debugStatistics(): void {
       for (const [assessment, data] of Object.entries(parsed)) {
         console.log(`Assessment: ${assessment}`);
         console.log(
-          `  Questions answered: ${data.answeredQuestions?.length || 0}`
+          `  Questions answered: ${data.answeredQuestions?.length || 0}`,
         );
         console.log(`  Domains:`, Object.keys(data.statistics || {}));
       }

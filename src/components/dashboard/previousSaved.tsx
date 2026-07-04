@@ -7,8 +7,8 @@ import React, {
 } from "react";
 import { Button } from "@/components/ui/button";
 import { AssessmentWorkspace } from "@/app/dashboard/types";
-import { useLocalStorage } from "@/lib/useLocalStorage";
 import { SavedQuestions, SavedQuestion } from "@/types/savedQuestions";
+import { useResolvedBookmarks } from "@/hooks/use-resolved-user-data";
 import { QuestionById_Data } from "@/types/question";
 import { Card, CardContent } from "@/components/ui/card-v2";
 import {
@@ -100,7 +100,7 @@ type SavedTabAction =
 
 const savedTabReducer = (
   state: SavedTabState,
-  action: SavedTabAction
+  action: SavedTabAction,
 ): SavedTabState => {
   switch (action.type) {
     case "INITIALIZE_QUESTIONS":
@@ -122,7 +122,7 @@ const savedTabReducer = (
                 hasError: false,
                 errorMessage: undefined,
               }
-            : q
+            : q,
         ),
       };
     case "SET_QUESTION_SUCCESS":
@@ -136,7 +136,7 @@ const savedTabReducer = (
                 isLoading: false,
                 hasError: false,
               }
-            : q
+            : q,
         ),
         questionsWithData: state.questionsWithData.map((q, i) =>
           i === action.payload.index
@@ -146,7 +146,7 @@ const savedTabReducer = (
                 isLoading: false,
                 hasError: false,
               }
-            : q
+            : q,
         ),
       };
     case "SET_QUESTION_ERROR":
@@ -160,7 +160,7 @@ const savedTabReducer = (
                 hasError: true,
                 errorMessage: action.payload.errorMessage,
               }
-            : q
+            : q,
         ),
       };
     case "ADD_FETCHED_ID":
@@ -202,7 +202,7 @@ const savedTabReducer = (
     case "LOAD_MORE":
       const nextCount = Math.min(
         state.displayedQuestionsCount + 15,
-        state.allSavedQuestions.length
+        state.allSavedQuestions.length,
       );
 
       return {
@@ -221,11 +221,7 @@ const savedTabReducer = (
 };
 
 export function SavedTab({ selectedAssessment }: SavedTabProps) {
-  // Load saved questions from localStorage
-  const [savedQuestions] = useLocalStorage<SavedQuestions>(
-    "savedQuestions",
-    {}
-  );
+  const [savedQuestions] = useResolvedBookmarks();
 
   // Use reducer for better state management and performance
   const [state, dispatch] = useReducer(savedTabReducer, {
@@ -256,19 +252,19 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
 
       return assessmentMap[assessment.name] || "SAT";
     },
-    []
+    [],
   );
 
   // Memoize assessment key to prevent unnecessary recalculations
   const assessmentKey = useMemo(
     () => getAssessmentKey(selectedAssessment),
-    [selectedAssessment, getAssessmentKey]
+    [selectedAssessment, getAssessmentKey],
   );
 
   // Memoize assessment name to prevent unnecessary recalculations
   const assessmentName = useMemo(
     () => selectedAssessment?.name || "SAT",
-    [selectedAssessment?.name]
+    [selectedAssessment?.name],
   );
 
   // Fetch question data from API (memoized)
@@ -285,7 +281,7 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
     (
       questions: QuestionWithData[],
       filterSubject: string,
-      filterDifficulty: string
+      filterDifficulty: string,
     ): QuestionWithData[] => {
       return questions
         .filter((question) => {
@@ -297,7 +293,7 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
               if (
                 filterSubject === "math" &&
                 mathDomains.includes(
-                  question.questionData?.question.primary_class_cd
+                  question.questionData?.question.primary_class_cd,
                 )
               ) {
                 return true;
@@ -306,7 +302,7 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
               if (
                 filterSubject === "reading" &&
                 rwDomains.includes(
-                  question.questionData?.question.primary_class_cd
+                  question.questionData?.question.primary_class_cd,
                 )
               ) {
                 return true;
@@ -333,7 +329,7 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
           return true;
         });
     },
-    []
+    [],
   );
 
   // Compute filtered questions when questions or filters change
@@ -342,7 +338,7 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
       const filtered = computeFilteredQuestions(
         state.allSavedQuestions,
         state.filterSubject,
-        state.filterDifficulty
+        state.filterDifficulty,
       );
       dispatch({ type: "SET_FILTERED_QUESTIONS", payload: filtered });
     }
@@ -364,7 +360,7 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
         ...question,
         isLoading: false,
         hasError: false,
-      })
+      }),
     );
 
     const initialQuestions = allQuestions.slice(0, 15).map((q) => ({
@@ -395,7 +391,7 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
             question.isLoading &&
             !question.questionData &&
             !question.hasError &&
-            !state.fetchedQuestionIds.has(question.questionId)
+            !state.fetchedQuestionIds.has(question.questionId),
         );
 
       if (questionsToFetch.length === 0) return;
@@ -499,7 +495,7 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
           loadMoreQuestions();
         }
       },
-      { threshold: 0.1 }
+      { threshold: 0.1 },
     );
 
     observer.observe(currentLoadMoreRef);
@@ -572,8 +568,8 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
                 state.filterSubject === "all"
                   ? ListFilterIcon
                   : state.filterSubject == "math"
-                  ? SigmaIcon
-                  : PencilRuler
+                    ? SigmaIcon
+                    : PencilRuler
               }
               className="w-full lg:w-[80%] bg-background"
             >

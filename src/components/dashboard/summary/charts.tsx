@@ -1,11 +1,13 @@
+/* eslint-disable */
 "use client";
 import { AssessmentWorkspace } from "@/app/dashboard/types";
-import { getPracticeStatistics } from "@/lib/practiceStatistics";
 import {
   primaryClassCdObjectData,
   skillCdsObjectData,
 } from "@/static-data/domains";
 import { useMemo } from "react";
+import { PracticeStatistics } from "@/types/statistics";
+import { useResolvedPracticeStatistics } from "@/hooks/use-resolved-user-data";
 
 import { PolarAngleAxis, PolarGrid, Radar, RadarChart } from "recharts";
 import {
@@ -86,10 +88,20 @@ interface SummaryData {
 }
 export default function SummaryCharts({
   selectedAssessment,
+  statistics,
 }: {
   selectedAssessment: AssessmentWorkspace | undefined;
+  /** Pass Redux statistics for authenticated users; omit to fall back to localStorage. */
+  statistics?: PracticeStatistics;
 }) {
   const router = useRouter();
+  const fallbackStats = useResolvedPracticeStatistics();
+
+  // Resolve the statistics source: prop (cloud) takes priority, then resolved hook
+  const resolvedStats = useMemo<PracticeStatistics>(
+    () => statistics ?? fallbackStats,
+    [statistics, fallbackStats],
+  );
   const summaryData = useMemo(() => {
     const finalData: {
       [key: string]: { [primaryClassCd: string]: SummaryData };
@@ -110,16 +122,15 @@ export default function SummaryCharts({
       "R&W": [],
     };
 
-    const stats = getPracticeStatistics();
     const selectedStats = selectedAssessment
-      ? stats[selectedAssessment.name]
+      ? resolvedStats[selectedAssessment.name]
       : null;
 
     if (selectedStats && "statistics" in selectedStats) {
       const statisticsData = selectedStats["statistics"];
 
       for (const [primaryClassCd, skillCds_Data] of Object.entries(
-        statisticsData
+        statisticsData,
       )) {
         for (const [classCd, questions] of Object.entries(skillCds_Data)) {
           for (const question in questions) {
@@ -169,7 +180,7 @@ export default function SummaryCharts({
       //   console.log(`${subject} ${JSON.stringify(primaryClassCds)}`);
 
       for (const [primaryClassCd, skillData] of Object.entries(
-        primaryClassCds
+        primaryClassCds,
       )) {
         // console.log(
         //   "skillCdsObjectData",
@@ -195,7 +206,7 @@ export default function SummaryCharts({
     // console.log("finalDataReturn", finalDataReturn);
 
     return finalDataReturn;
-  }, [selectedAssessment]);
+  }, [selectedAssessment, resolvedStats]);
 
   const answeredQuestionsDataSummary = useMemo(() => {
     let skills: {
@@ -219,9 +230,8 @@ export default function SummaryCharts({
       };
     } = {};
 
-    const stats = getPracticeStatistics();
     const selectedStats = selectedAssessment
-      ? stats[selectedAssessment.name]
+      ? resolvedStats[selectedAssessment.name]
       : null;
 
     if (selectedStats && "statistics" in selectedStats) {
@@ -229,7 +239,7 @@ export default function SummaryCharts({
       const statisticsData = selectedStats["statistics"];
 
       for (const [primaryClassCd, skillCds_Data] of Object.entries(
-        statisticsData
+        statisticsData,
       )) {
         // console.log("primaryClassCd", primaryClassCd, primaryClassCdObjectData);
 
@@ -301,7 +311,7 @@ export default function SummaryCharts({
     }
 
     return undefined;
-  }, [selectedAssessment]);
+  }, [selectedAssessment, resolvedStats]);
 
   // console.log("SUMMARY DATA", summaryData, chartData);
   return (
@@ -361,13 +371,16 @@ export default function SummaryCharts({
                   <PolarAngleAxis
                     dataKey="text"
                     axisLineType="polygon"
-                    tick={({ x, y, textAnchor, value, index, ...props }) => {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    tick={({ x, y, textAnchor, index, ...props }: any) => {
                       const data = summaryData["R&W"][index];
                       return (
                         <text
                           x={x}
                           y={index === 0 ? y - 10 : y}
-                          textAnchor={textAnchor}
+                          textAnchor={
+                            textAnchor as "start" | "middle" | "end" | "inherit"
+                          }
                           fontSize={13}
                           fontWeight={500}
                           {...props}
@@ -402,16 +415,17 @@ export default function SummaryCharts({
                     fill="var(--color-red-300)"
                     fillOpacity={0.1}
                   />
+                  {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                   <ChartLegend
                     className="mt-8"
-                    content={<ChartLegendContent />}
+                    content={(props: any) => <ChartLegendContent {...props} />}
                   />
                 </RadarChart>
               </ChartContainer>
             ) : (
               <EmptyState
                 theme={"light"}
-                className=" border-0"
+                className=" border-0 z-0"
                 title="No Data Available"
                 description="Start practice to view your reading & writing skills."
                 icons={[
@@ -483,13 +497,16 @@ export default function SummaryCharts({
                   <PolarAngleAxis
                     dataKey="text"
                     axisLineType="polygon"
-                    tick={({ x, y, textAnchor, value, index, ...props }) => {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    tick={({ x, y, textAnchor, index, ...props }: any) => {
                       const data = summaryData["Math"][index];
                       return (
                         <text
                           x={x}
                           y={index === 0 ? y - 10 : y}
-                          textAnchor={textAnchor}
+                          textAnchor={
+                            textAnchor as "start" | "middle" | "end" | "inherit"
+                          }
                           fontSize={13}
                           fontWeight={500}
                           {...props}
@@ -524,16 +541,17 @@ export default function SummaryCharts({
                     fill="var(--color-red-300)"
                     fillOpacity={0.1}
                   />
+                  {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                   <ChartLegend
                     className="mt-8"
-                    content={<ChartLegendContent />}
+                    content={(props: any) => <ChartLegendContent {...props} />}
                   />
                 </RadarChart>
               </ChartContainer>
             ) : (
               <EmptyState
                 theme={"light"}
-                className=" border-0"
+                className=" border-0 z-0"
                 title="No Data Available"
                 description="Start practice to view your maths skills."
                 icons={[
@@ -577,18 +595,18 @@ export default function SummaryCharts({
                         const percentage = Math.round(
                           (skill.correctAnswers /
                             (skill.correctAnswers + skill.incorrectAnswers)) *
-                            100
+                            100,
                         );
 
                         return (
                           <div key={index} className="space-y-2">
                             <div className="flex items-center justify-between text-sm">
-                              <span className="font-medium text-gray-700">
+                              <span className="font-medium text-foreground">
                                 {skillCdsObjectData[skill.text]?.text ||
                                   skill.text}
                               </span>
                               <div className="flex items-center gap-2">
-                                <span className="text-gray-600">
+                                <span className="text-muted-foreground">
                                   {skill.correctAnswers}/
                                   {skill.correctAnswers +
                                     skill.incorrectAnswers}
@@ -604,12 +622,12 @@ export default function SummaryCharts({
                       })}
                     </div>
                   </div>
-                )
+                ),
               )
             ) : (
               <EmptyState
                 theme={"light"}
-                className=" border-0"
+                className=" border-0 z-0"
                 title="No Reading & Writing Data Available"
                 description="Start practice to view your Reading & Writing skills insights."
                 icons={[
@@ -651,7 +669,7 @@ export default function SummaryCharts({
                         const percentage = Math.round(
                           (skill.correctAnswers /
                             (skill.correctAnswers + skill.incorrectAnswers)) *
-                            100
+                            100,
                         );
 
                         return (
@@ -678,12 +696,12 @@ export default function SummaryCharts({
                       })}
                     </div>
                   </div>
-                )
+                ),
               )
             ) : (
               <EmptyState
                 theme={"light"}
-                className=" border-0"
+                className=" border-0 z-0"
                 title="No Math Data Available"
                 description="Start practice to view your Math skills insights."
                 icons={[

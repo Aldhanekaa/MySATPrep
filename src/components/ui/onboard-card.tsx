@@ -58,8 +58,8 @@ const OnboardCard = ({
           },
           stepNumber === 1
             ? 100
-            : stepDuration * (stepNumber - 1) + 200 * stepNumber
-        )
+            : stepDuration * (stepNumber - 1) + 200 * stepNumber,
+        ),
       );
     });
 
@@ -70,7 +70,7 @@ const OnboardCard = ({
         setStepProgress({});
         setAnimateKey((k) => k + 1);
         onStepChange?.(1);
-      }, duration + 1000)
+      }, duration + 1000),
     );
 
     return () => {
@@ -105,7 +105,7 @@ const OnboardCard = ({
     <div
       className={cn(
         "relative",
-        "flex flex-col items-center max-w-sm w-full justify-center gap-1 p-4 h-[280px] overflow-hidden"
+        "flex flex-col items-center max-w-sm w-full justify-center gap-1 p-4 h-[280px] overflow-hidden",
       )}
     >
       {/* Animated container that moves all cards together */}
@@ -128,7 +128,7 @@ const OnboardCard = ({
               key={step.id}
               className={cn(
                 "flex w-[280px] h-[65px] flex-col justify-center gap-2 rounded-md border bg-gradient-to-br from-neutral-100 to-neutral-50 py-3 pl-3 pr-4",
-                "dark:from-neutral-800 dark:to-neutral-950"
+                "dark:from-neutral-800 dark:to-neutral-950",
               )}
               initial={{
                 scale: stepNumber === 1 ? 1.0 : 0.85,
@@ -180,7 +180,7 @@ const OnboardCard = ({
         })}
       </motion.div>
 
-      <div className="absolute top-0 h-[40%] w-full bg-gradient-to-b from-white/20 to-transparent" />
+      <div className="absolute top-0 h-[40%] w-full bg-gradient-to-b from-white/20 dark:from-black/20 to-transparent" />
       <div className="absolute bottom-0 h-[40%] w-full bg-gradient-to-t from-background/20 to-transparent" />
     </div>
   );

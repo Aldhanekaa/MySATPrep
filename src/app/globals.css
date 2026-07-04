@@ -126,8 +126,8 @@
   --ds-gray-alpha-100: rgba(0, 0, 0, 0.05);
   --ds-gray-alpha-300: hsla(0, 0%, 0%, 0.1);
   --accents-2: #eaeaea;
-  --ds-focus-calendar-date-ring: 0 0 0 1px var(--ds-background-100),
-    0 0 0 2.5px var(--ds-gray-1000);
+  --ds-focus-calendar-date-ring:
+    0 0 0 1px var(--ds-background-100), 0 0 0 2.5px var(--ds-gray-1000);
   --ds-red-800: oklch(58.19% 0.2482 25.15);
   --ds-red-900: oklch(54.99% 0.232 25.29);
   --ds-blue-700: oklch(57.61% 0.2508 258.23);
@@ -142,26 +142,30 @@
   --ds-gray-alpha-400: hsla(0, 0%, 0%, 0.08);
   --ds-background-100: hsla(0, 0%, 100%, 1);
   --ds-focus-color: var(--ds-blue-700);
-  --ds-focus-ring: 0 0 0 2px var(--ds-background-100),
-    0 0 0 4px var(--ds-focus-color);
+  --ds-focus-ring:
+    0 0 0 2px var(--ds-background-100), 0 0 0 4px var(--ds-focus-color);
   --ds-shadow-border: 0 0 0 1px rgba(0, 0, 0, 0.08);
   --ds-shadow-small: 0px 2px 2px rgba(0, 0, 0, 0.04);
   --ds-shadow-border-small: var(--ds-shadow-border), var(--ds-shadow-small);
-  --ds-shadow-medium: 0px 2px 2px rgba(0, 0, 0, 0.04),
-    0px 8px 8px -8px rgba(0, 0, 0, 0.04);
+  --ds-shadow-medium:
+    0px 2px 2px rgba(0, 0, 0, 0.04), 0px 8px 8px -8px rgba(0, 0, 0, 0.04);
   --ds-shadow-border-medium: var(--ds-shadow-border), var(--ds-shadow-medium);
-  --ds-shadow-large: 0px 2px 2px rgba(0, 0, 0, 0.04),
-    0px 8px 16px -4px rgba(0, 0, 0, 0.04);
+  --ds-shadow-large:
+    0px 2px 2px rgba(0, 0, 0, 0.04), 0px 8px 16px -4px rgba(0, 0, 0, 0.04);
   --ds-shadow-border-large: var(--ds-shadow-border), var(--ds-shadow-large);
-  --ds-shadow-tooltip: var(--ds-shadow-border), 0px 1px 1px rgba(0, 0, 0, 0.02),
+  --ds-shadow-tooltip:
+    var(--ds-shadow-border), 0px 1px 1px rgba(0, 0, 0, 0.02),
     0px 4px 8px rgba(0, 0, 0, 0.04);
-  --ds-shadow-menu: var(--ds-shadow-border), 0px 1px 1px rgba(0, 0, 0, 0.02),
+  --ds-shadow-menu:
+    var(--ds-shadow-border), 0px 1px 1px rgba(0, 0, 0, 0.02),
     0px 4px 8px -4px rgba(0, 0, 0, 0.04), 0px 16px 24px -8px rgba(0, 0, 0, 0.06);
-  --ds-shadow-modal: var(--ds-shadow-border), 0px 1px 1px rgba(0, 0, 0, 0.02),
+  --ds-shadow-modal:
+    var(--ds-shadow-border), 0px 1px 1px rgba(0, 0, 0, 0.02),
     0px 8px 16px -4px rgba(0, 0, 0, 0.04),
     0px 24px 32px -8px rgba(0, 0, 0, 0.06);
-  --ds-shadow-fullscreen: var(--ds-shadow-border),
-    0px 1px 1px rgba(0, 0, 0, 0.02), 0px 8px 16px -4px rgba(0, 0, 0, 0.04),
+  --ds-shadow-fullscreen:
+    var(--ds-shadow-border), 0px 1px 1px rgba(0, 0, 0, 0.02),
+    0px 8px 16px -4px rgba(0, 0, 0, 0.04),
     0px 24px 32px -8px rgba(0, 0, 0, 0.06);
   --ds-red-300: oklch(94.33% 0.0369 15.011509923860523);
   --ds-red-500: oklch(84.47% 0.1018 17.71);
@@ -170,12 +174,12 @@
   --ds-gray-alpha-600: hsla(0, 0%, 0%, 0.34);
   --ds-background-200: hsla(0, 0%, 98%, 1);
   --geist-foreground: #000;
-  --ds-input-ring: 0 0 0 1px var(--ds-gray-alpha-600),
-    0 0 0 4px rgba(0, 0, 0, 0.16);
-  --ds-input-error-ring: 0 0 0 1px var(--ds-red-900),
-    0 0 0 4px var(--ds-red-300);
-  --ds-input-error-hover-ring: 0 0 0 1px var(--ds-red-900),
-    0 0 0 4px var(--ds-red-500);
+  --ds-input-ring:
+    0 0 0 1px var(--ds-gray-alpha-600), 0 0 0 4px rgba(0, 0, 0, 0.16);
+  --ds-input-error-ring:
+    0 0 0 1px var(--ds-red-900), 0 0 0 4px var(--ds-red-300);
+  --ds-input-error-hover-ring:
+    0 0 0 1px var(--ds-red-900), 0 0 0 4px var(--ds-red-500);
   --ds-red-900-alpha-160: hsla(358, 66%, 48%, 0.16);
   --geist-error: #ee0000;
 }
@@ -243,18 +247,18 @@
   width: 100%;
   border-collapse: collapse;
   margin: 1.5rem 0;
-  background: #fff;
+  background: var(--background);
   border-radius: 8px;
   overflow: hidden;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 .answer-option tbody {
-  background: #fafbfc;
+  background: var(--card);
 }
 
 .answer-option tr {
-  border-bottom: 1px solid #eaeaea;
+  border-bottom: 1px solid var(--border);
   transition: background 0.2s;
 }
 
@@ -266,25 +270,25 @@
   padding: 0.75rem 1.25rem;
   text-align: center;
   font-size: 1rem;
-  color: #222;
+  color: var(--foreground);
   font-family: "Inter", Arial, sans-serif;
   vertical-align: middle;
 }
 
 /* Optional: Table header styling */
 .answer-option th {
-  background: #f3f4f6;
+  background: var(--muted);
   color: #0070f3;
   font-weight: 600;
   padding: 0.75rem 1.25rem;
   text-align: center;
   font-size: 1.05rem;
-  border-bottom: 2px solid #eaeaea;
+  border-bottom: 2px solid var(--border);
 }
 
 /* Optional: Row hover effect */
 .answer-option tr:hover {
-  background: #f0f7ff;
+  background: var(--accent);
 }
 
 @layer components {
@@ -298,7 +302,8 @@
   }
 
   .rainbow-banner-gradient-1 {
-    mask-image: linear-gradient(to bottom, white, transparent),
+    mask-image:
+      linear-gradient(to bottom, white, transparent),
       radial-gradient(circle at top center, white, transparent);
     mask-composite: intersect;
     animation: moving-banner 16s linear infinite reverse;
@@ -327,7 +332,8 @@
   }
 
   .rainbow-banner-gradient-2 {
-    mask-image: linear-gradient(to bottom, white, transparent),
+    mask-image:
+      linear-gradient(to bottom, white, transparent),
       radial-gradient(circle at top center, white, transparent);
     mask-composite: intersect;
     animation: moving-banner 20s linear infinite;
@@ -356,7 +362,8 @@
   }
 
   .warning-banner-gradient-1 {
-    mask-image: linear-gradient(to bottom, white, transparent),
+    mask-image:
+      linear-gradient(to bottom, white, transparent),
       radial-gradient(circle at top center, white, transparent);
     mask-composite: intersect;
     animation: moving-banner 18s linear infinite reverse;
@@ -385,7 +392,8 @@
   }
 
   .warning-banner-gradient-2 {
-    mask-image: linear-gradient(to bottom, white, transparent),
+    mask-image:
+      linear-gradient(to bottom, white, transparent),
       radial-gradient(circle at top center, white, transparent);
     mask-composite: intersect;
     animation: moving-banner 22s linear infinite;
@@ -425,10 +433,14 @@
 
 @keyframes aurora {
   from {
-    background-position: 50% 50%, 50% 50%;
+    background-position:
+      50% 50%,
+      50% 50%;
   }
   to {
-    background-position: 350% 50%, 350% 50%;
+    background-position:
+      350% 50%,
+      350% 50%;
   }
 }
 
@@ -445,23 +457,25 @@
 }
 
 .questionProblemCard table {
-        border-collapse: collapse !important;
-        width: 100%;
+  border-collapse: collapse !important;
+  width: 100%;
 }
 
-.questionProblemCard th, td {
-        padding: 8px 12px !important;
-        border: 1px solid #e5e7eb !important;
-        border-radius: 0 !important;
-        background: #ffffff !important;
-      }
+.questionProblemCard th,
+td {
+  padding: 8px 12px !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 0 !important;
+  background: var(--background) !important;
+  color: var(--foreground) !important;
+}
 
 .questionProblemCard th {
-        background: #f9fafb !important;
-        font-weight: 600;
-      }
+  background: var(--muted) !important;
+  color: var(--muted-foreground) !important;
+  font-weight: 600;
+}
 
 .questionProblemCard tr:hover td {
-        background: #f8fafc;
-      }
-
+  background: var(--accent) !important;
+}

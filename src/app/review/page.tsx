@@ -6,11 +6,11 @@ import { SiteHeader } from "../navbar";
 import ReviewOnboarding from "@/components/review-onboarding";
 import PracticeRushMultistep from "@/components/practice-rush-multistep";
 import { PracticeSelections, PracticeSession } from "@/types/session";
-import { SavedQuestions } from "@/types/savedQuestions";
-import { PracticeStatistics } from "@/types/statistics";
 import { PlainQuestionType } from "@/types/question";
-import { useLocalStorage } from "@/lib/useLocalStorage";
-// import type { Metadata } from "next";
+import {
+  useResolvedBookmarks,
+  useResolvedPracticeStatistics,
+} from "@/hooks/use-resolved-user-data";
 
 import { playSound } from "@/lib/playSound";
 import { ProjectBanner } from "@/components/ui/project-banner";
@@ -76,15 +76,8 @@ function Review() {
     QuestionWithData[]
   >([]);
 
-  // Load localStorage data based on review type
-  const [savedQuestions] = useLocalStorage<SavedQuestions>(
-    "savedQuestions",
-    {}
-  );
-  const [practiceStatistics] = useLocalStorage<PracticeStatistics>(
-    "practiceStatistics",
-    {}
-  );
+  const savedQuestions = useResolvedBookmarks()[0];
+  const practiceStatistics = useResolvedPracticeStatistics();
 
   // Load questions from localStorage based on review type
   const loadQuestionsFromStorage = useCallback(
@@ -107,7 +100,7 @@ function Review() {
         const assessmentStats = practiceStatistics[assessmentKey];
         const incorrectQuestions =
           assessmentStats?.answeredQuestionsDetailed?.filter(
-            (q) => !q.isCorrect
+            (q) => !q.isCorrect,
           ) || [];
         questions = incorrectQuestions.map((question) => ({
           questionId: question.questionId,
@@ -121,7 +114,7 @@ function Review() {
 
       return questions;
     },
-    [practiceSelections, reviewType, savedQuestions, practiceStatistics]
+    [practiceSelections, reviewType, savedQuestions, practiceStatistics],
   );
 
   // Check for URL parameters and validate them
@@ -196,8 +189,8 @@ function Review() {
         questions = questions.filter(
           (e) =>
             getSubjectByPrimaryClassCd(
-              e.plainQuestion?.primary_class_cd || ""
-            ) == subject
+              e.plainQuestion?.primary_class_cd || "",
+            ) == subject,
         );
         setQuestionsWithData(questions);
 
@@ -220,7 +213,7 @@ function Review() {
           "questions - skills",
           skills,
           questions,
-          skillCdsObjectData
+          skillCdsObjectData,
         );
 
         // Only include unique primaryClassCd values
@@ -272,7 +265,7 @@ function Review() {
 
         console.log(
           "Successfully created review session from URL:",
-          selections
+          selections,
         );
       } catch (error) {
         console.error("Error creating review selections from URL:", error);
@@ -292,12 +285,12 @@ function Review() {
 
     let questions = loadQuestionsFromStorage(
       selections.assessment,
-      selections.reviewType
+      selections.reviewType,
     );
     questions = questions.filter(
       (e) =>
         getSubjectByPrimaryClassCd(e.plainQuestion?.primary_class_cd || "") ==
-        selections.subject
+        selections.subject,
     );
     setQuestionsWithData(questions);
 
@@ -417,7 +410,7 @@ function Review() {
       const assessmentStats = practiceStatistics[assessmentKey];
       const incorrectQuestions =
         assessmentStats?.answeredQuestionsDetailed?.filter(
-          (q) => !q.isCorrect
+          (q) => !q.isCorrect,
         ) || [];
       return incorrectQuestions.length;
     }
