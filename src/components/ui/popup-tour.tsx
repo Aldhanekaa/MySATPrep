@@ -32,32 +32,29 @@ export default function Dialog02() {
   const steps = [
     {
       title: "Let's Get Started",
-      description:
-        "Explore the recaps of new features added through this tour.",
+      description: "Take a quick look at what’s new and why it matters.",
       image: PlatformAnnouncementBanner,
     },
     {
       title: "You Can Now Sign In With Google or Email",
       description:
-        "The dashboard has been redesigned to provide more intuitive and user-friendly experience for mobile, tablet, and desktop users.",
+        "Sign in faster with a cleaner experience built for every screen.",
       image: FeatureAnnouncement,
     },
     {
       title: "Choose Your Preferred Sign In Method!",
-      description:
-        "The dashboard has been redesigned to provide more intuitive and user-friendly experience for mobile, tablet, and desktop users.",
+      description: "Pick the sign-in method that fits you best and get moving.",
       image: SignInMethod,
     },
     {
       title: "Import Your Local Browser Data to Cloud!",
       description:
-        "You can get personalized insights and statistics based on your performance on each subject's topics.",
+        "Move your local data to the cloud for smarter, personalized insights.",
       image: ImportData,
     },
     {
       title: "Sync Data Across Devices",
-      description:
-        "You can now bookmark questions and organize them with folders.",
+      description: "Keep your progress in sync so it follows you everywhere.",
       image: SyncDataAcrossDevices,
     },
   ];
@@ -67,13 +64,13 @@ export default function Dialog02() {
   };
 
   const handleDialogClose = () => {
-    localStorage.setItem("onboarding-tour-completed", "true");
+    localStorage.setItem("new-update-tour", "true");
     setIsOpen(false);
   };
 
   useEffect(() => {
     // Check if the tour has been completed
-    const tourCompleted = localStorage.getItem("onboarding-tour-completed");
+    const tourCompleted = localStorage.getItem("new-update-tour");
     if (!tourCompleted || tourCompleted === "false") {
       setIsOpen(true);
     }

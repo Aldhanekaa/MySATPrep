@@ -13,7 +13,6 @@ import { Toaster } from "sonner";
 import { Banner } from "@/components/ui/banner";
 import { AssessmentProvider } from "@/contexts/assessment-context";
 import Dialog02 from "@/components/ui/popup-tour";
-import AnnouncementSection from "@/components/announcement-section";
 import { ReduxProvider } from "@/lib/redux/Provider";
 import { AuthSessionProvider } from "@/components/auth/AuthSessionProvider";
 import { SessionInitializer } from "@/components/auth/SessionInitializer";
@@ -184,7 +183,7 @@ export default function RootLayout({
         />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-black`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         {/* <Banner
           message="Some features may be unavailable due to the ongoing global outage."
