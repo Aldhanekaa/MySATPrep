@@ -1,16 +1,21 @@
-/**
- * @deprecated Import from "@/lib/db/index" or "@/lib/db" directly.
- *
- * This file is kept as a re-export shim so that existing imports of
- * `config`, `REVALIDATE_LONG`, and `REVALIDATE_MEDIUM` from "@/lib/db"
- * continue to resolve without touching every consumer route.
- */
-export {
-  config,
+import { neon } from "@neondatabase/serverless";
+import { pool } from "@/lib/auth";
+
+const databaseUrl = process.env.DATABASE_URL || process.env.NEON_DATABASE_URL;
+
+const sql = databaseUrl ? neon(databaseUrl) : null;
+
+// Revalidation presets for route-level caching
+export const REVALIDATE_LONG = 3600; // 1 hour
+export const REVALIDATE_MEDIUM = 300; // 5 minutes
+
+export const config = {
+  databaseUrl,
+  sql,
   REVALIDATE_LONG,
   REVALIDATE_MEDIUM,
-  sql,
-  db,
-} from "@/lib/db/index";
+};
 
-export { pool } from "@/lib/auth";
+// Re-export Pool for use in API routes and db operations
+// Validates: Requirements 1.3, 18.7
+export { pool };
