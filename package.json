@@ -14,12 +14,12 @@
     "cf-typegen": "wrangler types --env-interface CloudflareEnv ./cloudflare-env.d.ts"
   },
   "dependencies": {
-    "@opennextjs/cloudflare": "^1.19.9",
     "@ai-sdk/deepseek": "^1.0.15",
     "@ai-sdk/react": "^2.0.34",
     "@floating-ui/react": "^0.27.16",
     "@neondatabase/serverless": "^1.1.0",
     "@next/third-parties": "^15.4.6",
+    "@opennextjs/cloudflare": "^1.19.9",
     "@openrouter/ai-sdk-provider": "^1.2.0",
     "@paper-design/shaders-react": "^0.0.76",
     "@radix-ui/react-alert-dialog": "^1.1.15",
@@ -81,7 +81,7 @@
     "react-redux": "^9.3.0",
     "react-resizable-panels": "^4.11.1",
     "react-use-measure": "^2.1.7",
-    "recharts": "^2.15.4",
+    "recharts": "^3.9.1",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.3.1",
     "usehooks-ts": "^3.1.1",
