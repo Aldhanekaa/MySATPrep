@@ -97,9 +97,12 @@ export const SignInModal = memo(function SignInModal({
   return (
     /* Backdrop */
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      className="fixed inset-0  flex items-center justify-center p-4"
       aria-modal="true"
       role="dialog"
+      style={{
+        zIndex: 100,
+      }}
       aria-labelledby={titleId}
       onKeyDown={handleKeyDown}
     >
