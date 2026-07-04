@@ -49,7 +49,7 @@ function ModalLoadingFallback() {
       }}
     >
       <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/50 backdrop-blur-sm z-10"
         aria-hidden="true"
       />
       <div className="relative z-10 flex h-16 w-16 items-center justify-center rounded-xl bg-white shadow-xl dark:bg-gray-900">

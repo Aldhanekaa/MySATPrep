@@ -100,7 +100,7 @@ export const SignUpModal = memo(function SignUpModal({
     >
       {/* Scrim */}
       <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/50 backdrop-blur-sm z-10"
         aria-hidden="true"
         onClick={onClose}
       />

@@ -93,7 +93,7 @@ export function SyncPrompt({ isOpen, onClose, onSync }: SyncPromptProps) {
     >
       {/* Scrim */}
       <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm z-50"
+        className="absolute inset-0 bg-black/50 backdrop-blur-sm z-10"
         aria-hidden="true"
         onClick={state.phase !== "loading" ? handleClose : undefined}
       />

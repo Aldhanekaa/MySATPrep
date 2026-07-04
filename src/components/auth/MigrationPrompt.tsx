@@ -104,7 +104,7 @@ export function MigrationPrompt({
     >
       {/* Scrim — not dismissible while loading */}
       <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/50 backdrop-blur-sm z-10"
         aria-hidden="true"
         onClick={state.phase !== "loading" ? handleClose : undefined}
       />

@@ -328,7 +328,7 @@ export default function SummaryCharts({
             {summaryData["R&W"].length > 0 ? (
               <ChartContainer
                 config={chartConfig}
-                className="mx-auto aspect-square max-h-[250px] w-full max-w-full"
+                className="mx-auto aspect-square max-h-[250px] w-full max-w-full z-0"
                 id="BRO"
               >
                 <RadarChart
@@ -425,7 +425,7 @@ export default function SummaryCharts({
             ) : (
               <EmptyState
                 theme={"light"}
-                className=" border-0 z-0"
+                className=" border-0"
                 title="No Data Available"
                 description="Start practice to view your reading & writing skills."
                 icons={[
