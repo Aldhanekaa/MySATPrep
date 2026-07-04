@@ -9,7 +9,6 @@ import {
 } from "@/lib/exportImport";
 
 import { Button } from "@/components/ui/button";
-import { DownloadIcon, FolderInputIcon, FolderOutputIcon } from "lucide-react";
 
 export default function SessionsPage() {
   const { state } = useAssessment();
@@ -79,53 +78,72 @@ export default function SessionsPage() {
   };
 
   return (
-    <section className="space-y-4 max-w-4xl lg:max-w-5xl xl:max-w-7xl w-full mx-auto px-3 py-10 ">
-      You can export your data, which is stored on your browser local storage,
-      to a JSON file, which can be imported back into the the platform later —
-      whether you switch browser or testing our new alpha version of the
-      platform (TBA). This is useful for backing up your data or transferring it
-      to another device.
-      <br />
-      <br />
-      I promise the data won't corrupt, but it's always a good idea to keep a
-      backup just in case.
-      <br />
-      The exported data includes your saved questions, practice statistics, and
-      any other relevant information stored in your local storage related to
-      your assessments.
-      <br />
-      <br />
-      In the meantime, please wait while I develop the authentication so you can
-      store your data in the cloud (If you wish to) — many people asking me for
-      this feature ._.
-      <br />
-      But anyway, later, the authentication is just optional. You can still use
-      the platform while your data is stored locally and kept private.
-      <br />
-      <br />
-      Thanks for using MySATPrep! Love yall
-      <br />
-      - Aldhaneka
-      <br />
-      <section className="flex gap-2 pt-5">
-        {" "}
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleExport}
-          disabled={isExporting}
-        >
-          <DownloadIcon /> {isExporting ? "Exporting..." : "Export"}
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleImportClick}
-          disabled={isImporting}
-        >
-          <FolderInputIcon /> {isImporting ? "Importing..." : "Import"}
-        </Button>
+    <section className="mx-auto w-full max-w-4xl space-y-6 px-3 py-10 lg:max-w-5xl xl:max-w-7xl">
+      <div className="rounded-3xl border border-blue-200 bg-blue-50/80 p-6 text-blue-950 shadow-sm dark:border-blue-900/50 dark:bg-blue-950/30 dark:text-blue-50">
+        <p className="text-sm font-semibold uppercase tracking-wide text-blue-700 dark:text-blue-300">
+          Important migration notice
+        </p>
+        <h1 className="mt-2 text-2xl font-bold sm:text-3xl">
+          You need to migrate again to MySATPrep.fun.
+        </h1>
+        <p className="mt-3 max-w-3xl text-sm leading-6 text-blue-900/90 dark:text-blue-100/90">
+          User authentication is now available. After you sign in, you can
+          import your local data there and it will sync into the cloud so your
+          progress stays with your account across devices.
+        </p>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <div className="rounded-2xl border bg-background p-5 shadow-sm">
+          <h2 className="text-lg font-semibold">Export your backup</h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Use the export button below to download your local storage data as a
+            JSON file. It includes saved questions, practice statistics, and
+            related assessment data.
+          </p>
+        </div>
+
+        <div className="rounded-2xl border bg-background p-5 shadow-sm">
+          <h2 className="text-lg font-semibold">Import after sign in</h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Once you are authenticated on MySATPrep.fun, import the same file
+            there to sync your data to the cloud and keep it available on any
+            device.
+          </p>
+        </div>
+      </div>
+
+      <section className="space-y-4 rounded-2xl border bg-background p-5 shadow-sm">
+        <p className="text-sm leading-6 text-muted-foreground">
+          If you are moving from the local-only version, export a backup first,
+          then import it again on the authenticated MySATPrep.fun account. That
+          gives you both a downloadable backup and a synced cloud copy.
+        </p>
+        <p className="text-sm leading-6 text-muted-foreground">
+          Your data remains private, and exporting gives you a safe copy before
+          you migrate.
+        </p>
+
+        <section className="flex flex-wrap gap-2 pt-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExport}
+            disabled={isExporting}
+          >
+            {isExporting ? "Exporting..." : "Export Backup"}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleImportClick}
+            disabled={isImporting}
+          >
+            {isImporting ? "Importing..." : "Import Backup"}
+          </Button>
+        </section>
       </section>
+
       <input
         ref={fileInputRef}
         type="file"
@@ -136,7 +154,7 @@ export default function SessionsPage() {
       />
       {message && (
         <div
-          className={`mt-4 p-3 rounded-md ${
+          className={`rounded-md p-3 ${
             message.type === "success"
               ? "bg-green-100 text-green-800"
               : "bg-red-100 text-red-800"
