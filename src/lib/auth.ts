@@ -1,81 +1,130 @@
 /**
  * Better Auth Configuration
  *
- * Configures Better Auth with PostgreSQL, Google OAuth, and email/password authentication.
+ * Uses:
+ * - drizzle-orm/postgres-js for standard PostgreSQL access (works with any
+ *   Postgres provider — Neon, Supabase, self-hosted, etc.)
+ * - @better-auth/drizzle-adapter to connect Better Auth to the Drizzle client
+ * - better-auth-cloudflare's `withCloudflare` for IP detection, geolocation
+ *   tracking, and optional KV-backed rate limiting
  *
- * Uses @neondatabase/serverless instead of `pg` so that database connections
- * work in the Cloudflare Workers runtime (which has no Node.js TCP sockets).
- * The Neon serverless driver uses HTTP/WebSocket, both of which are available
- * in Workers.
+ * Two separate clients are kept deliberately:
+ *   • `db`     — pooled connection string, for all app queries
+ *   • `authDb` — unpooled / direct connection for Better Auth, which uses
+ *                prepared statements and SET commands that are incompatible
+ *                with PgBouncer transaction-mode pooling
+ *
+ * Cloudflare Workers note:
+ *   postgres-js uses raw TCP sockets, which are not available in Workers
+ *   without Cloudflare Hyperdrive. Add a Hyperdrive binding in wrangler.toml
+ *   and pass its .connectionString as DATABASE_URL at runtime on Cloudflare.
+ *   During local `next dev` the raw TCP connection works normally.
  */
 
 import { betterAuth } from "better-auth";
-import { Pool, neonConfig } from "@neondatabase/serverless";
-import ws from "ws";
+import { drizzleAdapter } from "@better-auth/drizzle-adapter";
+import { withCloudflare } from "better-auth-cloudflare";
+import { drizzle } from "drizzle-orm/postgres-js";
+import postgres from "postgres";
 import { env } from "./config/env";
+import { appSchema } from "./db/schema";
 
-// Use the `ws` package as the WebSocket implementation when running outside
-// the browser (i.e. in Node.js during `next dev`) so the Neon serverless
-// driver can open WebSocket connections.  In the Cloudflare Workers runtime
-// the global `WebSocket` is already available, so this is only needed locally.
-if (typeof WebSocket === "undefined") {
-  neonConfig.webSocketConstructor = ws;
-}
-
-/**
- * Application query pool — uses the Neon pooler endpoint (PgBouncer).
- * Uses @neondatabase/serverless Pool which works in Cloudflare Workers via WebSocket.
- */
-const pool = new Pool({
-  connectionString: env.DATABASE_URL,
+// ---------------------------------------------------------------------------
+// App query client — pooled connection string, max_connections capped so the
+// process doesn't exhaust the server's connection limit (tune as needed).
+// ---------------------------------------------------------------------------
+const appPgClient = postgres(env.DATABASE_URL, {
+  max: 10,
+  prepare: false, // disable prepared statements for PgBouncer compatibility
 });
+export const db = drizzle(appPgClient, { schema: appSchema });
 
-/**
- * Unpooled connection for better-auth.
- * better-auth uses prepared statements and SET commands that are incompatible
- * with PgBouncer's transaction-mode pooling, so it needs a direct connection.
- */
-const authPool = new Pool({
-  connectionString: env.DATABASE_URL_UNPOOLED,
-});
+// ---------------------------------------------------------------------------
+// Auth-only client — unpooled / direct connection for Better Auth.
+// `prepare: false` is already safe here but kept for clarity.
+// ---------------------------------------------------------------------------
+const authPgClient = postgres(env.DATABASE_URL_UNPOOLED, { prepare: false });
+const authDb = drizzle(authPgClient, { schema: appSchema });
 
-console.log(
-  "process.env.NEXT_PUBLIC_BASE_URL",
-  process.env.NEXT_PUBLIC_BASE_URL,
+// ---------------------------------------------------------------------------
+// Better Auth instance
+//
+// `withCloudflare` wraps the core betterAuth options and injects:
+//   - IP auto-detection from the CF-Connecting-IP / X-Forwarded-For headers
+//   - Geolocation tracking in the session table (city, country, timezone, …)
+//   - Optional KV-backed secondary storage for rate-limiting (pass `kv` when
+//     running on Cloudflare; omit it during local dev — auth still works)
+//
+// The `postgres` key is how better-auth-cloudflare integrates with a
+// Drizzle/PostgreSQL setup instead of D1.
+// ---------------------------------------------------------------------------
+export const auth = betterAuth(
+  withCloudflare(
+    {
+      autoDetectIpAddress: true,
+      geolocationTracking: true,
+      // `cf` is the Cloudflare request context (contains geo data).
+      // It is intentionally omitted here; the route handler passes it at
+      // request time via `withCloudflare`'s request-aware middleware.
+      postgres: {
+        db: authDb,
+        options: {
+          // better-auth generates RFC 4122 UUIDs, which is what our PostgreSQL
+          // schema expects (uuid column type throughout).
+          usePlural: false,
+        },
+      },
+    },
+    // ── Core Better Auth options ──────────────────────────────────────────
+    {
+      database: drizzleAdapter(authDb, {
+        provider: "pg",
+        usePlural: false,
+      }),
+      advanced: {
+        database: {
+          generateId: "uuid",
+        },
+      },
+      emailAndPassword: {
+        enabled: true,
+        minPasswordLength: 8,
+      },
+      socialProviders: {
+        google: {
+          clientId: env.GOOGLE_CLIENT_ID,
+          clientSecret: env.GOOGLE_CLIENT_SECRET,
+        },
+      },
+      session: {
+        cookieCache: {
+          enabled: true,
+          maxAge: 5 * 60, // 5 minutes
+        },
+      },
+      secret: env.BETTER_AUTH_SECRET,
+      baseURL: process.env.NEXT_PUBLIC_BASE_URL,
+    },
+  ),
 );
-// Configure Better Auth
-export const auth = betterAuth({
-  database: authPool,
-  advanced: {
-    database: {
-      // Generate RFC 4122 UUIDs so better-auth's user IDs are compatible with
-      // our PostgreSQL schema, which uses the uuid column type throughout.
-      generateId: "uuid",
-    },
-  },
-  emailAndPassword: {
-    enabled: true,
-    minPasswordLength: 8,
-  },
-  socialProviders: {
-    google: {
-      clientId: env.GOOGLE_CLIENT_ID,
-      clientSecret: env.GOOGLE_CLIENT_SECRET,
-    },
-  },
-  session: {
-    cookieCache: {
-      enabled: true,
-      maxAge: 5 * 60, // 5 minutes
-    },
-  },
-  secret: env.BETTER_AUTH_SECRET,
-  baseURL: process.env.NEXT_PUBLIC_BASE_URL,
-});
 
-// Export types for use throughout the app
+// ---------------------------------------------------------------------------
+// Exported types
+// ---------------------------------------------------------------------------
 export type Session = typeof auth.$Infer.Session.session;
 export type User = typeof auth.$Infer.Session.user;
 
-// Export the app query pool for direct database access
-export { pool };
+// ---------------------------------------------------------------------------
+// Legacy pool export shim
+//
+// All db/userOperations.ts and siblings import `pool` from "@/lib/auth" and
+// call pool.query(). Rather than rewriting every operation file in this PR,
+// we expose a thin compatibility object that delegates to a new pg Pool.
+//
+// Migrate each operations file to use Drizzle queries when convenient.
+// ---------------------------------------------------------------------------
+import { Pool } from "pg";
+
+export const pool = new Pool({
+  connectionString: env.DATABASE_URL,
+});
