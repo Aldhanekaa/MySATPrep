@@ -103,6 +103,11 @@ export async function GET(request: NextRequest) {
 
   let questions: API_Response_Question_List = [];
 
+  const questionDedupKey = (question: API_Response_Question_List[number]) => ({
+    externalId: question.external_id ?? null,
+    ibn: question.ibn ?? null,
+  });
+
   try {
     // Make the request to College Board API
     const response = await fetch(apiUrl, {
@@ -170,9 +175,42 @@ export async function GET(request: NextRequest) {
           success: boolean;
           data?: API_Response_Question_List;
         };
-        if (internalData.success && internalData.data) {
-          questions = [...questions, ...(internalData.data || [])];
-        }
+        // if (internalData.success && internalData.data) {
+        //   const seenExternalIds = new Set<string>();
+        //   const seenIbns = new Set<string>();
+
+        //   for (const question of questions) {
+        //     const { externalId, ibn } = questionDedupKey(question);
+
+        //     if (externalId) seenExternalIds.add(externalId);
+        //     if (ibn) seenIbns.add(ibn);
+        //   }
+
+        //   console.log("seenExternalIds", seenExternalIds);
+        //   console.log("seenIbns", seenIbns);
+
+        //   const uniqueInternalQuestions = internalData.data.filter(
+        //     (question) => {
+        //       const { externalId, ibn } = questionDedupKey(question);
+
+        //       const alreadySeen =
+        //         (externalId !== null && seenExternalIds.has(externalId)) ||
+        //         (ibn !== null && seenIbns.has(ibn));
+
+        //       if (alreadySeen) {
+        //         return false;
+        //       }
+
+        //       if (externalId) seenExternalIds.add(externalId);
+        //       if (ibn) seenIbns.add(ibn);
+
+        //       return true;
+        //     },
+        //   );
+
+        //   questions = [...questions, ...uniqueInternalQuestions];
+        // }
+        questions = [...questions, ...(internalData.data ?? [])];
       }
     } catch (internalError) {
       console.warn(
