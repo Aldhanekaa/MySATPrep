@@ -46,6 +46,10 @@ const authPool = new Pool({
   connectionTimeoutMillis: 15000,
 });
 
+console.log(
+  "process.env.NEXT_PUBLIC_BASE_URL",
+  process.env.NEXT_PUBLIC_BASE_URL,
+);
 // Configure Better Auth
 export const auth = betterAuth({
   database: authPool,
