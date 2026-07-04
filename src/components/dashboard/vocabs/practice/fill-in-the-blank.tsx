@@ -511,7 +511,10 @@ export default function VocabsFillinTheBlankPractice({
         : wordPerf.consecutiveIncorrect + 1;
       const newStrugglingAreas =
         !isCorrect && !wordPerf.strugglingAreas.includes("fill-blank")
-          ? [...wordPerf.strugglingAreas, "fill-blank"]
+          ? ([
+              ...wordPerf.strugglingAreas,
+              "fill-blank",
+            ] as WordPerformance["strugglingAreas"])
           : wordPerf.strugglingAreas;
       const totalTime =
         wordPerf.averageTimeSpent * wordPerf.totalAttempts + timeSpent;

@@ -404,7 +404,10 @@ export default function VocabsQuizPractice({
         : wordPerf.consecutiveIncorrect + 1;
       const newStrugglingAreas =
         !isCorrect && !wordPerf.strugglingAreas.includes("definition-quiz")
-          ? [...wordPerf.strugglingAreas, "definition-quiz"]
+          ? ([
+              ...wordPerf.strugglingAreas,
+              "definition-quiz",
+            ] as WordPerformance["strugglingAreas"])
           : wordPerf.strugglingAreas;
       const totalTime =
         wordPerf.averageTimeSpent * wordPerf.totalAttempts + timeSpent;

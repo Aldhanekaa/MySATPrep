@@ -415,10 +415,10 @@ export default function SummaryCharts({
                     fill="var(--color-red-300)"
                     fillOpacity={0.1}
                   />
+                  {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                   <ChartLegend
                     className="mt-8"
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    content={<ChartLegendContent />}
+                    content={(props: any) => <ChartLegendContent {...props} />}
                   />
                 </RadarChart>
               </ChartContainer>
@@ -541,9 +541,10 @@ export default function SummaryCharts({
                     fill="var(--color-red-300)"
                     fillOpacity={0.1}
                   />
+                  {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                   <ChartLegend
                     className="mt-8"
-                    content={<ChartLegendContent />}
+                    content={(props: any) => <ChartLegendContent {...props} />}
                   />
                 </RadarChart>
               </ChartContainer>
