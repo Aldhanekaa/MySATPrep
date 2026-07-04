@@ -13,7 +13,7 @@ interface EnvConfig {
   GOOGLE_CLIENT_ID: string;
   GOOGLE_CLIENT_SECRET: string;
   BETTER_AUTH_SECRET: string;
-  NEXT_PUBLIC_BASE_URL: string;
+  // NEXT_PUBLIC_BASE_URL: string;
 }
 
 /**
@@ -56,7 +56,7 @@ export function validateEnv(): EnvConfig {
     GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID!,
     GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET!,
     BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET!,
-    NEXT_PUBLIC_BASE_URL: process.env.NEXT_PUBLIC_BASE_URL!,
+    // NEXT_PUBLIC_BASE_URL: process.env.NEXT_PUBLIC_BASE_URL!,
   };
 }
 
