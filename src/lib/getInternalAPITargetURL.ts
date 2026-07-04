@@ -11,18 +11,22 @@
  * a localhost fallback that would break in production.
  */
 export default function getInternalAPITargetURL(): string {
-  const url = process.env.NEXT_PUBLIC_URL;
-
-  if (!url) {
-    if (process.env.NODE_ENV === "development") {
-      return "http://localhost:3000";
-    }
-    throw new Error(
-      "NEXT_PUBLIC_URL is not set. " +
-        "Add it to your environment variables (Cloudflare Worker secrets/vars or .env).",
-    );
-  }
+  const url = `${
+    process.env.NEXT_PUBLIC_URL
+      ? process.env.NEXT_PUBLIC_URL
+      : process.env.NEXT_PUBLIC_VERCEL_ENV !== "production"
+        ? `${
+            process.env.VERCEL_BRANCH_URL
+              ? `https://${process.env.VERCEL_BRANCH_URL}`
+              : "http://localhost:3000"
+          }`
+        : `${
+            process.env.NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL
+              ? `https://${process.env.NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL}`
+              : "http://localhost:3000"
+          }`
+  }`;
 
   // Strip trailing slash for consistent concatenation
-  return url.replace(/\/$/, "");
+  return url;
 }
