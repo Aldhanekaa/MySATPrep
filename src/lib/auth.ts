@@ -45,7 +45,9 @@ console.log(
 );
 // Configure Better Auth
 export const auth = betterAuth({
+  basePath: process.env.NEXT_PUBLIC_URL,
   database: authPool,
+
   advanced: {
     database: {
       // Generate RFC 4122 UUIDs so better-auth's user IDs are compatible with
