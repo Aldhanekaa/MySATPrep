@@ -12,7 +12,7 @@ import { NavActions } from "./nav-actions";
 
 export default function NavHeader() {
   return (
-    <header className="flex h-14 shrink-0 items-center gap-2 sticky top-0 bg-background z-0 rounded-t-xl shadow-sm">
+    <header className="flex h-14 shrink-0 items-center gap-2 sticky top-0 bg-background z-20 rounded-t-xl shadow-sm">
       <div className="flex flex-1 items-center gap-2 px-3">
         <SidebarTrigger />
         <Separator
