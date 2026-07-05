@@ -79,49 +79,43 @@ export default function SessionsPage() {
 
   return (
     <section className="mx-auto w-full max-w-4xl space-y-6 px-3 py-10 lg:max-w-5xl xl:max-w-7xl">
-      <div className="rounded-3xl border border-blue-200 bg-blue-50/80 p-6 text-blue-950 shadow-sm dark:border-blue-900/50 dark:bg-blue-950/30 dark:text-blue-50">
-        <p className="text-sm font-semibold uppercase tracking-wide text-blue-700 dark:text-blue-300">
-          Important migration notice
-        </p>
-        <h1 className="mt-2 text-2xl font-bold sm:text-3xl">
-          You need to migrate again to MySATPrep.fun.
-        </h1>
-        <p className="mt-3 max-w-3xl text-sm leading-6 text-blue-900/90 dark:text-blue-100/90">
-          User authentication is now available. After you sign in, you can
-          import your local data there and it will sync into the cloud so your
-          progress stays with your account across devices.
+      <div>
+        <h1 className="text-2xl font-bold sm:text-3xl">Export &amp; Import</h1>
+        <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
+          Back up your local data or restore it from a previous export. You can
+          also import a backup after signing in to sync your progress to the
+          cloud.
         </p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
         <div className="rounded-2xl border bg-background p-5 shadow-sm">
-          <h2 className="text-lg font-semibold">Export your backup</h2>
+          <h2 className="text-lg font-semibold">Export your data</h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            Use the export button below to download your local storage data as a
-            JSON file. It includes saved questions, practice statistics, and
-            related assessment data.
+            Download your local storage data as a JSON file. It includes saved
+            questions, practice statistics, and related assessment data.
           </p>
         </div>
 
         <div className="rounded-2xl border bg-background p-5 shadow-sm">
-          <h2 className="text-lg font-semibold">Import after sign in</h2>
+          <h2 className="text-lg font-semibold">Import &amp; sync to cloud</h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            Once you are authenticated on MySATPrep.fun, import the same file
-            there to sync your data to the cloud and keep it available on any
-            device.
+            Import a backup file to restore your data locally. Sign in first and
+            your imported data will also sync to the cloud, keeping your
+            progress available on any device.
           </p>
         </div>
       </div>
 
       <section className="space-y-4 rounded-2xl border bg-background p-5 shadow-sm">
         <p className="text-sm leading-6 text-muted-foreground">
-          If you are moving from the local-only version, export a backup first,
-          then import it again on the authenticated MySATPrep.fun account. That
-          gives you both a downloadable backup and a synced cloud copy.
+          Export creates a downloadable backup of everything stored locally —
+          useful before switching devices or browsers. Import restores that data
+          back into local storage.
         </p>
         <p className="text-sm leading-6 text-muted-foreground">
-          Your data remains private, and exporting gives you a safe copy before
-          you migrate.
+          If you are signed in, importing will also sync your data to the cloud
+          so your progress is tied to your account.
         </p>
 
         <section className="flex flex-wrap gap-2 pt-2">

@@ -18,20 +18,25 @@ import { env } from "./config/env";
 const SSL = { ssl: { rejectUnauthorized: false } };
 
 // Pooler / PgBouncer endpoint — high-concurrency reads
+// Keep max low: Supabase session-mode pooler holds one real Postgres connection
+// per client connection for its lifetime. Too many clients = EMAXCONNSESSION.
+// Rule of thumb: total across all pools/workers ≤ Supabase pool_size (default 15).
 const pool = new Pool({
   connectionString: env.DATABASE_URL,
   ...SSL,
-  max: 10,
-  idleTimeoutMillis: 30_000,
+  max: 3,
+  idleTimeoutMillis: 10_000, // release idle connections faster
   connectionTimeoutMillis: 10_000,
 });
 
 // Direct unpooled endpoint — writes and better-auth
+// Goes straight to Postgres (bypasses PgBouncer), so it doesn't count toward
+// the session-mode cap — but Supabase still limits direct connections, so keep small.
 const directPool = new Pool({
   connectionString: env.DATABASE_URL_UNPOOLED,
   ...SSL,
-  max: 5,
-  idleTimeoutMillis: 30_000,
+  max: 3,
+  idleTimeoutMillis: 10_000,
   connectionTimeoutMillis: 10_000,
 });
 

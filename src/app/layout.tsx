@@ -10,7 +10,8 @@ import FooterSection from "@/components/footer";
 import { MathJaxContext } from "better-react-mathjax";
 
 import { Toaster } from "sonner";
-import { Banner } from "@/components/ui/banner";
+import { Banner, Banner2 } from "@/components/ui/banner";
+
 import { AssessmentProvider } from "@/contexts/assessment-context";
 import Dialog02 from "@/components/ui/popup-tour";
 import { ReduxProvider } from "@/lib/redux/Provider";
@@ -190,7 +191,26 @@ export default function RootLayout({
           height="2rem"
           variant="rainbow"
         /> */}
+
         <ErrorBoundary>
+          <Banner2
+            id="banner-sync"
+            variant="rainbow"
+            className=" bg-white dark:bg-transparent"
+            rainbowColors={[
+              "rgba(255,210,50,0.77)",
+              "rgba(255,210,50,0.77)",
+              "transparent",
+              "rgba(255,210,50,0.77)",
+              "transparent",
+              "rgba(255,210,50,0.77)",
+              "transparent",
+            ]}
+          >
+            MySATPrep Is On Testing Phase
+          </Banner2>
+
+          <Banner />
           <AssessmentProvider>
             <MathJaxContext version={3} config={config}>
               <ReduxProvider>
