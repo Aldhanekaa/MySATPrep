@@ -43,6 +43,8 @@ export interface AnsweredQuestion {
   timestamp: string; // ISO timestamp when answered
   selectedAnswer?: string; // User's selected answer (A, B, C, D, etc.)
   plainQuestion?: PlainQuestionType; // Full question metadata
+  external_id?: string;
+  ibn?: string;
 }
 
 // Assessment-level statistics

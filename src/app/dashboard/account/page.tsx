@@ -28,14 +28,13 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import {
-  UserIcon,
   ShieldAlertIcon,
+  UserIcon,
   TrashIcon,
   MailIcon,
-  CalendarIcon,
   AlertTriangleIcon,
+  CalendarIcon,
 } from "lucide-react";
-
 // ─── Confirmation phrase the user must type before deletion ─────────────────
 const CONFIRM_PHRASE = "delete my account";
 

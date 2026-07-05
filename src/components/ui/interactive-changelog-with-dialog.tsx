@@ -1,7 +1,12 @@
 "use client";
 
 import * as React from "react";
-import { ExternalLink, Github, GitPullRequest, Maximize2 } from "lucide-react";
+import {
+  ExternalLink,
+  FolderIcon,
+  GitPullRequest,
+  Maximize2,
+} from "lucide-react";
 import { motion } from "motion/react";
 import useEmblaCarousel from "embla-carousel-react";
 import { Dithering } from "@paper-design/shaders-react";
@@ -725,7 +730,7 @@ export const Component = ({ githubUsersMap }: ChangelogComponentProps) => {
                             size="icon"
                             onClick={() => handleOpenIssueLink(idx)}
                           >
-                            <Github className="size-4" />
+                            <FolderIcon className="size-4" />
                           </Button>
                         </TooltipTrigger>
                         <TooltipContent>

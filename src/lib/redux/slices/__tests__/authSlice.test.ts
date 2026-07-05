@@ -52,6 +52,7 @@ describe("authSlice – initial state", () => {
       loading: false,
       error: null,
       sessionChecked: false,
+      connectionError: false,
     });
   });
 
@@ -79,6 +80,11 @@ describe("authSlice – initial state", () => {
     const state = authReducer(undefined, { type: "@@INIT" });
     expect(state.sessionChecked).toBe(false);
   });
+
+  it("connectionError should default to false", () => {
+    const state = authReducer(undefined, { type: "@@INIT" });
+    expect(state.connectionError).toBe(false);
+  });
 });
 
 // ─── setUser ─────────────────────────────────────────────────────────────────
@@ -101,6 +107,7 @@ describe("authSlice – setUser", () => {
       loading: true,
       error: null,
       sessionChecked: false,
+      connectionError: false,
     };
     const state = authReducer(loadingState, setUser(mockUser));
     expect(state.loading).toBe(false);
@@ -113,6 +120,7 @@ describe("authSlice – setUser", () => {
       loading: false,
       error: "Previous error",
       sessionChecked: false,
+      connectionError: false,
     };
     const state = authReducer(errorState, setUser(mockUser));
     expect(state.error).toBeNull();
@@ -143,6 +151,7 @@ describe("authSlice – setUser", () => {
       loading: false,
       error: null,
       sessionChecked: true,
+      connectionError: false,
     };
     const state = authReducer(checkedState, setUser(mockUser));
     expect(state.sessionChecked).toBe(true);
@@ -158,6 +167,7 @@ describe("authSlice – clearUser", () => {
     loading: false,
     error: null,
     sessionChecked: true,
+    connectionError: false,
   };
 
   it("should set user to null", () => {
@@ -208,6 +218,7 @@ describe("authSlice – setLoading", () => {
       loading: true,
       error: null,
       sessionChecked: false,
+      connectionError: false,
     };
     const state = authReducer(loadingState, setLoading(false));
     expect(state.loading).toBe(false);
@@ -237,6 +248,7 @@ describe("authSlice – setError", () => {
       loading: true,
       error: null,
       sessionChecked: false,
+      connectionError: false,
     };
     const state = authReducer(loadingState, setError("Something went wrong"));
     expect(state.loading).toBe(false);
@@ -249,6 +261,7 @@ describe("authSlice – setError", () => {
       loading: false,
       error: "Existing error",
       sessionChecked: false,
+      connectionError: false,
     };
     const state = authReducer(errorState, setError(null));
     expect(state.error).toBeNull();
@@ -261,6 +274,7 @@ describe("authSlice – setError", () => {
       loading: false,
       error: "Old error",
       sessionChecked: false,
+      connectionError: false,
     };
     const state = authReducer(errorState, setError("New error"));
     expect(state.error).toBe("New error");
@@ -273,6 +287,7 @@ describe("authSlice – setError", () => {
       loading: false,
       error: null,
       sessionChecked: true,
+      connectionError: false,
     };
     const state = authReducer(
       authenticatedState,
@@ -298,6 +313,7 @@ describe("authSlice – setSessionChecked", () => {
       loading: false,
       error: null,
       sessionChecked: true,
+      connectionError: false,
     };
     const state = authReducer(checkedState, setSessionChecked(false));
     expect(state.sessionChecked).toBe(false);
@@ -310,6 +326,7 @@ describe("authSlice – setSessionChecked", () => {
       loading: false,
       error: null,
       sessionChecked: false,
+      connectionError: false,
     };
     const state = authReducer(authenticatedState, setSessionChecked(true));
     expect(state.isAuthenticated).toBe(true);

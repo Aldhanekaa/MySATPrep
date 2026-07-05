@@ -409,13 +409,14 @@ interface DbPracticeSession {
  * { questionId, externalId, ibn } without plainQuestion, regardless of row age.
  */
 function rowToPracticeSession(row: DbPracticeSession): PracticeSession {
-  const blob = row.sessionData as PracticeSession & {
+  const blob = row.sessionData as unknown as PracticeSession & {
     answeredQuestionDetails?: Record<string, unknown>[];
   };
 
   // Normalise answeredQuestionDetails: strip plainQuestion from legacy rows
   const answeredQuestionDetails = (blob.answeredQuestionDetails ?? []).map(
-    (d) => normaliseAnsweredQuestionDetail(d as Record<string, unknown>),
+    (d) =>
+      normaliseAnsweredQuestionDetail(d as unknown as Record<string, unknown>),
   );
 
   return {
