@@ -35,11 +35,16 @@ import {
 import { PracticeSessionRestorer } from "@/components/practice-session-restorer";
 import FooterSection from "@/components/footer";
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
-import { fetchSessions, fetchNotes } from "@/lib/redux";
+import {
+  fetchSessions,
+  fetchNotes,
+  fetchBookmarksAndCollections,
+} from "@/lib/redux";
 import {
   selectIsAuthenticated,
   selectUserSessions,
   selectDataInitialized,
+  selectSessionChecked,
 } from "@/lib/redux/selectors";
 
 // Validation functions for URL parameters
@@ -117,6 +122,7 @@ function Practice() {
   // ── Redux auth + data state ────────────────────────────────────────────────
   const reduxDispatch = useAppDispatch();
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
+  const sessionChecked = useAppSelector(selectSessionChecked);
   const dataInitialized = useAppSelector(selectDataInitialized);
 
   const reduxSessions = useAppSelector(selectUserSessions);
@@ -127,9 +133,22 @@ function Practice() {
   const [prefetchComplete, setPrefetchComplete] = useState(false);
 
   // Prefetch sessions + notes for authenticated users.
+  // When a sessionParam is present we additionally fetch bookmarks so the
+  // practice session can reflect saved/bookmarked state for each question.
   // Until the prefetch resolves we show a loading screen so the rest of the
   // component can rely on Redux state being populated.
+  //
+  // NOTE: searchParams is intentionally NOT in the dependency array. The param
+  // is snapshotted once when the effect first fires (after dataInitialized).
+  // The prefetchedRef guard ensures this runs exactly once per mount regardless
+  // of later URL changes (e.g. when ?session= is stripped from the URL).
   useEffect(() => {
+    // Wait for checkSession to resolve before we know whether the user is
+    // authenticated. Without this, a direct URL visit sets prefetchComplete=true
+    // immediately (isAuthenticated=false before the session check finishes),
+    // which causes the session param effect to fire against an empty store.
+    if (!sessionChecked) return;
+
     // Unauthenticated — nothing to fetch, skip the loading screen entirely
     if (!isAuthenticated) {
       setPrefetchComplete(true);
@@ -145,12 +164,23 @@ function Practice() {
     if (prefetchedRef.current) return;
     prefetchedRef.current = true;
 
+    // Snapshot the param now — before any URL mutations can change it.
+    const sessionParam = searchParams.get("session");
+
     async function prefetch() {
       try {
-        await Promise.all([
+        const fetches: Promise<unknown>[] = [
           reduxDispatch(fetchSessions()),
           reduxDispatch(fetchNotes()),
-        ]);
+        ];
+
+        // When resuming or reviewing a specific session we also need bookmarks
+        // so each question card can reflect its saved/bookmarked state.
+        if (sessionParam) {
+          fetches.push(reduxDispatch(fetchBookmarksAndCollections()));
+        }
+
+        await Promise.all(fetches);
       } catch {
         // Errors are captured inside the thunks; we still unblock the UI
       } finally {
@@ -159,7 +189,8 @@ function Practice() {
     }
 
     prefetch();
-  }, [dataInitialized, isAuthenticated, reduxDispatch]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dataInitialized, isAuthenticated, sessionChecked, reduxDispatch]);
 
   // Reset when the user logs out so a subsequent login re-fetches
   useEffect(() => {
@@ -190,17 +221,25 @@ function Practice() {
     useState<PracticeSession | null>(null);
 
   // Check for session continuation parameter first.
-  // For authenticated users, wait until fetchUserData has completed so that
-  // reduxSessions is fully populated before we try to look anything up.
+  // For authenticated users, wait until the full prefetch (sessions + notes +
+  // bookmarks) is complete so that reduxSessions is populated before we search.
   useEffect(() => {
     const sessionParam = searchParams.get("session");
 
     // No session param — nothing to do
     if (!sessionParam) return;
 
-    // For authenticated users, defer until userData/fetchUserData/fulfilled so
-    // reduxSessions actually contains the user's data.
-    if (isAuthenticated && !dataInitialized) return;
+    // Always wait for checkSession to resolve first. Without this, on a direct
+    // URL visit the effect fires with isAuthenticated=false (before the session
+    // check finishes), falls through to the unauthenticated localStorage path,
+    // finds nothing, and immediately shows "Session Not Found".
+    if (!sessionChecked) return;
+
+    // For authenticated users, defer until the full prefetch has resolved
+    // (fetchSessions / fetchNotes / fetchBookmarksAndCollections all settled).
+    // prefetchComplete only flips true after those finish, so reduxSessions is
+    // guaranteed to be populated by the time we search it.
+    if (isAuthenticated && !prefetchComplete) return;
 
     if (sessionParam === "continue") {
       console.log(
@@ -560,7 +599,13 @@ function Practice() {
         window.history.replaceState({}, "", url.toString());
       }
     }
-  }, [searchParams, isAuthenticated, reduxSessions, dataInitialized]);
+  }, [
+    searchParams,
+    isAuthenticated,
+    sessionChecked,
+    reduxSessions,
+    prefetchComplete,
+  ]);
 
   // Handle session restoration
   const handleSessionRestored = (
@@ -965,8 +1010,9 @@ function Practice() {
       <SiteHeader />
 
       {/* Data prefetch loading screen — shown only while fetching sessions + notes
-          for authenticated users. Skipped entirely for unauthenticated users so
-          there is zero flash/delay on the normal onboarding path. */}
+          (+ bookmarks when a sessionParam is present) for authenticated users.
+          Skipped entirely for unauthenticated users so there is zero flash/delay
+          on the normal onboarding path. */}
       {!prefetchComplete ? (
         <div
           className="min-h-screen flex flex-col items-center justify-center gap-4"
@@ -980,7 +1026,9 @@ function Practice() {
             <div className="w-2.5 h-2.5 bg-blue-500 rounded-full animate-bounce [animation-duration:0.6s]" />
           </div>
           <p className="text-sm text-muted-foreground animate-pulse">
-            Loading your practice data…
+            {searchParams.get("session")
+              ? "Loading your notes, saved questions, and bookmarks…"
+              : "Loading your practice data…"}
           </p>
         </div>
       ) : (

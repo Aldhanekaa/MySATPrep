@@ -536,10 +536,8 @@ export function AnsweredTab({ selectedAssessment }: AnsweredTabProps) {
             return true;
           })
           .filter((question) => {
-            console.log("state.filterSubject", state.filterSubject);
             // Apply subject filter
             if (state.filterSubject !== "all") {
-              console.log("question.questionData", question.questionData);
               const subject = question.questionData?.question.primary_class_cd;
 
               if (subject && question.questionData?.question.primary_class_cd) {

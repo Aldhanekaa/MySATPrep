@@ -235,7 +235,6 @@ export default function SummaryCharts({
       : null;
 
     if (selectedStats && "statistics" in selectedStats) {
-      console.log("selectedStats", selectedStats);
       const statisticsData = selectedStats["statistics"];
 
       for (const [primaryClassCd, skillCds_Data] of Object.entries(
@@ -284,8 +283,6 @@ export default function SummaryCharts({
         }
       }
 
-      console.log("skills", skills);
-
       for (const [subject, skillData] of Object.entries(skills)) {
         finalData[subject] = {};
         for (const [primaryClassCd, classData] of Object.entries(skillData)) {
@@ -304,8 +301,6 @@ export default function SummaryCharts({
           }
         }
       }
-
-      console.log("finalData", finalData);
 
       return finalData;
     }

@@ -335,9 +335,6 @@ export default function LearnVocab() {
 
     // Clear the input after submission
     setUserSentence("");
-
-    console.log("Vocab learned:", word);
-    console.log("User sentence:", sentence);
   };
 
   // Handle deleting a sentence

@@ -2684,10 +2684,14 @@ export default function PracticeRushMultistep({
         assessment: practiceSelections.assessment,
         domains: practiceSelections.domains
           ?.map((d) => d.primaryClassCd)
+          .slice()
           .sort(),
-        difficulties: practiceSelections.difficulties?.sort(),
-        skills: practiceSelections.skills?.map((s) => s.skill_cd).sort(),
-        questionIds: practiceSelections.questionIds?.sort(),
+        difficulties: practiceSelections.difficulties?.slice().sort(),
+        skills: practiceSelections.skills
+          ?.map((s) => s.skill_cd)
+          .slice()
+          .sort(),
+        questionIds: practiceSelections.questionIds?.slice().sort(),
         // Include review mode and session ID in hash to prevent fetching for same session
         effectiveReviewMode: effectiveReviewMode,
         sessionId: restoredSessionData?.sessionId,

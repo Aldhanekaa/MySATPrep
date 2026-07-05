@@ -149,8 +149,6 @@ export default function Tracker() {
       } else {
         dispatch({ type: "FETCH_ERROR", payload: "Invalid response format" });
       }
-
-      console.log(fetchData);
     } catch (error) {
       console.error("Error fetching initial data:", error);
       dispatch({
@@ -364,9 +362,6 @@ export default function Tracker() {
       : { mathTasks: undefined, rwTasks: undefined };
   }, [questionsState.allQuestions, transformQuestionsToTasksBySubject]);
 
-  // Debug log
-  console.log("Transformed tasks:", { mathTasks, rwTasks });
-
   // Calculate difficulty statistics
   const difficultyStats = useMemo(() => {
     if (!questionsState.allQuestions.length || !state.activeAssessmentId) {
@@ -392,12 +387,6 @@ export default function Tracker() {
       (q) => !q.isCorrect,
     ).length;
 
-    console.log(
-      ` answeredQuestionsDetailed ${answeredQuestionsDetailed.length}`,
-    );
-    console.log(
-      ` answeredQuestionIds ${assessmentStats?.answeredQuestions.length}`,
-    );
     // Count total questions by difficulty
     const totalByDifficulty = questionsState.allQuestions.reduce(
       (acc, question) => {

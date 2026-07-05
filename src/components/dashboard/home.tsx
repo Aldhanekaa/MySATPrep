@@ -78,9 +78,6 @@ export function HomeTab({ selectedAssessment }: HomeTabProps) {
   const [localStats, setLocalStats] = useState<PracticeStatistics | null>(null);
   const [localHistory, setLocalHistory] = useState<PracticeSession[]>([]);
 
-  const [activityMetrics, setActivityMetrics] = useState<Metric[]>([]);
-  const [streakDays, setStreakDays] = useState<number>(0);
-
   // ── Resolved data: Redux when authenticated, localStorage otherwise ─────────
   const userProfile = isAuthenticated ? reduxProfile : localProfile;
   const practiceStats = isAuthenticated
@@ -107,27 +104,37 @@ export function HomeTab({ selectedAssessment }: HomeTabProps) {
       setLocalProfile(getUserProfile());
       setLocalStats(getPracticeStatistics());
       setLocalHistory(getSessionHistory());
-    } catch (err) {
-      console.error("Error loading local user data:", err);
+    } catch {
+      // ignore localStorage read errors
     }
   }, [isAuthenticated]);
 
-  // ── Recompute ActivityCard metrics whenever resolved data changes ──────────
-  useEffect(() => {
-    const profile = userProfile;
-    const history = practiceHistory;
-    if (!profile) return;
+  // ── Derived metrics — useMemo instead of useState+useEffect to avoid an
+  //    extra render cycle every time userProfile or practiceHistory change ──────
+  const streakDays = useMemo(
+    () => calculateStreakDays(practiceHistory),
+    [practiceHistory],
+  );
 
-    const totalTimeMs = calculateTotalTimeSpent(history);
+  const activityMetrics = useMemo<Metric[]>(() => {
+    if (!userProfile) return [];
+    const totalTimeMs = calculateTotalTimeSpent(practiceHistory);
     const totalTimeMin = Math.round(totalTimeMs / (1000 * 60));
-    const streak = calculateStreakDays(history);
-    setStreakDays(streak);
-
-    setActivityMetrics([
+    const successRate =
+      (userProfile.questionsAnswered ?? 0) > 0
+        ? Math.round(
+            ((userProfile.correctAnswers ?? 0) /
+              userProfile.questionsAnswered) *
+              100,
+          )
+        : 0;
+    return [
       {
         label: "Total XP",
-        value: profile.totalXP.toString(),
-        trend: Math.round(Math.min(100, (profile.totalXP / 1000) * 100)),
+        value: (userProfile.totalXP ?? 0).toString(),
+        trend: Math.round(
+          Math.min(100, ((userProfile.totalXP ?? 0) / 1000) * 100),
+        ),
         unit: "XP",
         color: "#FF2D55",
         prefix: "",
@@ -142,23 +149,13 @@ export function HomeTab({ selectedAssessment }: HomeTabProps) {
       },
       {
         label: "Success Rate",
-        value:
-          profile.questionsAnswered > 0
-            ? Math.round(
-                (profile.correctAnswers / profile.questionsAnswered) * 100,
-              ).toString()
-            : "0",
-        trend:
-          profile.questionsAnswered > 0
-            ? Math.round(
-                (profile.correctAnswers / profile.questionsAnswered) * 100,
-              )
-            : 0,
+        value: successRate.toString(),
+        trend: successRate,
         unit: "%",
         color: "#007AFF",
         prefix: "",
       },
-    ]);
+    ];
   }, [userProfile, practiceHistory]);
   return (
     <div className="space-y-4 grid grid-cols-7">
@@ -282,7 +279,7 @@ export function HomeTab({ selectedAssessment }: HomeTabProps) {
         <ActivityCard
           externalMetrics={activityMetrics}
           externalStreakDays={streakDays}
-          onViewDetails={() => console.log("Viewing details")}
+          onViewDetails={() => {}}
         />
       </div>
     </div>

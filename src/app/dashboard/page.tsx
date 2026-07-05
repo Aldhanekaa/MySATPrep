@@ -41,12 +41,17 @@ export default function DashboardPage() {
   void savedQuestionsCount;
   void answeredQuestionsCount;
 
-  const getTimeBasedGreeting = () => {
+  const getTimeBasedGreeting = React.useCallback(() => {
     const hour = new Date().getHours();
     if (hour < 12) return "Good Morning";
     if (hour < 17) return "Good Afternoon";
     return "Good Evening";
-  };
+  }, []);
+
+  const greeting = React.useMemo(
+    () => getTimeBasedGreeting(),
+    [getTimeBasedGreeting],
+  );
 
   const handleAssessmentChange = (workspace: AssessmentWorkspace) => {
     setActiveAssessmentByWorkspace(workspace);
@@ -59,7 +64,7 @@ export default function DashboardPage() {
           <section className="space-y-4 max-w-7xl w-full mx-auto px-3 ">
             <div className="flex flex-col gap-4 md:flex-row justify-between items-start md:px-13 space-y-6">
               <div className="space-y-2">
-                <h1 className="text-2xl font-bold">{getTimeBasedGreeting()}</h1>
+                <h1 className="text-2xl font-bold">{greeting}</h1>
                 <p className="text-muted-foreground">
                   Select an assessment type to get started with practice
                   questions.

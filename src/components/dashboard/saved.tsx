@@ -234,7 +234,6 @@ const savedTabReducer = (
         ),
       };
     case "SET_QUESTION_SUCCESS":
-      console.log("SET_QUESTION_SUCCESS", action.payload);
       return {
         ...state,
         allSavedQuestions: state.allSavedQuestions.map((q) => {
@@ -394,13 +393,11 @@ const savedTabReducer = (
           action.payload === "folders" ? null : state.selectedCollection,
       };
     case "SET_SELECTED_COLLECTION":
-      console.log("SET_SELECTED_COLLECTION", action.payload);
       // Apply collection filtering first if there's a selected collection
       if (action.payload) {
         const collectionQuestionIds = action.payload.questionDetails.map(
           (detail) => detail.questionId,
         );
-        console.log(collectionQuestionIds);
         let questionsForSubjectFilter = state.allSavedQuestions.filter(
           (question) => collectionQuestionIds.includes(question.questionId),
         );
@@ -410,8 +407,6 @@ const savedTabReducer = (
           state.filterSubject,
           state.filterDifficulty,
         ).slice(0, Math.min(10, questionsForSubjectFilter.length));
-
-        console.log("filteredCollectionQuestions", filteredCollectionQuestions);
 
         return {
           ...state,
@@ -836,18 +831,10 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
 
   // Fetch question data progressively
   useEffect(() => {
-    console.log(
-      "useEffect for fetching questions",
-      state.viewMode,
-      state.isInitialized,
-      state.questionsWithData.length,
-      state.fetchedQuestionIds.size,
-    );
     if (state.viewMode == "folders") return;
     if (!state.isInitialized || state.questionsWithData.length === 0) return;
 
     const fetchQuestionsProgressively = async () => {
-      console.log("questionsWithData in fetch:", state.questionsWithData);
       // Find questions that need to be fetched
       const questionsToFetch = state.questionsWithData
         .map((question, index) => ({ question, index }))
@@ -858,8 +845,6 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
             !question.hasError &&
             !state.fetchedQuestionIds.has(question.questionId),
         );
-
-      console.log("questionsToFetch:", questionsToFetch.length);
 
       if (questionsToFetch.length === 0) return;
 
@@ -944,7 +929,6 @@ export function SavedTab({ selectedAssessment }: SavedTabProps) {
 
   // Function to load more questions
   const loadMoreQuestions = useCallback(() => {
-    console.log(state.displayedQuestionsCount);
     if (state.isLoadingMore || filteredCount <= state.displayedQuestionsCount) {
       return;
     }

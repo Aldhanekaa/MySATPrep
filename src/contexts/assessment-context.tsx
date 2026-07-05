@@ -6,7 +6,7 @@ import { AssessmentWorkspace } from "@/app/dashboard/types";
 
 // Convert assessments to workspace format
 export const assessmentWorkspaces: AssessmentWorkspace[] = Object.entries(
-  Assessments
+  Assessments,
 ).map(([key, assessment]) => ({
   id: assessment.id.toString(),
   name: assessment.text,
@@ -30,12 +30,12 @@ type AssessmentAction = {
 // Assessment reducer
 function assessmentReducer(
   state: AssessmentState,
-  action: AssessmentAction
+  action: AssessmentAction,
 ): AssessmentState {
   switch (action.type) {
     case "SET_ASSESSMENT": {
       const selectedAssessment = assessmentWorkspaces.find(
-        (ws) => ws.id === action.payload
+        (ws) => ws.id === action.payload,
       );
       return {
         activeAssessmentId: action.payload,
@@ -120,26 +120,19 @@ export function AssessmentProvider({ children }: AssessmentProviderProps) {
 
       return assessmentMap[assessment.name] || "SAT";
     },
-    []
+    [],
   );
 
   // Action creators
   const setActiveAssessment = React.useCallback((assessmentId: string) => {
     dispatch({ type: "SET_ASSESSMENT", payload: assessmentId });
-    console.log("Assessment changed to ID:", assessmentId);
   }, []);
 
   const setActiveAssessmentByWorkspace = React.useCallback(
     (workspace: AssessmentWorkspace) => {
       dispatch({ type: "SET_ASSESSMENT", payload: workspace.id });
-      console.log(
-        "Assessment changed to:",
-        workspace.name,
-        "ID:",
-        workspace.assessmentId
-      );
     },
-    []
+    [],
   );
 
   const contextValue: AssessmentContextType = {
