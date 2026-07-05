@@ -21,6 +21,7 @@ export interface AuthState {
   loading: boolean;
   error: string | null;
   sessionChecked: boolean; // Track if session was verified
+  connectionError: boolean; // True when session check failed due to DB/cloud timeout
 }
 
 // Login credentials for email/password authentication

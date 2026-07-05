@@ -164,23 +164,19 @@ function Practice() {
     if (prefetchedRef.current) return;
     prefetchedRef.current = true;
 
-    // Snapshot the param now — before any URL mutations can change it.
+    // Snapshot the param now — used by the session-restore effect below.
     const sessionParam = searchParams.get("session");
 
     async function prefetch() {
       try {
-        const fetches: Promise<unknown>[] = [
+        // Always fetch sessions, notes, bookmarks and collections so the
+        // SaveButton can show the user's collections on any practice session
+        // (not only when resuming via ?session=).
+        await Promise.all([
           reduxDispatch(fetchSessions()),
           reduxDispatch(fetchNotes()),
-        ];
-
-        // When resuming or reviewing a specific session we also need bookmarks
-        // so each question card can reflect its saved/bookmarked state.
-        if (sessionParam) {
-          fetches.push(reduxDispatch(fetchBookmarksAndCollections()));
-        }
-
-        await Promise.all(fetches);
+          reduxDispatch(fetchBookmarksAndCollections()),
+        ]);
       } catch {
         // Errors are captured inside the thunks; we still unblock the UI
       } finally {

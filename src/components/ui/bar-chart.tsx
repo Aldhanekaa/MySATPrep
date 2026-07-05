@@ -55,7 +55,7 @@ const Chart = ({
         ref={ref}
         className={twMerge(
           "flex aspect-video justify-center text-xs [&_.recharts-cartesian-axis-tick_text]:fill-muted-fg [&_.recharts-cartesian-grid_line[stroke='#ccc']]:stroke-border/80 [&_.recharts-curve.recharts-tooltip-cursor]:stroke-border [&_.recharts-dot[stroke='#fff']]:stroke-transparent [&_.recharts-layer]:outline-hidden [&_.recharts-polar-grid_[stroke='#ccc']]:stroke-border [&_.recharts-radial-bar-background-sector]:fill-muted [&_.recharts-rectangle.recharts-tooltip-cursor]:fill-muted [&_.recharts-reference-line_[stroke='#ccc']]:stroke-border [&_.recharts-sector[stroke='#fff']]:stroke-transparent [&_.recharts-sector]:outline-hidden [&_.recharts-surface]:outline-hidden",
-          className
+          className,
         )}
         {...props}
       >
@@ -68,7 +68,7 @@ const Chart = ({
 
 const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
   const colorConfig = Object.entries(config).filter(
-    ([_, config]) => config.theme || config.color
+    ([_, config]) => config.theme || config.color,
   );
 
   if (!colorConfig.length) {
@@ -91,7 +91,7 @@ ${colorConfig
   })
   .join("\n")}
 }
-`
+`,
           )
           .join("\n"),
       }}
@@ -178,7 +178,7 @@ const ChartTooltipContent = ({
       ref={ref}
       className={twMerge(
         "grid min-w-[12rem] items-start gap-1.5 rounded-lg border bg-overlay px-3 py-2 text-overlay-fg text-xs shadow-xl",
-        className
+        className,
       )}
     >
       {!nestLabel ? tooltipLabel : null}
@@ -195,7 +195,7 @@ const ChartTooltipContent = ({
                 key={item.dataKey}
                 className={twMerge(
                   "flex w-full flex-wrap items-stretch gap-2 *:data-[slot=icon]:size-2.5 *:data-[slot=icon]:text-muted-fg",
-                  indicator === "dot" && "items-center"
+                  indicator === "dot" && "items-center",
                 )}
               >
                 {formatter && item?.value !== undefined && item.name ? (
@@ -213,7 +213,7 @@ const ChartTooltipContent = ({
                             indicator === "line" && "w-1",
                             indicator === "dashed" &&
                               "w-0 border-[1.5px] border-dashed bg-transparent",
-                            nestLabel && indicator === "dashed" && "my-0.5"
+                            nestLabel && indicator === "dashed" && "my-0.5",
                           )}
                           style={
                             {
@@ -227,7 +227,7 @@ const ChartTooltipContent = ({
                     <div
                       className={twMerge(
                         "flex flex-1 justify-between leading-none",
-                        nestLabel ? "items-end" : "items-center"
+                        nestLabel ? "items-end" : "items-center",
                       )}
                     >
                       <div className="grid gap-1.5">
@@ -281,7 +281,7 @@ const ChartLegendContent = ({
       className={twMerge(
         "flex items-center justify-center gap-4",
         verticalAlign === "top" ? "pb-3" : "pt-3",
-        className
+        className,
       )}
     >
       {
@@ -317,7 +317,7 @@ const ChartLegendContent = ({
 function getPayloadConfigFromPayload(
   config: ChartConfig,
   payload: unknown,
-  key: string
+  key: string,
 ) {
   if (typeof payload !== "object" || payload === null) {
     return undefined;

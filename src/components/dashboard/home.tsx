@@ -78,6 +78,11 @@ export function HomeTab({ selectedAssessment }: HomeTabProps) {
   const [localStats, setLocalStats] = useState<PracticeStatistics | null>(null);
   const [localHistory, setLocalHistory] = useState<PracticeSession[]>([]);
 
+  // ── Server-derived total time (authenticated only) ─────────────────────────
+  const [serverTotalTimeMs, setServerTotalTimeMs] = useState<number | null>(
+    null,
+  );
+
   // ── Resolved data: Redux when authenticated, localStorage otherwise ─────────
   const userProfile = isAuthenticated ? reduxProfile : localProfile;
   const practiceStats = isAuthenticated
@@ -109,6 +114,26 @@ export function HomeTab({ selectedAssessment }: HomeTabProps) {
     }
   }, [isAuthenticated]);
 
+  // ── Fetch server-side total time for authenticated users ───────────────────
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    fetch("/api/user/sessions/time-spent")
+      .then((res) => res.json())
+      .then(
+        (json: { success?: boolean; data?: { totalTimeSpentMs?: number } }) => {
+          if (
+            json?.success &&
+            typeof json.data?.totalTimeSpentMs === "number"
+          ) {
+            setServerTotalTimeMs(json.data.totalTimeSpentMs);
+          }
+        },
+      )
+      .catch(() => {
+        // silently fall back to Redux-derived value
+      });
+  }, [isAuthenticated]);
+
   // ── Derived metrics — useMemo instead of useState+useEffect to avoid an
   //    extra render cycle every time userProfile or practiceHistory change ──────
   const streakDays = useMemo(
@@ -118,7 +143,12 @@ export function HomeTab({ selectedAssessment }: HomeTabProps) {
 
   const activityMetrics = useMemo<Metric[]>(() => {
     if (!userProfile) return [];
-    const totalTimeMs = calculateTotalTimeSpent(practiceHistory);
+    // Authenticated: prefer server-aggregated value; fall back to Redux sessions
+    // while the fetch is still in-flight (serverTotalTimeMs === null).
+    // Unauthenticated: sum from localStorage history.
+    const totalTimeMs = isAuthenticated
+      ? (serverTotalTimeMs ?? calculateTotalTimeSpent(practiceHistory))
+      : calculateTotalTimeSpent(practiceHistory);
     const totalTimeMin = Math.round(totalTimeMs / (1000 * 60));
     const successRate =
       (userProfile.questionsAnswered ?? 0) > 0
@@ -129,16 +159,16 @@ export function HomeTab({ selectedAssessment }: HomeTabProps) {
           )
         : 0;
     return [
-      {
-        label: "Total XP",
-        value: (userProfile.totalXP ?? 0).toString(),
-        trend: Math.round(
-          Math.min(100, ((userProfile.totalXP ?? 0) / 1000) * 100),
-        ),
-        unit: "XP",
-        color: "#FF2D55",
-        prefix: "",
-      },
+      // {
+      //   label: "Total XP",
+      //   value: (userProfile.totalXP ?? 0).toString(),
+      //   trend: Math.round(
+      //     Math.min(100, ((userProfile.totalXP ?? 0) / 1000) * 100),
+      //   ),
+      //   unit: "XP",
+      //   color: "#FF2D55",
+      //   prefix: "",
+      // },
       {
         label: "Practice Time",
         value: totalTimeMin.toString(),
@@ -156,7 +186,7 @@ export function HomeTab({ selectedAssessment }: HomeTabProps) {
         prefix: "",
       },
     ];
-  }, [userProfile, practiceHistory]);
+  }, [userProfile, practiceHistory, isAuthenticated, serverTotalTimeMs]);
   return (
     <div className="space-y-4 grid grid-cols-7">
       <div className="px-4 col-span-7 md:col-span-4 xl:col-span-5 space-y-4">

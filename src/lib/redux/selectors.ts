@@ -52,6 +52,13 @@ export const selectAuthError = (state: RootState): string | null =>
 export const selectSessionChecked = (state: RootState): boolean =>
   state.auth.sessionChecked;
 
+/**
+ * Selects whether the session check failed due to a DB/cloud connection error.
+ * When true, the UI should prompt the user to retry rather than showing "not authenticated".
+ */
+export const selectConnectionError = (state: RootState): boolean =>
+  state.auth.connectionError;
+
 // ─── User Data Slice Selectors ───────────────────────────────────────────────
 
 /**

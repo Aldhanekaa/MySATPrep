@@ -126,32 +126,60 @@ export const updateUserStatistics = createAsyncThunk<
   "userData/updateUserStatistics",
   async (statisticsData, { rejectWithValue }) => {
     try {
-      const response = await fetch("/api/user/statistics", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(statisticsData),
-      });
-
-      if (response.status === 401) {
-        throw new Error("Unauthorized");
+      // The API expects one request per assessment with the shape:
+      // { assessment, answeredQuestions, answeredQuestionsDetailed, statistics }
+      // statisticsData is a PracticeStatistics map keyed by assessment name,
+      // so we send one PUT per assessment entry.
+      const assessments = Object.keys(statisticsData);
+      if (assessments.length === 0) {
+        return statisticsData;
       }
 
-      if (!response.ok) {
-        const json = (await response.json().catch(() => ({}))) as {
+      const merged: PracticeStatistics = {};
+
+      for (const assessment of assessments) {
+        const assessmentData = statisticsData[assessment];
+
+        const payload = {
+          assessment,
+          answeredQuestions: assessmentData.answeredQuestions,
+          answeredQuestionsDetailed: assessmentData.answeredQuestionsDetailed,
+          statistics: assessmentData.statistics,
+        };
+
+        const response = await fetch("/api/user/statistics", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify(payload),
+        });
+
+        if (response.status === 401) {
+          throw new Error("Unauthorized");
+        }
+
+        if (!response.ok) {
+          const json = (await response.json().catch(() => ({}))) as {
+            error?: string;
+          };
+          throw new Error(
+            json.error ?? `Failed to update statistics: ${response.status}`,
+          );
+        }
+
+        const json = (await response.json()) as {
+          data?: { statistics?: PracticeStatistics };
           error?: string;
         };
-        throw new Error(
-          json.error ?? `Failed to update statistics: ${response.status}`,
-        );
+
+        // Merge the returned assessment data back into the result
+        const returned = json.data?.statistics;
+        if (returned) {
+          Object.assign(merged, returned);
+        }
       }
 
-      const json = (await response.json()) as {
-        data?: unknown;
-        summary?: unknown;
-        error?: string;
-      };
-      return json.data as PracticeStatistics;
+      return Object.keys(merged).length > 0 ? merged : statisticsData;
     } catch (error) {
       return rejectWithValue(
         error instanceof Error ? error.message : "Failed to update statistics",

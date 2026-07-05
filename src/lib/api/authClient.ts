@@ -93,14 +93,42 @@ export async function logout(): Promise<void> {
 }
 
 /**
+ * Sentinel error class for database / cloud connection timeouts.
+ * Thrown when Better Auth returns a 5xx status on the session check endpoint.
+ */
+export class ConnectionTimeoutError extends Error {
+  constructor(message = "Connection timeout") {
+    super(message);
+    this.name = "ConnectionTimeoutError";
+  }
+}
+
+/**
  * Checks whether there is a valid current session.
  * Returns the authenticated user if a session exists, or null if not.
+ * Throws ConnectionTimeoutError when the server responds with a 5xx error
+ * (e.g. database connection timeout), so the caller can surface this to
+ * the user instead of silently treating it as "not authenticated".
  * Validates: Requirement 10.2
  */
 export async function checkSession(): Promise<User | null> {
   const result = await authClient.getSession();
 
-  if (result.error || !result.data?.user) {
+  // Better Auth surfaces server errors via result.error.status.
+  // A 5xx means the server itself failed (DB timeout, etc.) — this is
+  // distinct from "no session" (which gives a null result with no error).
+  if (result.error) {
+    const status = (result.error as { status?: number }).status;
+    if (status !== undefined && status >= 500) {
+      throw new ConnectionTimeoutError(
+        result.error.message ?? "Database connection timeout",
+      );
+    }
+    // Any other auth error (401, 403…) → not authenticated, not an outage
+    return null;
+  }
+
+  if (!result.data?.user) {
     return null;
   }
 

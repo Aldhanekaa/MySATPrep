@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState, useEffect, useRef } from "react";
 import { useLocalStorage } from "@/lib/useLocalStorage";
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
 import {
@@ -208,8 +208,9 @@ export function useResolvedBookmarks(): [
 
 /**
  * Returns [savedCollections, setSavedCollections].
- * Authenticated reads from Redux collections; writes only affect localStorage
- * (individual collection ops should use dataSync).
+ * Authenticated: reads from Redux collections; writes keep an optimistic local
+ * overlay so the UI reflects changes immediately before Redux catches up.
+ * Unauthenticated: reads/writes localStorage.
  */
 export function useResolvedCollections(): [
   SavedCollections,
@@ -220,17 +221,40 @@ export function useResolvedCollections(): [
   const [localCollections, setLocalCollections] =
     useLocalStorage<SavedCollections>("savedCollections", {});
 
+  // Optimistic overlay for authenticated users: keeps the last value written by
+  // the component so the UI doesn't flash back to stale Redux data while the
+  // thunk is in-flight. Once Redux updates (reduxCollections changes), we clear
+  // the overlay so the authoritative value takes over.
+  const [authOverlay, setAuthOverlay] = useState<SavedCollections | null>(null);
+  const prevReduxRef = useRef(reduxCollections);
+
+  useEffect(() => {
+    // When Redux resolves a new value (length or content changed), drop the
+    // optimistic overlay so we show the server-confirmed state.
+    if (prevReduxRef.current !== reduxCollections) {
+      prevReduxRef.current = reduxCollections;
+      setAuthOverlay(null);
+    }
+  }, [reduxCollections]);
+
+  const reduxDerived = useMemo(
+    () => collectionsToSavedCollections(reduxCollections),
+    [reduxCollections],
+  );
+
   const savedCollections = useMemo(
-    () =>
-      isAuthenticated
-        ? collectionsToSavedCollections(reduxCollections)
-        : localCollections,
-    [isAuthenticated, reduxCollections, localCollections],
+    () => (isAuthenticated ? (authOverlay ?? reduxDerived) : localCollections),
+    [isAuthenticated, authOverlay, reduxDerived, localCollections],
   );
 
   const setSavedCollections = useCallback(
     (value: SavedCollections) => {
-      if (!isAuthenticated) setLocalCollections(value);
+      if (isAuthenticated) {
+        // Optimistically show the new value while the Redux thunk is in-flight
+        setAuthOverlay(value);
+      } else {
+        setLocalCollections(value);
+      }
     },
     [isAuthenticated, setLocalCollections],
   );

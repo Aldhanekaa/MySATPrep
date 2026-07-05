@@ -118,13 +118,47 @@ export async function getUserProfile(
 }
 
 /**
- * Insert or update the profile for a user (upsert).
+ * Insert or update the profile for a user (read-then-merge upsert).
+ *
+ * Fetches the existing row first so we never overwrite columns the caller
+ * didn't touch. The incoming `data` is merged on top of the persisted row —
+ * scalar fields are replaced only when the caller provides them; xpHistory
+ * entries are unioned by timestamp so no XP transaction is ever lost.
+ *
  * Validates: Requirement 8.1
  */
 export async function updateUserProfile(
   userId: string,
   data: Partial<UserProfileWithHistory>,
 ): Promise<UserProfileWithHistory> {
+  // Read the current persisted row (may be null for brand-new users)
+  const existing = await getUserProfile(userId);
+
+  // Merge: use the incoming value when provided, otherwise fall back to the
+  // persisted value, then to a safe default. This prevents partially-populated
+  // callers from zeroing out fields they don't know about.
+  const merged: UserProfileWithHistory = {
+    totalXP: data.totalXP ?? existing?.totalXP ?? 0,
+    level: data.level ?? existing?.level ?? 0,
+    questionsAnswered:
+      data.questionsAnswered ?? existing?.questionsAnswered ?? 0,
+    correctAnswers: data.correctAnswers ?? existing?.correctAnswers ?? 0,
+    incorrectAnswers: data.incorrectAnswers ?? existing?.incorrectAnswers ?? 0,
+    lastActivity: data.lastActivity ?? existing?.lastActivity ?? "",
+    createdAt: existing?.createdAt ?? new Date().toISOString(),
+    // Union xpHistory by timestamp so no transaction is ever lost
+    xpHistory: (() => {
+      const base: XPTransaction[] = existing?.xpHistory ?? [];
+      const incoming: XPTransaction[] = data.xpHistory ?? [];
+      if (incoming.length === 0) return base;
+      const existingTimestamps = new Set(base.map((t) => t.timestamp));
+      const newEntries = incoming.filter(
+        (t) => !existingTimestamps.has(t.timestamp),
+      );
+      return [...base, ...newEntries];
+    })(),
+  };
+
   const result = await pool.query<DbUserProfile>(
     `INSERT INTO user_profiles
        (user_id, total_xp, level, questions_answered, correct_answers,
@@ -152,13 +186,13 @@ export async function updateUserProfile(
        updated_at         AS "updatedAt"`,
     [
       userId,
-      data.totalXP ?? 0,
-      data.level ?? 0,
-      data.questionsAnswered ?? 0,
-      data.correctAnswers ?? 0,
-      data.incorrectAnswers ?? 0,
-      data.lastActivity ?? null,
-      JSON.stringify(data.xpHistory ?? []),
+      merged.totalXP,
+      merged.level,
+      merged.questionsAnswered,
+      merged.correctAnswers,
+      merged.incorrectAnswers,
+      merged.lastActivity || null,
+      JSON.stringify(merged.xpHistory),
     ],
   );
 
@@ -238,7 +272,15 @@ export async function getPracticeStatistics(
 }
 
 /**
- * Insert or update practice statistics for a user and assessment.
+ * Insert or update practice statistics for a user and assessment
+ * (read-then-merge upsert).
+ *
+ * Fetches the existing row first and merges the incoming data so that no
+ * previously-answered question is ever lost:
+ *   - answeredQuestions  : union of existing + incoming (deduplicated)
+ *   - answeredQuestionsDetailed : union by questionId (incoming wins on dupe)
+ *   - statistics         : deep-merge by domain → skill → questionId
+ *                          (incoming wins at the leaf level)
  *
  * Strips plainQuestion from both JSONB columns before writing. Promotes
  * primary_class_cd and skill_cd as explicit top-level fields on each
@@ -259,15 +301,52 @@ export async function updatePracticeStatistics(
       }
     | undefined;
 
-  const answeredQuestions = assessmentData?.answeredQuestions ?? [];
+  // ── Fetch existing row so we can merge rather than replace ─────────────────
+  const existingStats = await getPracticeStatistics(userId, assessment);
+  const existingAssessment = existingStats?.[assessment];
 
-  // Strip plainQuestion and promote primary_class_cd / skill_cd before writing
-  const answeredQuestionsDetailed = stripAnsweredQuestionsDetailed(
-    (assessmentData?.answeredQuestionsDetailed ?? []) as AnsweredQuestion[],
+  // ── Merge answeredQuestions (string array, deduplicated) ──────────────────
+  const incomingAnsweredQs = assessmentData?.answeredQuestions ?? [];
+  const existingAnsweredQs = existingAssessment?.answeredQuestions ?? [];
+  const mergedAnsweredQuestions = [
+    ...new Set([...existingAnsweredQs, ...incomingAnsweredQs]),
+  ];
+
+  // ── Merge answeredQuestionsDetailed (by questionId, incoming wins) ─────────
+  const incomingDetailed =
+    assessmentData?.answeredQuestionsDetailed ?? ([] as AnsweredQuestion[]);
+  const existingDetailed =
+    existingAssessment?.answeredQuestionsDetailed ?? ([] as AnsweredQuestion[]);
+  const detailedMap = new Map<string, AnsweredQuestion>();
+  // Load existing first, then overwrite with incoming so newer data wins
+  for (const entry of existingDetailed) {
+    detailedMap.set(entry.questionId, entry);
+  }
+  for (const entry of incomingDetailed) {
+    detailedMap.set(entry.questionId, entry);
+  }
+  const mergedDetailed = Array.from(detailedMap.values());
+
+  // ── Merge statistics (deep merge: domain → skill → questionId) ────────────
+  const incomingStats = (assessmentData?.statistics ?? {}) as ClassStatistics;
+  const existingStatsCls = (existingAssessment?.statistics ??
+    {}) as ClassStatistics;
+  const mergedStats: ClassStatistics = { ...existingStatsCls };
+  for (const domain of Object.keys(incomingStats)) {
+    mergedStats[domain] = { ...(mergedStats[domain] ?? {}) };
+    for (const skill of Object.keys(incomingStats[domain])) {
+      mergedStats[domain][skill] = {
+        ...(mergedStats[domain][skill] ?? {}),
+        ...incomingStats[domain][skill],
+      };
+    }
+  }
+
+  // ── Strip plainQuestion before writing ────────────────────────────────────
+  const strippedDetailed = stripAnsweredQuestionsDetailed(
+    mergedDetailed as AnsweredQuestion[],
   );
-  const statistics = stripClassStatistics(
-    (assessmentData?.statistics ?? {}) as ClassStatistics,
-  );
+  const strippedStats = stripClassStatistics(mergedStats as ClassStatistics);
 
   const result = await pool.query<DbPracticeStatistics>(
     `INSERT INTO practice_statistics
@@ -288,9 +367,9 @@ export async function updatePracticeStatistics(
     [
       userId,
       assessment,
-      JSON.stringify(answeredQuestions),
-      JSON.stringify(answeredQuestionsDetailed),
-      JSON.stringify(statistics),
+      JSON.stringify(mergedAnsweredQuestions),
+      JSON.stringify(strippedDetailed),
+      JSON.stringify(strippedStats),
     ],
   );
 
