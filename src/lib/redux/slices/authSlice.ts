@@ -106,6 +106,17 @@ export const checkSession = createAsyncThunk<User | null, void>(
       );
     }
   },
+  {
+    // Skip if already checked or currently checking.
+    // Guards against React StrictMode double-mount and any other re-trigger.
+    condition: (_, { getState }) => {
+      const { sessionChecked, loading } = (getState() as { auth: AuthState })
+        .auth;
+      if (sessionChecked) return false;
+      if (loading) return false; // check already in-flight
+      return true;
+    },
+  },
 );
 
 // ─── Slice ───────────────────────────────────────────────────────────────────

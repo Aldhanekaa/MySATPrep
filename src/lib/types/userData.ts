@@ -99,6 +99,10 @@ export interface UserDataState {
   answerHistory: AnswerHistory | null;
   questionNotes: QuestionNotes | null;
   vocabPracticePerformance: PracticePerformanceData | null;
+  /** True once fetchUserData has completed at least once. Used to prevent
+   *  duplicate initializations when SessionInitializer remounts (e.g. React
+   *  StrictMode double-invoke in development). */
+  dataInitialized: boolean;
   loading: {
     profile: boolean;
     statistics: boolean;

@@ -59,6 +59,18 @@ export const fetchUserData = createAsyncThunk<UserData | null, void>(
       );
     }
   },
+  {
+    // Skip dispatch entirely if data is already initialized or a fetch is in-flight.
+    // This prevents duplicate network requests from React StrictMode double-mounts
+    // or any other re-render that re-triggers the SessionInitializer effect.
+    condition: (_, { getState }) => {
+      const state = getState() as { userData: UserDataState };
+      const { dataInitialized, loading } = state.userData;
+      if (dataInitialized) return false;
+      if (loading.profile) return false; // fetch already in-flight
+      return true;
+    },
+  },
 );
 
 /**
@@ -1481,6 +1493,7 @@ const initialState: UserDataState = {
   answerHistory: null,
   questionNotes: null,
   vocabPracticePerformance: null,
+  dataInitialized: false,
   loading: {
     profile: false,
     statistics: false,
@@ -1752,6 +1765,7 @@ const userDataSlice = createSlice({
       state.answerHistory = null;
       state.questionNotes = null;
       state.vocabPracticePerformance = null;
+      state.dataInitialized = false;
       state.loading = {
         profile: false,
         statistics: false,
@@ -1801,6 +1815,7 @@ const userDataSlice = createSlice({
           questionNotes: false,
           vocabPracticePerformance: false,
         };
+        state.dataInitialized = true;
         state.error = null;
       })
       .addCase(fetchUserData.rejected, (state, action) => {

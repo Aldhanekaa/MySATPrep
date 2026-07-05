@@ -28,6 +28,14 @@ export async function syncUserData(
   userId: string,
   data: ValidatedMigrationPayload,
 ): Promise<MigrationSummary> {
+  console.log("\n====== syncUserData called ======");
+  console.log("userId:", userId);
+  console.log("bookmarks:", data.bookmarks?.length ?? 0);
+  console.log("collections:", data.collections?.length ?? 0);
+  console.log("sessions:", data.sessions?.length ?? 0);
+  console.log("hasProfile:", !!data.profile);
+  console.log("hasVocabulary:", !!data.vocabulary);
+  console.log("=================================\n");
   const summary: MigrationSummary = {
     profileMigrated: false,
     statisticsMigrated: false,
@@ -149,36 +157,80 @@ export async function syncUserData(
 
   // ── Bookmarks ──────────────────────────────────────────────────────────────
   if (data.bookmarks && data.bookmarks.length > 0) {
-    for (const bookmark of data.bookmarks) {
-      const result = await db.query(
-        `INSERT INTO saved_questions
-           (user_id, assessment, question_id, external_id, ibn, plain_question)
-         VALUES ($1, $2, $3, $4, $5, $6::jsonb)
-         ON CONFLICT (user_id, question_id) DO UPDATE SET
-           assessment     = EXCLUDED.assessment,
-           external_id    = COALESCE(EXCLUDED.external_id,    saved_questions.external_id),
-           ibn            = COALESCE(EXCLUDED.ibn,            saved_questions.ibn),
-           plain_question = COALESCE(EXCLUDED.plain_question, saved_questions.plain_question)`,
-        [
-          userId,
-          bookmark.assessment,
-          bookmark.questionId,
-          bookmark.externalId ?? null,
-          bookmark.ibn ?? null,
-          bookmark.plainQuestion
-            ? JSON.stringify(bookmark.plainQuestion)
-            : null,
-        ],
+    // ── DEBUG: print copy-pasteable SQL for each bookmark ──
+    console.log("\n=== BOOKMARK SQL (copy-paste to psql) ===");
+    for (const bm of data.bookmarks) {
+      const pq = bm.plainQuestion
+        ? JSON.stringify(bm.plainQuestion).replace(/'/g, "''")
+        : "null";
+      console.log(
+        `INSERT INTO saved_questions (user_id, assessment, question_id, external_id, ibn, plain_question)\n` +
+          `VALUES ('${userId}', '${bm.assessment}', '${bm.questionId}', ` +
+          `${bm.externalId ? `'${bm.externalId}'` : "null"}, ` +
+          `${bm.ibn ? `'${bm.ibn}'` : "null"}, ` +
+          `${bm.plainQuestion ? `'${pq}'::jsonb` : "null"})\n` +
+          `ON CONFLICT (user_id, question_id) DO UPDATE SET assessment = EXCLUDED.assessment;\n`,
       );
-      summary.bookmarksMigrated++;
+    }
+    console.log("=========================================\n");
+
+    for (const bookmark of data.bookmarks) {
+      try {
+        const result = await db.query(
+          `INSERT INTO saved_questions
+             (user_id, assessment, question_id, external_id, ibn, plain_question)
+           VALUES ($1, $2, $3, $4, $5, $6::jsonb)
+           ON CONFLICT (user_id, question_id) DO UPDATE SET
+             assessment     = EXCLUDED.assessment,
+             external_id    = COALESCE(EXCLUDED.external_id,    saved_questions.external_id),
+             ibn            = COALESCE(EXCLUDED.ibn,            saved_questions.ibn),
+             plain_question = COALESCE(EXCLUDED.plain_question, saved_questions.plain_question)`,
+          [
+            userId,
+            bookmark.assessment,
+            bookmark.questionId,
+            bookmark.externalId ?? null,
+            bookmark.ibn ?? null,
+            bookmark.plainQuestion
+              ? JSON.stringify(bookmark.plainQuestion)
+              : null,
+          ],
+        );
+        console.log(
+          `[sync] bookmark OK: ${bookmark.questionId} rowCount=${result.rowCount} cmd=${result.command}`,
+        );
+        summary.bookmarksMigrated++;
+      } catch (err) {
+        console.error(
+          `[sync] bookmark FAILED: ${bookmark.questionId}`,
+          err instanceof Error ? err.message : err,
+        );
+        throw err;
+      }
     }
   }
 
   // ── Collections ────────────────────────────────────────────────────────────
   if (data.collections && data.collections.length > 0) {
+    // ── DEBUG: print copy-pasteable SQL for each collection ──
+    console.log("\n=== COLLECTION SQL (copy-paste to psql) ===");
+    for (const col of data.collections) {
+      console.log(
+        `INSERT INTO saved_collections (user_id, collection_id, name, description, question_ids, question_details, color)\n` +
+          `VALUES ('${userId}', '${col.collectionId}', '${col.name.replace(/'/g, "''")}', ` +
+          `${col.description ? `'${col.description.replace(/'/g, "''")}'` : "null"}, ` +
+          `'${JSON.stringify(col.questionIds ?? []).replace(/'/g, "''")}'::jsonb, ` +
+          `'${JSON.stringify(col.questionDetails ?? []).replace(/'/g, "''")}'::jsonb, ` +
+          `${col.color ? `'${col.color}'` : "null"})\n` +
+          `ON CONFLICT (collection_id) DO UPDATE SET name = EXCLUDED.name, updated_at = CURRENT_TIMESTAMP;\n`,
+      );
+    }
+    console.log("===========================================\n");
+
     for (const collection of data.collections) {
-      await db.query(
-        `INSERT INTO saved_collections
+      try {
+        const result = await db.query(
+          `INSERT INTO saved_collections
            (user_id, collection_id, name, description, question_ids, question_details, color)
          VALUES ($1, $2, $3, $4, $5::jsonb, $6::jsonb, $7)
          ON CONFLICT (collection_id) DO UPDATE SET
@@ -206,17 +258,27 @@ export async function syncUserData(
            ),
            color      = COALESCE(EXCLUDED.color, saved_collections.color),
            updated_at = CURRENT_TIMESTAMP`,
-        [
-          userId,
-          collection.collectionId,
-          collection.name,
-          collection.description ?? null,
-          JSON.stringify(collection.questionIds ?? []),
-          JSON.stringify(collection.questionDetails ?? []),
-          collection.color ?? null,
-        ],
-      );
-      summary.collectionsMigrated++;
+          [
+            userId,
+            collection.collectionId,
+            collection.name,
+            collection.description ?? null,
+            JSON.stringify(collection.questionIds ?? []),
+            JSON.stringify(collection.questionDetails ?? []),
+            collection.color ?? null,
+          ],
+        );
+        console.log(
+          `[sync] collection OK: ${collection.collectionId} rowCount=${result.rowCount} cmd=${result.command}`,
+        );
+        summary.collectionsMigrated++;
+      } catch (err) {
+        console.error(
+          `[sync] collection FAILED: ${collection.collectionId}`,
+          err instanceof Error ? err.message : err,
+        );
+        throw err;
+      }
     }
   }
 

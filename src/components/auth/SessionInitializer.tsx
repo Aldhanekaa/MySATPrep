@@ -4,21 +4,19 @@
  * SessionInitializer
  *
  * Runs on app mount to:
- * 1. Dispatch checkSession to verify the Better Auth cookie and restore Redux
- *    auth state if a valid session exists.
- * 2. After checkSession resolves, if the user is authenticated, dispatch
- *    fetchUserData to populate the userData Redux slice.
- * 3. Re-dispatches fetchUserData any time the user logs in during the session
- *    (isAuthenticated transitions false → true after the initial check).
+ * 1. Dispatch checkSession — the thunk's condition guard ensures it only runs
+ *    once (skips if sessionChecked is already true or a check is in-flight).
+ * 2. After checkSession resolves, dispatch fetchUserData if authenticated —
+ *    the thunk's condition guard ensures it only runs once (skips if
+ *    dataInitialized is true or a fetch is in-flight).
  *
  * This component renders nothing — it is a side-effect-only initializer.
  *
  * Validates: Requirements 10.1, 10.2, 10.3, 10.4, 10.5, 10.6
  */
 
-import { useEffect, useRef } from "react";
-import { useDispatch } from "react-redux";
-import { useSelector } from "react-redux";
+import { useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import type { AppDispatch, RootState } from "@/lib/redux/store";
 import { checkSession } from "@/lib/redux/slices/authSlice";
 import { fetchUserData } from "@/lib/redux/slices/userDataSlice";
@@ -32,28 +30,18 @@ export function SessionInitializer() {
     (state: RootState) => state.auth.sessionChecked,
   );
 
-  // Track whether we've already fetched data for the current login so we
-  // don't fire duplicate requests on re-renders.
-  const hasFetchedRef = useRef(false);
-
-  // On mount: check session. fetchUserData is triggered reactively below.
+  // Dispatch on mount. The thunk's condition bails out if already done or
+  // in-flight, so double-mounts (React StrictMode) are harmless.
   useEffect(() => {
     dispatch(checkSession());
   }, [dispatch]);
 
-  // Whenever auth becomes authenticated (on mount restore OR after login),
-  // fetch user data exactly once per login session.
+  // Once session is confirmed and user is authenticated, fetch their data.
+  // The thunk's condition bails out if dataInitialized is true or in-flight.
   useEffect(() => {
-    if (!sessionChecked) return; // Wait until the initial check finishes
-    if (!isAuthenticated) {
-      // Reset so the next login triggers a fresh fetch
-      hasFetchedRef.current = false;
-      return;
-    }
-    if (hasFetchedRef.current) return; // Already fetched for this login
-    hasFetchedRef.current = true;
+    if (!sessionChecked || !isAuthenticated) return;
     dispatch(fetchUserData());
-  }, [isAuthenticated, sessionChecked, dispatch]);
+  }, [sessionChecked, isAuthenticated, dispatch]);
 
   return null;
 }
