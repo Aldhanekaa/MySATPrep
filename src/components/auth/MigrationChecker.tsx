@@ -38,6 +38,9 @@ const LOCAL_STORAGE_DATA_KEYS = [
   "savedCollections",
   "vocabsData",
   "userPreferences",
+  "questionNotes",
+  "practicePerformanceData",
+  "answerHistory",
 ] as const;
 
 // ─── Sync-check cache ─────────────────────────────────────────────────────────
@@ -415,6 +418,7 @@ export function MigrationChecker() {
             if (userId) stampSyncCheck(userId);
             return;
           }
+          // Don't stamp here — we want to re-check after migration completes
           setShowPrompt(true);
           return;
         }
@@ -439,6 +443,7 @@ export function MigrationChecker() {
 
         if (differs) {
           console.debug("[MigrationChecker] localStorage ↔ DB diff:", details);
+          // Don't stamp here either — we want to re-check after sync completes
           setShowSyncPrompt(true);
         } else {
           // Data is already in sync — stamp so we don't re-check for 5 days
@@ -467,8 +472,9 @@ export function MigrationChecker() {
     const result = await dispatch(migrateLocalStorageData());
     if (migrateLocalStorageData.fulfilled.match(result)) {
       toast.success("Your data has been imported successfully!");
-      // Re-stamp so the next check is deferred 5 days from now
+      // Stamp and reset so the next login re-checks from a clean slate
       if (userId) stampSyncCheck(userId);
+      checkedForUserId.current = null;
       return result.payload;
     }
     throw new Error(
@@ -481,8 +487,9 @@ export function MigrationChecker() {
     const result = await dispatch(syncLocalStorageData());
     if (syncLocalStorageData.fulfilled.match(result)) {
       toast.success("Your data has been synced successfully!");
-      // Re-stamp so the next check is deferred 5 days from now
+      // Stamp and reset so the next login re-checks from a clean slate
       if (userId) stampSyncCheck(userId);
+      checkedForUserId.current = null;
       return result.payload;
     }
     throw new Error((result.payload as string | undefined) ?? "Sync failed");

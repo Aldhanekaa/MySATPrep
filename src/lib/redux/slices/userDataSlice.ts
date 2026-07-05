@@ -647,6 +647,15 @@ export const migrateLocalStorageData = createAsyncThunk<MigrationSummary, void>(
       }
     })();
 
+    const answerHistory = (() => {
+      try {
+        const raw = localStorage.getItem("answerHistory");
+        return raw ? JSON.parse(raw) : null;
+      } catch {
+        return null;
+      }
+    })();
+
     const payload = {
       ...(profile ? { profile } : {}),
       ...(statistics ? { statistics } : {}),
@@ -656,6 +665,7 @@ export const migrateLocalStorageData = createAsyncThunk<MigrationSummary, void>(
       ...(vocabulary ? { vocabulary } : {}),
       ...(preferences ? { preferences } : {}),
       ...(questionNotes ? { questionNotes } : {}),
+      ...(answerHistory ? { answerHistory } : {}),
       ...(practicePerformance ? { practicePerformance } : {}),
     };
 
@@ -732,39 +742,34 @@ export const syncLocalStorageData = createAsyncThunk<
     let collections = state.userData.collections;
     let vocabulary = state.userData.vocabulary;
 
-    const lazyFieldsMissing =
-      sessions.length === 0 &&
-      bookmarks.length === 0 &&
-      collections.length === 0 &&
-      vocabulary === null;
-
-    if (lazyFieldsMissing) {
-      try {
-        const res = await fetch("/api/user/lazy-data", {
-          method: "GET",
-          credentials: "include",
-        });
-        if (res.ok) {
-          const json = (await res.json()) as {
-            data?: {
-              sessions?: typeof sessions;
-              bookmarks?: typeof bookmarks;
-              collections?: typeof collections;
-              vocabulary?: typeof vocabulary;
-            };
+    // Always fetch complete DB data before merging — we need the real DB state
+    // for bookmarks, collections, sessions, and vocabulary to avoid wiping DB
+    // rows that haven't been loaded into Redux yet (e.g. the user hasn't
+    // visited the bookmarks page this session).
+    try {
+      const res = await fetch("/api/user/complete-data", {
+        method: "GET",
+        credentials: "include",
+      });
+      if (res.ok) {
+        const json = (await res.json()) as {
+          data?: {
+            sessions?: typeof sessions;
+            bookmarks?: typeof bookmarks;
+            collections?: typeof collections;
+            vocabulary?: typeof vocabulary;
           };
-          if (json.data) {
-            sessions = json.data.sessions ?? sessions;
-            bookmarks = json.data.bookmarks ?? bookmarks;
-            collections = json.data.collections ?? collections;
-            vocabulary = json.data.vocabulary ?? vocabulary;
-          }
+        };
+        if (json.data) {
+          sessions = json.data.sessions ?? sessions;
+          bookmarks = json.data.bookmarks ?? bookmarks;
+          collections = json.data.collections ?? collections;
+          vocabulary = json.data.vocabulary ?? vocabulary;
         }
-      } catch {
-        // If the fetch fails, fall back to whatever Redux has (empty arrays).
-        // The sync will still run — worst case we just don't merge the DB lazy
-        // fields, but the DB-side upserts are idempotent so no data is lost.
       }
+    } catch {
+      // Network failure — fall back to whatever Redux has. The DB-side upserts
+      // are idempotent, so no data is lost; we just may not merge stale DB rows.
     }
     const localProfile = (() => {
       try {

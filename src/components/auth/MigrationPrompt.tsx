@@ -385,6 +385,18 @@ function MigrationSummaryDisplay({ summary }: { summary: MigrationSummary }) {
       label: "Preferences",
       value: summary.preferencesMigrated ? "Imported" : "Skipped",
     },
+    {
+      label: "Question notes",
+      value: summary.notesMigrated ? "Imported" : "Skipped",
+    },
+    {
+      label: "Answer history",
+      value: summary.answerHistoryMigrated ? "Imported" : "Skipped",
+    },
+    {
+      label: "Vocab performance",
+      value: summary.practicePerformanceMigrated ? "Imported" : "Skipped",
+    },
   ];
 
   return (

@@ -397,6 +397,18 @@ function SyncSummaryDisplay({ summary }: { summary: MigrationSummary }) {
       label: "Preferences",
       value: summary.preferencesMigrated ? "Synced" : "Skipped",
     },
+    {
+      label: "Question notes",
+      value: summary.notesMigrated ? "Synced" : "Skipped",
+    },
+    {
+      label: "Answer history",
+      value: summary.answerHistoryMigrated ? "Synced" : "Skipped",
+    },
+    {
+      label: "Vocab performance",
+      value: summary.practicePerformanceMigrated ? "Synced" : "Skipped",
+    },
   ];
 
   return (
