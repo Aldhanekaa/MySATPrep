@@ -194,7 +194,7 @@ export default function RootLayout({
 
         <ErrorBoundary>
           <Banner2
-            id="banner-sync"
+            id="banner-sync-2"
             variant="rainbow"
             className=" bg-white dark:bg-transparent"
             rainbowColors={[
@@ -207,7 +207,8 @@ export default function RootLayout({
               "transparent",
             ]}
           >
-            MySATPrep Is On Testing Phase
+            MySATPrep Is On Alpha Phase. Any Bug Reports Are Appreciated. Visit
+            /report-bug to Report It
           </Banner2>
 
           <Banner />
