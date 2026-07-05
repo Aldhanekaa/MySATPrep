@@ -38,9 +38,8 @@ import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
 import { fetchSessions, fetchNotes } from "@/lib/redux";
 import {
   selectIsAuthenticated,
-  selectSessionChecked,
-  selectUserBookmarks,
   selectUserSessions,
+  selectDataInitialized,
 } from "@/lib/redux/selectors";
 
 // Validation functions for URL parameters
@@ -118,8 +117,7 @@ function Practice() {
   // ── Redux auth + data state ────────────────────────────────────────────────
   const reduxDispatch = useAppDispatch();
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
-  const sessionChecked = useAppSelector(selectSessionChecked);
-  const bookmarkChecked = useAppSelector(selectUserBookmarks);
+  const dataInitialized = useAppSelector(selectDataInitialized);
 
   const reduxSessions = useAppSelector(selectUserSessions);
 
@@ -136,12 +134,12 @@ function Practice() {
     if (!isAuthenticated) {
       setPrefetchComplete(true);
       return;
-    } else {
-      if (!reduxSessions) return;
-      // Wait for the auth session check to finish
-      if (!sessionChecked) return;
-      if (!bookmarkChecked) return;
     }
+
+    // Wait for userData/fetchUserData to have completed at least once before
+    // dispatching fetchSessions / fetchNotes, so we don't race with the global
+    // user-data fetch that runs on app init.
+    if (!dataInitialized) return;
 
     // Guard: only run once per component mount
     if (prefetchedRef.current) return;
@@ -161,7 +159,7 @@ function Practice() {
     }
 
     prefetch();
-  }, [sessionChecked, isAuthenticated, reduxDispatch]);
+  }, [dataInitialized, isAuthenticated, reduxDispatch]);
 
   // Reset when the user logs out so a subsequent login re-fetches
   useEffect(() => {
@@ -191,9 +189,18 @@ function Practice() {
   const [reviewSessionData, setReviewSessionData] =
     useState<PracticeSession | null>(null);
 
-  // Check for session continuation parameter first
+  // Check for session continuation parameter first.
+  // For authenticated users, wait until fetchUserData has completed so that
+  // reduxSessions is fully populated before we try to look anything up.
   useEffect(() => {
     const sessionParam = searchParams.get("session");
+
+    // No session param — nothing to do
+    if (!sessionParam) return;
+
+    // For authenticated users, defer until userData/fetchUserData/fulfilled so
+    // reduxSessions actually contains the user's data.
+    if (isAuthenticated && !dataInitialized) return;
 
     if (sessionParam === "continue") {
       console.log(
@@ -553,7 +560,7 @@ function Practice() {
         window.history.replaceState({}, "", url.toString());
       }
     }
-  }, [searchParams, isAuthenticated, reduxSessions]);
+  }, [searchParams, isAuthenticated, reduxSessions, dataInitialized]);
 
   // Handle session restoration
   const handleSessionRestored = (

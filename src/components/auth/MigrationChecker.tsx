@@ -18,14 +18,19 @@
 import { useEffect, useRef, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { toast } from "sonner";
-import type { RootState, AppDispatch } from "@/lib/redux/store";
+import type { AppDispatch } from "@/lib/redux/store";
 import { MigrationPrompt } from "./MigrationPrompt";
 import { SyncPrompt } from "./SyncPrompt";
 import {
   migrateLocalStorageData,
   syncLocalStorageData,
 } from "@/lib/redux/slices/userDataSlice";
-import { selectIsUserDataLoading } from "@/lib/redux/selectors";
+import {
+  selectIsUserDataLoading,
+  selectIsAuthenticated,
+  selectSessionChecked,
+  selectUser,
+} from "@/lib/redux/selectors";
 import type { MigrationSummary } from "@/lib/types/api";
 
 // ─── localStorage keys that hold user-relevant data ───────────────────────────
@@ -349,12 +354,8 @@ function localStorageDiffersFromDb(dbData: {
 
 export function MigrationChecker() {
   const dispatch = useDispatch<AppDispatch>();
-  const isAuthenticated = useSelector(
-    (state: RootState) => state.auth.isAuthenticated,
-  );
-  const sessionChecked = useSelector(
-    (state: RootState) => state.auth.sessionChecked,
-  );
+  const isAuthenticated = useSelector(selectIsAuthenticated);
+  const sessionChecked = useSelector(selectSessionChecked);
   const isUserDataLoading = useSelector(selectIsUserDataLoading);
 
   const [showPrompt, setShowPrompt] = useState(false);
@@ -363,7 +364,8 @@ export function MigrationChecker() {
   // Track the last user ID for which we ran the check to avoid re-checking
   // when components re-render without the auth state actually changing.
   const checkedForUserId = useRef<string | null>(null);
-  const userId = useSelector((state: RootState) => state.auth.user?.id ?? null);
+  const user = useSelector(selectUser);
+  const userId = user?.id ?? null;
 
   useEffect(() => {
     // Only run after session has been verified and user is authenticated
