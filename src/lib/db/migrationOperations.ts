@@ -22,6 +22,11 @@
 import { directPool } from "@/lib/auth";
 import type { MigrationSummary } from "@/lib/types/api";
 import type { ValidatedMigrationPayload } from "@/lib/validation/migrationSchema";
+import type { AnsweredQuestion, ClassStatistics } from "@/types/statistics";
+import {
+  stripAnsweredQuestionsDetailed,
+  stripClassStatistics,
+} from "@/lib/db/statsTransforms";
 
 const db = directPool;
 
@@ -68,6 +73,16 @@ export async function migrateUserData(
   if (data.statistics && Object.keys(data.statistics).length > 0) {
     for (const [assessment, stats] of Object.entries(data.statistics)) {
       if (!stats) continue;
+
+      // Strip plainQuestion and promote primary_class_cd / skill_cd.
+      // DO NOTHING on conflict — first write wins for initial migration.
+      const strippedDetailed = stripAnsweredQuestionsDetailed(
+        (stats.answeredQuestionsDetailed ?? []) as AnsweredQuestion[],
+      );
+      const strippedStatistics = stripClassStatistics(
+        (stats.statistics ?? {}) as ClassStatistics,
+      );
+
       await db.query(
         `INSERT INTO practice_statistics
            (user_id, assessment, answered_questions, answered_questions_detailed, statistics)
@@ -77,8 +92,8 @@ export async function migrateUserData(
           userId,
           assessment,
           JSON.stringify(stats.answeredQuestions ?? []),
-          JSON.stringify(stats.answeredQuestionsDetailed ?? []),
-          JSON.stringify(stats.statistics ?? {}),
+          JSON.stringify(strippedDetailed),
+          JSON.stringify(strippedStatistics),
         ],
       );
     }

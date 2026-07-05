@@ -292,7 +292,11 @@ function localStorageDiffersFromDb(dbData: {
   }
 
   try {
-    // ── Statistics (check if there are answeredQuestions not in DB) ───────────
+    // ── Statistics ────────────────────────────────────────────────────────────
+    // Compare both answeredQuestions count (legacy check) AND
+    // answeredQuestionsDetailed count (new check). DB rows may be in either
+    // the old format (with plainQuestion) or new format (with primary_class_cd).
+    // We compare by count rather than deep content to stay format-agnostic.
     const rawStats = localStorage.getItem("practiceStatistics");
     if (rawStats) {
       const localStats = JSON.parse(rawStats);
@@ -301,23 +305,52 @@ function localStorageDiffersFromDb(dbData: {
           typeof dbData.statistics === "object" && dbData.statistics !== null
             ? (dbData.statistics as Record<
                 string,
-                { answeredQuestions?: string[] }
+                {
+                  answeredQuestions?: string[];
+                  answeredQuestionsDetailed?: unknown[];
+                }
               >)
             : {};
 
         const statsDetails: NonNullable<LocalDbDiff["details"]["statistics"]> =
           [];
+
         for (const [assessment, data] of Object.entries(localStats)) {
           const localAnswered: string[] =
-            (data as { answeredQuestions?: string[] }).answeredQuestions ?? [];
+            (
+              data as {
+                answeredQuestions?: string[];
+                answeredQuestionsDetailed?: unknown[];
+              }
+            ).answeredQuestions ?? [];
+
+          const localDetailed: unknown[] =
+            (
+              data as {
+                answeredQuestionsDetailed?: unknown[];
+              }
+            ).answeredQuestionsDetailed ?? [];
+
           const dbAnswered: string[] =
             dbStats[assessment]?.answeredQuestions ?? [];
 
-          if (localAnswered.length > dbAnswered.length) {
+          const dbDetailed: unknown[] =
+            dbStats[assessment]?.answeredQuestionsDetailed ?? [];
+
+          // Flag if either the flat ID list OR the detailed list has more
+          // entries locally than in the DB. Use the larger of the two counts
+          // as the representative local count so the UI message is accurate.
+          const localCount = Math.max(
+            localAnswered.length,
+            localDetailed.length,
+          );
+          const dbCount = Math.max(dbAnswered.length, dbDetailed.length);
+
+          if (localCount > dbCount) {
             statsDetails.push({
               assessment,
-              localCount: localAnswered.length,
-              dbCount: dbAnswered.length,
+              localCount,
+              dbCount,
             });
           }
         }

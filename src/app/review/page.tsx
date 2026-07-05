@@ -39,6 +39,46 @@ interface QuestionWithData {
   errorMessage?: string;
 }
 
+/**
+ * Build a minimal PlainQuestionType from the promoted top-level fields that
+ * are now stored on AnsweredQuestion DB entries in place of plainQuestion.
+ *
+ * Only the fields actually consumed by review/page.tsx are populated:
+ *   primary_class_cd → subject filter, domains[] extraction
+ *   skill_cd         → skills[] extraction
+ *   external_id / ibn → already top-level on AnsweredQuestion, passed through
+ *
+ * All other PlainQuestionType fields are safe defaults (empty string / 0).
+ * No downstream consumer of QuestionWithData.plainQuestion in this file
+ * reads updateDate, createDate, pPcc, uId, etc.
+ */
+function buildPartialPlainQuestion(params: {
+  questionId: string;
+  primary_class_cd: string;
+  skill_cd: string;
+  difficulty?: "E" | "M" | "H";
+  external_id?: string | null;
+  ibn?: string | null;
+}): PlainQuestionType {
+  return {
+    questionId: params.questionId,
+    primary_class_cd:
+      params.primary_class_cd as import("@/types/lookup").DomainItems,
+    primary_class_cd_desc: "",
+    skill_cd: params.skill_cd as import("@/types/lookup").SkillCd_Variants,
+    skill_desc: "",
+    difficulty: params.difficulty ?? "M",
+    external_id: params.external_id ?? null,
+    ibn: params.ibn ?? null,
+    program: "",
+    pPcc: "",
+    uId: "",
+    score_band_range_cd: 0,
+    createDate: 0,
+    updateDate: 0,
+  };
+}
+
 // Validation functions for URL parameters
 function validateAssessment(assessment: string): boolean {
   const validAssessments = ["SAT", "PSAT/NMSQT", "PSAT"];
@@ -102,14 +142,39 @@ function Review() {
           assessmentStats?.answeredQuestionsDetailed?.filter(
             (q) => !q.isCorrect,
           ) || [];
-        questions = incorrectQuestions.map((question) => ({
-          questionId: question.questionId,
-          timestamp: question.timestamp,
-          isCorrect: question.isCorrect,
-          isLoading: true,
-          hasError: false,
-          plainQuestion: question.plainQuestion,
-        }));
+        questions = incorrectQuestions.map((question) => {
+          // DB rows use promoted top-level primary_class_cd / skill_cd.
+          // Legacy localStorage rows may still have plainQuestion.
+          // Normalise both into a consistent PlainQuestionType so the rest of
+          // the file's logic works without branching.
+          const raw = question as unknown as {
+            primary_class_cd?: string;
+            skill_cd?: string;
+            plainQuestion?: PlainQuestionType;
+            external_id?: string;
+            ibn?: string;
+          };
+
+          const plainQuestion =
+            raw.plainQuestion ??
+            buildPartialPlainQuestion({
+              questionId: question.questionId,
+              primary_class_cd: raw.primary_class_cd ?? "",
+              skill_cd: raw.skill_cd ?? "",
+              difficulty: question.difficulty,
+              external_id: raw.external_id,
+              ibn: raw.ibn,
+            });
+
+          return {
+            questionId: question.questionId,
+            timestamp: question.timestamp,
+            isCorrect: question.isCorrect,
+            isLoading: true,
+            hasError: false,
+            plainQuestion,
+          };
+        });
       }
 
       return questions;

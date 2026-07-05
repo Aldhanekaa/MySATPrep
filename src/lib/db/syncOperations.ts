@@ -20,6 +20,11 @@
 import { directPool } from "@/lib/auth";
 import type { MigrationSummary } from "@/lib/types/api";
 import type { ValidatedMigrationPayload } from "@/lib/validation/migrationSchema";
+import type { AnsweredQuestion, ClassStatistics } from "@/types/statistics";
+import {
+  stripAnsweredQuestionsDetailed,
+  stripClassStatistics,
+} from "@/lib/db/statsTransforms";
 
 // Alias for clarity inside this file
 const db = directPool;
@@ -86,6 +91,17 @@ export async function syncUserData(
     for (const [assessment, stats] of Object.entries(data.statistics)) {
       if (!stats) continue;
 
+      // Strip plainQuestion and promote primary_class_cd / skill_cd before
+      // writing. The SQL merge uses DISTINCT ON (entry->>'questionId') which
+      // only looks at the key — not at plainQuestion — so stripping here is
+      // safe and does not affect the dedup logic.
+      const strippedDetailed = stripAnsweredQuestionsDetailed(
+        (stats.answeredQuestionsDetailed ?? []) as AnsweredQuestion[],
+      );
+      const strippedStatistics = stripClassStatistics(
+        (stats.statistics ?? {}) as ClassStatistics,
+      );
+
       await db.query(
         `INSERT INTO practice_statistics
            (user_id, assessment, answered_questions, answered_questions_detailed, statistics)
@@ -117,8 +133,8 @@ export async function syncUserData(
           userId,
           assessment,
           JSON.stringify(stats.answeredQuestions ?? []),
-          JSON.stringify(stats.answeredQuestionsDetailed ?? []),
-          JSON.stringify(stats.statistics ?? {}),
+          JSON.stringify(strippedDetailed),
+          JSON.stringify(strippedStatistics),
         ],
       );
     }

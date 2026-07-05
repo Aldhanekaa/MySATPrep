@@ -817,6 +817,7 @@ const QuestionProblemCard = React.memo(function QuestionProblemCard({
               <span
                 id="question_explanation"
                 className="text-lg text-justify"
+                suppressHydrationWarning
                 dangerouslySetInnerHTML={{
                   __html: question.problem.stimulus
                     ? question.problem.stimulus
@@ -830,6 +831,7 @@ const QuestionProblemCard = React.memo(function QuestionProblemCard({
               <span
                 id="question_explanation"
                 className="text-lg text-justify"
+                suppressHydrationWarning
                 dangerouslySetInnerHTML={{
                   __html: question.problem.stem ? question.problem.stem : "",
                 }}
@@ -962,6 +964,7 @@ const QuestionProblemCard = React.memo(function QuestionProblemCard({
                                 <span
                                   id="question_explanation"
                                   className="text-xl inline-block"
+                                  suppressHydrationWarning
                                   dangerouslySetInnerHTML={{
                                     __html: optionText,
                                   }}
@@ -1184,6 +1187,7 @@ const QuestionProblemCard = React.memo(function QuestionProblemCard({
               >
                 <span
                   className="text-sm md:text-lg lg:text-xl"
+                  suppressHydrationWarning
                   dangerouslySetInnerHTML={{
                     __html: question.problem.rationale,
                   }}
@@ -1204,6 +1208,7 @@ const QuestionProblemCard = React.memo(function QuestionProblemCard({
               >
                 <span
                   className="text-sm md:text-lg lg:text-xl"
+                  suppressHydrationWarning
                   dangerouslySetInnerHTML={{
                     __html: question.problem.rationale,
                   }}

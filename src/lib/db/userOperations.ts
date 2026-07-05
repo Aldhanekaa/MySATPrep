@@ -12,7 +12,18 @@ import type {
   UserProfileWithHistory,
   XPTransaction,
 } from "@/types/userProfile";
-import type { PracticeStatistics, PracticeSession } from "@/types";
+import type {
+  PracticeStatistics,
+  PracticeSession,
+  AnsweredQuestion,
+  ClassStatistics,
+} from "@/types";
+import {
+  stripAnsweredQuestionsDetailed,
+  stripClassStatistics,
+  normaliseAnsweredQuestion,
+  normaliseClassStatistics,
+} from "@/lib/db/statsTransforms";
 
 // ─── User Record ─────────────────────────────────────────────────────────────
 
@@ -160,9 +171,40 @@ interface DbPracticeStatistics {
   userId: string;
   assessment: string;
   answeredQuestions: string[];
-  answeredQuestionsDetailed: unknown[];
+  // Raw JSONB from Postgres — may be old format (with plainQuestion) or new
+  // format (with top-level primary_class_cd / skill_cd). Normalised on read.
+  answeredQuestionsDetailed: Record<string, unknown>[];
   statistics: Record<string, unknown>;
   updatedAt: Date;
+}
+
+/**
+ * Normalise a raw DB row into the PracticeStatistics shape.
+ *
+ * Handles both legacy rows (plainQuestion present in JSONB) and new rows
+ * (plainQuestion stripped, primary_class_cd / skill_cd promoted). The
+ * normalised shape has primary_class_cd and skill_cd at the top level of
+ * each AnsweredQuestion entry so that review/page.tsx can read them directly
+ * without touching plainQuestion.
+ */
+function rowToAssessmentStats(row: DbPracticeStatistics): {
+  answeredQuestions: string[];
+  answeredQuestionsDetailed: AnsweredQuestion[];
+  statistics: ClassStatistics;
+} {
+  const answeredQuestionsDetailed = (row.answeredQuestionsDetailed ?? []).map(
+    (raw) => normaliseAnsweredQuestion(raw) as unknown as AnsweredQuestion,
+  );
+
+  const statistics = normaliseClassStatistics(
+    row.statistics ?? {},
+  ) as unknown as ClassStatistics;
+
+  return {
+    answeredQuestions: row.answeredQuestions ?? [],
+    answeredQuestionsDetailed,
+    statistics,
+  };
 }
 
 /**
@@ -191,16 +233,17 @@ export async function getPracticeStatistics(
 
   const row = result.rows[0];
   return {
-    [assessment]: {
-      answeredQuestions: row.answeredQuestions ?? [],
-      answeredQuestionsDetailed: row.answeredQuestionsDetailed ?? [],
-      statistics: row.statistics ?? {},
-    },
+    [assessment]: rowToAssessmentStats(row),
   } as unknown as PracticeStatistics;
 }
 
 /**
  * Insert or update practice statistics for a user and assessment.
+ *
+ * Strips plainQuestion from both JSONB columns before writing. Promotes
+ * primary_class_cd and skill_cd as explicit top-level fields on each
+ * answered_questions_detailed entry.
+ *
  * Validates: Requirement 8.2
  */
 export async function updatePracticeStatistics(
@@ -211,15 +254,20 @@ export async function updatePracticeStatistics(
   const assessmentData = (data as Record<string, unknown>)[assessment] as
     | {
         answeredQuestions?: string[];
-        answeredQuestionsDetailed?: unknown[];
-        statistics?: Record<string, unknown>;
+        answeredQuestionsDetailed?: AnsweredQuestion[];
+        statistics?: ClassStatistics;
       }
     | undefined;
 
   const answeredQuestions = assessmentData?.answeredQuestions ?? [];
-  const answeredQuestionsDetailed =
-    assessmentData?.answeredQuestionsDetailed ?? [];
-  const statistics = assessmentData?.statistics ?? {};
+
+  // Strip plainQuestion and promote primary_class_cd / skill_cd before writing
+  const answeredQuestionsDetailed = stripAnsweredQuestionsDetailed(
+    (assessmentData?.answeredQuestionsDetailed ?? []) as AnsweredQuestion[],
+  );
+  const statistics = stripClassStatistics(
+    (assessmentData?.statistics ?? {}) as ClassStatistics,
+  );
 
   const result = await pool.query<DbPracticeStatistics>(
     `INSERT INTO practice_statistics
@@ -248,11 +296,7 @@ export async function updatePracticeStatistics(
 
   const row = result.rows[0];
   return {
-    [assessment]: {
-      answeredQuestions: row.answeredQuestions ?? [],
-      answeredQuestionsDetailed: row.answeredQuestionsDetailed ?? [],
-      statistics: row.statistics ?? {},
-    },
+    [assessment]: rowToAssessmentStats(row),
   } as unknown as PracticeStatistics;
 }
 
