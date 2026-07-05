@@ -188,9 +188,18 @@ function Practice() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dataInitialized, isAuthenticated, sessionChecked, reduxDispatch]);
 
-  // Reset when the user logs out so a subsequent login re-fetches
+  // Reset only when the user actively logs out (isAuthenticated transitions
+  // true → false) so a subsequent login re-fetches. Skipping the reset on
+  // initial mount (where isAuthenticated is already false) prevents the
+  // loading screen from getting stuck when navigating to the page while
+  // unauthenticated.
+  const wasAuthenticatedRef = useRef(false);
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (isAuthenticated) {
+      wasAuthenticatedRef.current = true;
+    } else if (wasAuthenticatedRef.current) {
+      // Only reset when transitioning from authenticated → unauthenticated
+      wasAuthenticatedRef.current = false;
       prefetchedRef.current = false;
       setPrefetchComplete(false);
     }
@@ -1005,16 +1014,18 @@ function Practice() {
     <React.Fragment>
       <SiteHeader />
 
-      {/* Data prefetch loading screen — shown only while fetching sessions + notes
-          (+ bookmarks when a sessionParam is present) for authenticated users.
-          Skipped entirely for unauthenticated users so there is zero flash/delay
-          on the normal onboarding path. */}
+      {/* Data prefetch loading screen — shown while checking session and fetching
+          sessions + notes for authenticated users. */}
       {!prefetchComplete ? (
         <div
           className="min-h-screen flex flex-col items-center justify-center gap-4"
           role="status"
           aria-live="polite"
-          aria-label="Loading your practice data"
+          aria-label={
+            !sessionChecked
+              ? "Checking your session…"
+              : "Loading your practice data"
+          }
         >
           <div className="flex space-x-1.5">
             <div className="w-2.5 h-2.5 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.3s] [animation-duration:0.6s]" />
@@ -1022,9 +1033,11 @@ function Practice() {
             <div className="w-2.5 h-2.5 bg-blue-500 rounded-full animate-bounce [animation-duration:0.6s]" />
           </div>
           <p className="text-sm text-muted-foreground animate-pulse">
-            {searchParams.get("session")
-              ? "Loading your notes, saved questions, and bookmarks…"
-              : "Loading your practice data…"}
+            {!sessionChecked
+              ? "Checking your session…"
+              : searchParams.get("session")
+                ? "Loading your notes, saved questions, and bookmarks…"
+                : "Loading your practice data…"}
           </p>
         </div>
       ) : (

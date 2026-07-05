@@ -1,7 +1,14 @@
 import VocabsPracticePageClient from "@/components/dashboard/vocabs/practice/VocabsPracticePageClient";
 import { PracticeBanner } from "@/components/dashboard/vocabs/practice/practice-banner";
-import { Metadata } from "next";
+import { Metadata, Viewport } from "next";
 import React from "react";
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: "#0066cc",
+  colorScheme: "light dark",
+};
 
 export const metadata: Metadata = {
   title:
@@ -53,9 +60,6 @@ export const metadata: Metadata = {
   referrer: "origin-when-cross-origin",
   category: "Education",
   classification: "Educational Resource",
-  viewport: "width=device-width, initial-scale=1",
-  themeColor: "#0066cc",
-  colorScheme: "light dark",
   formatDetection: {
     email: false,
     address: false,

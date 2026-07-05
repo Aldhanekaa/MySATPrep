@@ -75,13 +75,19 @@ export const AuthGuard = memo(function AuthGuard({
   // Show a spinner while the session is being verified (or while an auth
   // operation is in-flight after the initial check).
   if (!sessionChecked || (sessionChecked && !isAuthenticated) || loading) {
+    const isRedirecting = sessionChecked && !isAuthenticated && !loading;
+
     return (
       <div
         role="status"
         aria-live="polite"
-        aria-label="Verifying authentication…"
+        aria-label={
+          isRedirecting
+            ? "Redirecting to sign in…"
+            : "Verifying authentication…"
+        }
         className={[
-          "flex min-h-screen items-center justify-center",
+          "flex min-h-screen flex-col items-center justify-center gap-3",
           "bg-white dark:bg-gray-950",
         ].join(" ")}
       >
@@ -107,7 +113,18 @@ export const AuthGuard = memo(function AuthGuard({
             d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
           />
         </svg>
-        <span className="sr-only">Verifying authentication…</span>
+
+        {isRedirecting && (
+          <p className="text-sm text-gray-500 dark:text-gray-400 animate-pulse">
+            Redirecting to sign in…
+          </p>
+        )}
+
+        <span className="sr-only">
+          {isRedirecting
+            ? "Redirecting to sign in…"
+            : "Verifying authentication…"}
+        </span>
       </div>
     );
   }

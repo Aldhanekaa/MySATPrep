@@ -1,5 +1,6 @@
 {
   "marquee.widgets.npm-stats.packageNames": [
     "collegeboard-questionbank-wrapper"
-  ]
+  ],
+  "typescript.autoClosingTags": false
 }

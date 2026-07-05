@@ -1,7 +1,14 @@
 import { HeroSection } from "@/components/home-hero";
 import React from "react";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import FooterSection from "@/components/footer";
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: "#0066cc",
+  colorScheme: "light dark",
+};
 
 export const metadata: Metadata = {
   title: "Free SAT Practice Questions & Test Prep - MySATPrep",
@@ -53,9 +60,6 @@ export const metadata: Metadata = {
   referrer: "origin-when-cross-origin",
   category: "Education",
   classification: "Educational Resource",
-  viewport: "width=device-width, initial-scale=1",
-  themeColor: "#0066cc",
-  colorScheme: "light dark",
   formatDetection: {
     email: false,
     address: false,

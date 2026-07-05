@@ -194,7 +194,7 @@ export default function RootLayout({
 
         <ErrorBoundary>
           <Banner2
-            id="banner-sync-2"
+            id="banner-sync-new-update"
             variant="rainbow"
             className=" bg-white dark:bg-transparent"
             rainbowColors={[
@@ -207,9 +207,8 @@ export default function RootLayout({
               "transparent",
             ]}
           >
-            UPDATE : Authentication system occasionally returns an error,
-            offline mode is not avaialble. For better experience, please use
-            practicesat.vercel.app
+            Authentication is up and running. You can use the platform without
+            SignIn. Any bug reports are appreciated, report it on /report-bug
           </Banner2>
 
           <Banner />

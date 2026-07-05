@@ -12,11 +12,13 @@ import {
   selectDataInitialized,
   selectUserBookmarks,
   selectUserCollections,
+  selectSessionChecked,
 } from "@/lib/redux/selectors";
 
 export default function QuestionBankPageComponent() {
   const dispatch = useAppDispatch();
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
+  const sessionChecked = useAppSelector(selectSessionChecked);
   const dataInitialized = useAppSelector(selectDataInitialized);
   const bookmarks = useAppSelector(selectUserBookmarks);
   const collections = useAppSelector(selectUserCollections);
@@ -27,6 +29,11 @@ export default function QuestionBankPageComponent() {
   const [prefetchComplete, setPrefetchComplete] = useState(false);
 
   useEffect(() => {
+    // Wait for the session check to complete before deciding whether to fetch.
+    // Without this guard a direct page visit would resolve isAuthenticated=false
+    // before the check finishes and skip the loading screen prematurely.
+    if (!sessionChecked) return;
+
     // Unauthenticated — nothing to fetch, skip the loading screen entirely
     if (!isAuthenticated) {
       setPrefetchComplete(true);
@@ -60,6 +67,7 @@ export default function QuestionBankPageComponent() {
 
     prefetch();
   }, [
+    sessionChecked,
     dataInitialized,
     isAuthenticated,
     bookmarks.length,
@@ -67,9 +75,18 @@ export default function QuestionBankPageComponent() {
     dispatch,
   ]);
 
-  // Reset when the user logs out so a subsequent login re-fetches
+  // Reset only when the user actively logs out (isAuthenticated transitions
+  // true → false) so a subsequent login re-fetches. Skipping the reset on
+  // initial mount (where isAuthenticated is already false) prevents the
+  // loading screen from getting stuck when navigating to the page while
+  // unauthenticated.
+  const wasAuthenticatedRef = useRef(false);
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (isAuthenticated) {
+      wasAuthenticatedRef.current = true;
+    } else if (wasAuthenticatedRef.current) {
+      // Only reset when transitioning from authenticated → unauthenticated
+      wasAuthenticatedRef.current = false;
       prefetchedRef.current = false;
       setPrefetchComplete(false);
     }
@@ -79,15 +96,18 @@ export default function QuestionBankPageComponent() {
     <React.Fragment>
       <SiteHeader />
 
-      {/* Data prefetch loading screen — shown only while fetching bookmarks +
-          collections for authenticated users. Skipped entirely for
-          unauthenticated users so there is zero flash/delay. */}
+      {/* Data prefetch loading screen — shown while checking session and fetching
+          bookmarks + collections for authenticated users. */}
       {!prefetchComplete ? (
         <div
           className="min-h-screen flex flex-col items-center justify-center gap-4"
           role="status"
           aria-live="polite"
-          aria-label="Loading your question bank data"
+          aria-label={
+            !sessionChecked
+              ? "Checking your session…"
+              : "Loading your question bank data"
+          }
         >
           <div className="flex space-x-1.5">
             <div className="w-2.5 h-2.5 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.3s] [animation-duration:0.6s]" />
@@ -95,7 +115,9 @@ export default function QuestionBankPageComponent() {
             <div className="w-2.5 h-2.5 bg-blue-500 rounded-full animate-bounce [animation-duration:0.6s]" />
           </div>
           <p className="text-sm text-muted-foreground animate-pulse">
-            Loading your question bank…
+            {!sessionChecked
+              ? "Checking your session…"
+              : "Loading your question bank…"}
           </p>
         </div>
       ) : (

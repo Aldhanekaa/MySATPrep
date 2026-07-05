@@ -73,8 +73,17 @@ export async function PUT(request: NextRequest) {
 
   const userId = session.user.id;
 
+  let body: unknown;
   try {
-    const body = await request.json();
+    body = await request.json();
+  } catch {
+    return NextResponse.json(
+      { success: false, error: "Invalid JSON in request body" },
+      { status: 400 },
+    );
+  }
+
+  try {
     const answerHistoryData = body as AnswerHistory;
 
     const updated = await updateAnswerHistory(userId, answerHistoryData);
@@ -88,6 +97,19 @@ export async function PUT(request: NextRequest) {
     });
   } catch (error) {
     logError("[PUT /api/user/answer-history]", error);
+
+    const isDbError =
+      error instanceof Error &&
+      (error.message.includes("ECONNREFUSED") ||
+        error.message.includes("connection") ||
+        error.message.includes("pool"));
+
+    if (isDbError) {
+      return NextResponse.json(
+        { success: false, error: "Service temporarily unavailable" },
+        { status: 503 },
+      );
+    }
 
     return NextResponse.json(
       { success: false, error: "Internal server error" },

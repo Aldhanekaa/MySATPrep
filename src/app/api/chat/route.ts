@@ -23,46 +23,73 @@ function getSystem(task: Task, data: any) {
 }
 
 export async function POST(req: Request) {
-  const {
-    message,
-    data,
-    task,
-  }: { message: string; data: any; task: Task | undefined | string } =
-    await req.json();
+  let body: { message: string; data: any; task: Task | undefined | string };
+
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json(
+      { success: false, error: "Invalid JSON in request body" },
+      { status: 400 },
+    );
+  }
+
+  const { message, data, task } = body;
 
   if (
     !task ||
     (task !== "validate-user-definition" && task !== "validate-user-sentence")
   ) {
-    return NextResponse.json({ error: "Missing task" }, { status: 400 });
-  }
-
-  //   console.log("API Key:", process.env.OPENROUTER_KEY ? "Exists" : "Missing");
-    console.log("Received message:", message);
-    console.log("Received data:", data);
-  const system = getSystem(task, data);
-    console.log("system:", system);
-
-  const result = await generateText({
-    model: openrouter.chat("z-ai/glm-4.5-air:free"),
-    system: system, // Context: ${JSON.stringify(data)}
-    prompt: message,
-  });
-
-    console.log(" response:", result);
-    console.log(" response text:", result.text);
-    console.log(" response providerMetadata:", result.providerMetadata);
-
-  if (result.text) {
-    const jsonResponse = JSON.parse(result.text);
     return NextResponse.json(
-      { result: jsonResponse, success: true },
-      { status: 200 }
+      { success: false, error: "Missing or invalid task" },
+      { status: 400 },
     );
   }
 
-  return NextResponse.json(
-    { message: "Unable to parse AI Response to JSON.", success: false },
-    { status: 200 }
-  );
+  if (!message || typeof message !== "string") {
+    return NextResponse.json(
+      { success: false, error: "message must be a non-empty string" },
+      { status: 400 },
+    );
+  }
+
+  const system = getSystem(task, data);
+
+  try {
+    const result = await generateText({
+      model: openrouter.chat("z-ai/glm-4.5-air:free"),
+      system: system,
+      prompt: message,
+    });
+
+    if (!result.text) {
+      return NextResponse.json(
+        { success: false, error: "AI returned an empty response" },
+        { status: 502 },
+      );
+    }
+
+    try {
+      const jsonResponse = JSON.parse(result.text);
+      return NextResponse.json(
+        { result: jsonResponse, success: true },
+        { status: 200 },
+      );
+    } catch {
+      return NextResponse.json(
+        { success: false, error: "Unable to parse AI response as JSON" },
+        { status: 502 },
+      );
+    }
+  } catch (error) {
+    console.error("[POST /api/chat] AI generation error:", error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Failed to generate AI response",
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
+  }
 }

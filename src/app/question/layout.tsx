@@ -1,4 +1,11 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: "#0066cc",
+  colorScheme: "light dark",
+};
 
 export const metadata: Metadata = {
   title: "SAT Question Search - Find Specific Questions by ID | MySATPrep",
@@ -44,9 +51,6 @@ export const metadata: Metadata = {
   referrer: "origin-when-cross-origin",
   category: "Education",
   classification: "Educational Search Tool",
-  viewport: "width=device-width, initial-scale=1",
-  themeColor: "#0066cc",
-  colorScheme: "light dark",
   formatDetection: {
     email: false,
     address: false,
