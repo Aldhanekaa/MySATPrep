@@ -1,59 +1,45 @@
 /**
  * Better Auth Configuration
  *
- * Configures Better Auth with PostgreSQL, Google OAuth, and email/password authentication.
+ * Uses the standard `pg` driver with two pools:
+ *  - pool       : pooler/PgBouncer endpoint — for reads
+ *  - directPool : direct unpooled endpoint  — for writes (syncOperations,
+ *                 migrationOperations, better-auth itself)
  *
- * Uses @neondatabase/serverless instead of `pg` so that database connections
- * work in the Cloudflare Workers runtime (which has no Node.js TCP sockets).
- * The Neon serverless driver uses HTTP/WebSocket, both of which are available
- * in Workers.
+ * SSL is always enabled with rejectUnauthorized: false. Supabase (and most
+ * hosted Postgres providers) use intermediate CA chains that don't verify
+ * cleanly in Node.js — the connection is still TLS-encrypted regardless.
  */
 
 import { betterAuth } from "better-auth";
-import { Pool, neonConfig } from "@neondatabase/serverless";
-import ws from "ws";
+import { Pool } from "pg";
 import { env } from "./config/env";
 
-// Use the `ws` package as the WebSocket implementation when running outside
-// the browser (i.e. in Node.js during `next dev`) so the Neon serverless
-// driver can open WebSocket connections.  In the Cloudflare Workers runtime
-// the global `WebSocket` is already available, so this is only needed locally.
-if (typeof WebSocket === "undefined") {
-  neonConfig.webSocketConstructor = ws;
-}
+const SSL = { ssl: { rejectUnauthorized: false } };
 
-/**
- * Application query pool — uses the Neon pooler endpoint (PgBouncer).
- * Uses @neondatabase/serverless Pool which works in Cloudflare Workers via WebSocket.
- */
+// Pooler / PgBouncer endpoint — high-concurrency reads
 const pool = new Pool({
   connectionString: env.DATABASE_URL,
+  ...SSL,
+  max: 10,
+  idleTimeoutMillis: 30_000,
+  connectionTimeoutMillis: 10_000,
 });
 
-/**
- * Unpooled connection for better-auth.
- * better-auth uses prepared statements and SET commands that are incompatible
- * with PgBouncer's transaction-mode pooling, so it needs a direct connection.
- */
-const authPool = new Pool({
+// Direct unpooled endpoint — writes and better-auth
+const directPool = new Pool({
   connectionString: env.DATABASE_URL_UNPOOLED,
+  ...SSL,
+  max: 5,
+  idleTimeoutMillis: 30_000,
+  connectionTimeoutMillis: 10_000,
 });
 
-console.log(
-  "process.env.NEXT_PUBLIC_BASE_URL",
-  process.env.NEXT_PUBLIC_BASE_URL,
-);
-// Configure Better Auth
 export const auth = betterAuth({
   basePath: process.env.NEXT_PUBLIC_URL,
-  database: authPool,
-
+  database: directPool,
   advanced: {
-    database: {
-      // Generate RFC 4122 UUIDs so better-auth's user IDs are compatible with
-      // our PostgreSQL schema, which uses the uuid column type throughout.
-      generateId: "uuid",
-    },
+    database: { generateId: "uuid" },
   },
   emailAndPassword: {
     enabled: true,
@@ -66,18 +52,15 @@ export const auth = betterAuth({
     },
   },
   session: {
-    cookieCache: {
-      enabled: true,
-      maxAge: 5 * 60, // 5 minutes
-    },
+    cookieCache: { enabled: true, maxAge: 5 * 60 },
   },
   secret: env.BETTER_AUTH_SECRET,
   baseURL: process.env.NEXT_PUBLIC_BASE_URL,
 });
 
-// Export types for use throughout the app
 export type Session = typeof auth.$Infer.Session.session;
 export type User = typeof auth.$Infer.Session.user;
 
-// Export the app query pool for direct database access
-export { pool };
+// pool       → pooler (reads)
+// directPool → direct (writes)
+export { pool, directPool };

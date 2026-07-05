@@ -709,15 +709,51 @@ export const syncLocalStorageData = createAsyncThunk<
   "userData/syncLocalStorageData",
   async (_, { getState, dispatch, rejectWithValue }) => {
     const state = getState();
-    const {
-      profile,
-      statistics,
-      sessions,
-      bookmarks,
-      collections,
-      vocabulary,
-      preferences,
-    } = state.userData;
+    const { profile, statistics, preferences } = state.userData;
+
+    // The four lazy fields (sessions, bookmarks, collections, vocabulary) are
+    // NOT populated by fetchUserData (/api/user/data). We need the real DB
+    // values to merge against, so fetch them now if they haven't been loaded
+    // yet (i.e. the user hasn't visited the pages that trigger lazy fetches).
+    let sessions = state.userData.sessions;
+    let bookmarks = state.userData.bookmarks;
+    let collections = state.userData.collections;
+    let vocabulary = state.userData.vocabulary;
+
+    const lazyFieldsMissing =
+      sessions.length === 0 &&
+      bookmarks.length === 0 &&
+      collections.length === 0 &&
+      vocabulary === null;
+
+    if (lazyFieldsMissing) {
+      try {
+        const res = await fetch("/api/user/lazy-data", {
+          method: "GET",
+          credentials: "include",
+        });
+        if (res.ok) {
+          const json = (await res.json()) as {
+            data?: {
+              sessions?: typeof sessions;
+              bookmarks?: typeof bookmarks;
+              collections?: typeof collections;
+              vocabulary?: typeof vocabulary;
+            };
+          };
+          if (json.data) {
+            sessions = json.data.sessions ?? sessions;
+            bookmarks = json.data.bookmarks ?? bookmarks;
+            collections = json.data.collections ?? collections;
+            vocabulary = json.data.vocabulary ?? vocabulary;
+          }
+        }
+      } catch {
+        // If the fetch fails, fall back to whatever Redux has (empty arrays).
+        // The sync will still run — worst case we just don't merge the DB lazy
+        // fields, but the DB-side upserts are idempotent so no data is lost.
+      }
+    }
     const localProfile = (() => {
       try {
         const raw = localStorage.getItem("userProfile");

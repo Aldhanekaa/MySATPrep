@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    // Run transactional sync (upserts, not inserts)
+    // Run sync (upserts, not inserts)
     const summary = await syncUserData(userId, validation.data);
 
     // Bust the LRU cache so the next GET /api/user/data fetches fresh DB rows
