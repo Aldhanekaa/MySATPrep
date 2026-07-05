@@ -78,9 +78,28 @@ export default function AccountPage() {
         credentials: "include",
       });
 
-      const data = await response.json();
+      // Parse JSON only when present and when content-type is JSON.
+      let data: any = undefined;
+      const contentType = response.headers.get("content-type") ?? "";
+      if (contentType.includes("application/json")) {
+        try {
+          data = await response.json();
+        } catch {
+          data = undefined;
+        }
+      }
 
-      if (!response.ok || !data.success) {
+      // Handle HTTP error responses first (may have no JSON body)
+      if (!response.ok) {
+        const errMsg =
+          data?.error ?? "Failed to delete account. Please try again.";
+        setError(errMsg);
+        setIsDeleting(false);
+        return;
+      }
+
+      // If server returned JSON but indicated failure, surface the error
+      if (data && data.success === false) {
         setError(data.error ?? "Failed to delete account. Please try again.");
         setIsDeleting(false);
         return;
