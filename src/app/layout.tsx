@@ -208,7 +208,8 @@ export default function RootLayout({
             ]}
           >
             UPDATE : Authentication system occasionally returns an error,
-            returning back to
+            offline mode is not avaialble. For better experience, please use
+            practicesat.vercel.app
           </Banner2>
 
           <Banner />
