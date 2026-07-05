@@ -2204,9 +2204,35 @@ export default function PracticeRushMultistep({
 
           dispatch({ type: "SET_CURRENT_STEP", payload: 3 });
 
-          // Extract plain questions from answered question details
+          // Extract plain questions from answered question details.
+          // DB rows written after the schema change no longer carry plainQuestion.
+          // Build a minimal PlainQuestionType from questionId / externalId / ibn
+          // so fetchQuestionDetails can call the question bank API.
           const validPlainQuestions = answeredQuestionDetails
-            .map((item) => item.plainQuestion)
+            .map((item) => {
+              // Prefer legacy plainQuestion if the old row still has it
+              if (item.plainQuestion) return item.plainQuestion;
+              // New rows: reconstruct the minimum needed for the API fetch
+              const id = item.externalId ?? item.ibn ?? "";
+              if (!id) return null;
+              return {
+                questionId: item.questionId,
+                external_id: item.externalId ?? null,
+                ibn: item.ibn ?? null,
+                primary_class_cd: "" as import("@/types/lookup").DomainItems,
+                primary_class_cd_desc: "",
+                skill_cd: "" as import("@/types/lookup").SkillCd_Variants,
+                skill_desc: "",
+                difficulty:
+                  "M" as import("@/types/question").QuestionDifficulty,
+                program: "",
+                pPcc: "",
+                uId: "",
+                score_band_range_cd: 0,
+                createDate: 0,
+                updateDate: 0,
+              } as import("@/types/question").PlainQuestionType;
+            })
             .filter((q) => q !== null) as PlainQuestionType[];
 
           if (validPlainQuestions.length > 0) {
@@ -2436,9 +2462,37 @@ export default function PracticeRushMultistep({
 
           dispatch({ type: "SET_CURRENT_STEP", payload: 3 });
 
-          // Extract plain questions from restored session data
+          // Extract plain questions from restored session data.
+          // DB rows written after the schema change no longer carry plainQuestion
+          // in answeredQuestionDetails. Build a minimal PlainQuestionType from
+          // the always-present questionId / externalId / ibn so fetchQuestionDetails
+          // can call the question bank API without needing the full metadata.
           const validPlainQuestions = questionDetails
-            .map((item) => item.plainQuestion)
+            .map((item) => {
+              // Prefer legacy plainQuestion if the old row still has it
+              if (item.plainQuestion) return item.plainQuestion;
+              // New rows: reconstruct the minimum needed for the API fetch
+              const id = item.externalId ?? item.ibn ?? "";
+              if (!id) return null;
+              return {
+                questionId: item.questionId,
+                external_id: item.externalId ?? null,
+                ibn: item.ibn ?? null,
+                // Safe defaults for fields only used after the question bank fetch
+                primary_class_cd: "" as import("@/types/lookup").DomainItems,
+                primary_class_cd_desc: "",
+                skill_cd: "" as import("@/types/lookup").SkillCd_Variants,
+                skill_desc: "",
+                difficulty:
+                  "M" as import("@/types/question").QuestionDifficulty,
+                program: "",
+                pPcc: "",
+                uId: "",
+                score_band_range_cd: 0,
+                createDate: 0,
+                updateDate: 0,
+              } as import("@/types/question").PlainQuestionType;
+            })
             .filter((q) => q !== null) as PlainQuestionType[];
 
           if (validPlainQuestions.length > 0) {

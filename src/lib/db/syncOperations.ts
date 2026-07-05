@@ -21,10 +21,28 @@ import { directPool } from "@/lib/auth";
 import type { MigrationSummary } from "@/lib/types/api";
 import type { ValidatedMigrationPayload } from "@/lib/validation/migrationSchema";
 import type { AnsweredQuestion, ClassStatistics } from "@/types/statistics";
+import type { PracticeSession } from "@/types/session";
+import type { QuestionDetail } from "@/lib/types/userData";
+import type { PlainQuestionType } from "@/types/question";
 import {
   stripAnsweredQuestionsDetailed,
   stripClassStatistics,
 } from "@/lib/db/statsTransforms";
+import { stripSessionForDb } from "@/lib/db/sessionTransforms";
+import { slimPlainQuestion } from "@/lib/db/bookmarkTransforms";
+
+// ─── Collection question_details strip helper ─────────────────────────────────
+function stripQuestionDetail(detail: QuestionDetail): {
+  questionId: string;
+  externalId: string | null;
+  ibn: string | null;
+} {
+  return {
+    questionId: detail.questionId,
+    externalId: detail.externalId ?? null,
+    ibn: detail.ibn ?? null,
+  };
+}
 
 // Alias for clarity inside this file
 const db = directPool;
@@ -144,6 +162,15 @@ export async function syncUserData(
   // ── Sessions ───────────────────────────────────────────────────────────────
   if (data.sessions && data.sessions.length > 0) {
     for (const session of data.sessions) {
+      // Strip plainQuestion from answeredQuestionDetails and remove
+      // questionCorrectChoices / correctAnswers / accuracyPercentage.
+      const stripped = stripSessionForDb(
+        session as PracticeSession & {
+          correctAnswers?: number;
+          accuracyPercentage?: number;
+        },
+      );
+
       await db.query(
         `INSERT INTO practice_sessions
            (user_id, session_id, session_data, status)
@@ -155,7 +182,7 @@ export async function syncUserData(
         [
           userId,
           session.sessionId,
-          JSON.stringify(session),
+          JSON.stringify(stripped),
           session.status ?? "not_started",
         ],
       );
@@ -183,7 +210,11 @@ export async function syncUserData(
             bookmark.externalId ?? null,
             bookmark.ibn ?? null,
             bookmark.plainQuestion
-              ? JSON.stringify(bookmark.plainQuestion)
+              ? JSON.stringify(
+                  slimPlainQuestion(
+                    bookmark.plainQuestion as PlainQuestionType,
+                  ),
+                )
               : null,
           ],
         );
@@ -238,7 +269,9 @@ export async function syncUserData(
             collection.name,
             collection.description ?? null,
             JSON.stringify(collection.questionIds ?? []),
-            JSON.stringify(collection.questionDetails ?? []),
+            JSON.stringify(
+              (collection.questionDetails ?? []).map(stripQuestionDetail),
+            ),
             collection.color ?? null,
           ],
         );

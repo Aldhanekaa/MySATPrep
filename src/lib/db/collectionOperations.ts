@@ -9,6 +9,31 @@
 import { pool } from "@/lib/auth";
 import type { SavedCollection, QuestionDetail } from "@/lib/types/userData";
 
+// ─── Strip helper ─────────────────────────────────────────────────────────────
+
+/**
+ * Strips plainQuestion from a QuestionDetail entry before writing to the DB.
+ *
+ * plainQuestion was never reliably populated in question_details (no write
+ * path sets it intentionally) and is never read back by any consumer. Stripping
+ * it here keeps the question_details JSONB lean and consistent.
+ *
+ * localStorage is unaffected — this helper only runs at the DB write boundary.
+ * Old DB rows that still carry plainQuestion are harmless: collectionsToSavedCollections()
+ * in use-resolved-user-data.ts already drops it when mapping to the UI shape.
+ */
+function stripQuestionDetail(detail: QuestionDetail): {
+  questionId: string;
+  externalId: string | null;
+  ibn: string | null;
+} {
+  return {
+    questionId: detail.questionId,
+    externalId: detail.externalId ?? null,
+    ibn: detail.ibn ?? null,
+  };
+}
+
 interface DbSavedCollection {
   id: string;
   userId: string;
@@ -96,7 +121,9 @@ export async function createCollection(
       collectionData.name,
       collectionData.description ?? null,
       JSON.stringify(collectionData.questionIds ?? []),
-      JSON.stringify(collectionData.questionDetails ?? []),
+      JSON.stringify(
+        (collectionData.questionDetails ?? []).map(stripQuestionDetail),
+      ),
       collectionData.color ?? null,
     ],
   );
@@ -146,7 +173,7 @@ export async function updateCollection(
       data.description ?? null,
       data.questionIds != null ? JSON.stringify(data.questionIds) : null,
       data.questionDetails != null
-        ? JSON.stringify(data.questionDetails)
+        ? JSON.stringify(data.questionDetails.map(stripQuestionDetail))
         : null,
       data.color ?? null,
       userId ?? null,

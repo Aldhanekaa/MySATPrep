@@ -31,7 +31,10 @@ export interface QuestionDetail {
   questionId: string;
   externalId?: string | null;
   ibn?: string | null;
-  plainQuestion?: PlainQuestionType;
+  // plainQuestion intentionally omitted: never written by any current code path,
+  // never read back from the DB by any consumer. Old DB rows carrying plainQuestion
+  // are handled gracefully — collectionOperations strips it on every write and
+  // collectionsToSavedCollections() in use-resolved-user-data.ts ignores it on read.
 }
 
 // Saved collection with database fields

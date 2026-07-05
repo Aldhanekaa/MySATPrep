@@ -82,7 +82,12 @@ export const QuestionDetailSchema = z.object({
   questionId: z.string(),
   externalId: z.string().nullable().optional(),
   ibn: z.string().nullable().optional(),
-  plainQuestion: z.unknown().optional(),
+  // plainQuestion intentionally not validated — it was never reliably written
+  // into question_details by any current code path. The strip helper in the DB
+  // layer removes it before writing, so we don't need to validate or pass it
+  // through. Unknown fields in incoming payloads are stripped by Zod's default
+  // .strip() mode, so legacy data with plainQuestion will be accepted and
+  // the field will be silently dropped before the schema returns.
 });
 
 export const SavedCollectionSchema = z.object({

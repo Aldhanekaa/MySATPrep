@@ -8,6 +8,8 @@
 
 import { pool } from "@/lib/auth";
 import type { SavedQuestion } from "@/lib/types/userData";
+import type { PlainQuestionType } from "@/types/question";
+import { slimPlainQuestion } from "@/lib/db/bookmarkTransforms";
 
 interface DbSavedQuestion {
   id: string;
@@ -16,7 +18,10 @@ interface DbSavedQuestion {
   questionId: string;
   externalId: string | null;
   ibn: string | null;
-  plainQuestion: SavedQuestion["plainQuestion"];
+  // plain_question column: new rows store a slim 3-field object; old rows store
+  // the full PlainQuestionType. The bookmarksToSavedQuestions() mapping in
+  // use-resolved-user-data.ts handles both shapes transparently.
+  plainQuestion: Record<string, unknown> | null;
   timestamp: Date;
 }
 
@@ -28,7 +33,9 @@ function rowToSavedQuestion(row: DbSavedQuestion): SavedQuestion {
     questionId: row.questionId,
     externalId: row.externalId,
     ibn: row.ibn,
-    plainQuestion: row.plainQuestion,
+    // Pass through as-is — bookmarksToSavedQuestions() reconstructs the full
+    // PlainQuestionType from either the slim or legacy full shape at read time.
+    plainQuestion: row.plainQuestion as PlainQuestionType | null,
     timestamp: row.timestamp.toISOString(),
   };
 }
@@ -90,8 +97,13 @@ export async function addSavedQuestion(
       questionData.questionId,
       questionData.externalId ?? null,
       questionData.ibn ?? null,
+      // Write only the 3-field slim object instead of the full PlainQuestionType.
+      // This keeps the column lean while preserving all data that consumers
+      // actually read (primary_class_cd, skill_cd, difficulty).
       questionData.plainQuestion
-        ? JSON.stringify(questionData.plainQuestion)
+        ? JSON.stringify(
+            slimPlainQuestion(questionData.plainQuestion as PlainQuestionType),
+          )
         : null,
     ],
   );

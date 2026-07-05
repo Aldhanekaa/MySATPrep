@@ -302,23 +302,49 @@ export async function updatePracticeStatistics(
 
 // ─── Practice Sessions ────────────────────────────────────────────────────────
 
+import {
+  stripSessionForDb,
+  normaliseAnsweredQuestionDetail,
+} from "@/lib/db/sessionTransforms";
+
 interface DbPracticeSession {
   id: string;
   userId: string;
   sessionId: string;
-  sessionData: PracticeSession;
+  sessionData: Record<string, unknown>;
   status: string;
   currentSession: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
 
+/**
+ * Converts a raw DB row into a PracticeSession.
+ *
+ * Handles both old rows (session_data contains plainQuestion in
+ * answeredQuestionDetails, plus correctAnswers / accuracyPercentage) and new
+ * rows (stripped). The dedicated columns sessionId and currentSession always
+ * override whatever is in the JSONB blob.
+ *
+ * answeredQuestionDetails entries are normalised so they always have
+ * { questionId, externalId, ibn } without plainQuestion, regardless of row age.
+ */
 function rowToPracticeSession(row: DbPracticeSession): PracticeSession {
+  const blob = row.sessionData as PracticeSession & {
+    answeredQuestionDetails?: Record<string, unknown>[];
+  };
+
+  // Normalise answeredQuestionDetails: strip plainQuestion from legacy rows
+  const answeredQuestionDetails = (blob.answeredQuestionDetails ?? []).map(
+    (d) => normaliseAnsweredQuestionDetail(d as Record<string, unknown>),
+  );
+
   return {
-    ...(row.sessionData as PracticeSession),
+    ...blob,
     sessionId: row.sessionId,
     currentSession: row.currentSession,
-  };
+    answeredQuestionDetails,
+  } as unknown as PracticeSession;
 }
 
 /**
@@ -388,6 +414,15 @@ export async function createPracticeSession(
     );
   }
 
+  // Strip plainQuestion from answeredQuestionDetails and remove
+  // questionCorrectChoices / correctAnswers / accuracyPercentage before writing.
+  const stripped = stripSessionForDb(
+    sessionData as PracticeSession & {
+      correctAnswers?: number;
+      accuracyPercentage?: number;
+    },
+  );
+
   const result = await pool.query<DbPracticeSession>(
     `INSERT INTO practice_sessions
        (user_id, session_id, session_data, status, current_session)
@@ -405,7 +440,7 @@ export async function createPracticeSession(
     [
       userId,
       sessionData.sessionId,
-      JSON.stringify(sessionData),
+      JSON.stringify(stripped),
       sessionData.status ?? "not_started",
       isCurrentSession,
     ],
@@ -414,8 +449,6 @@ export async function createPracticeSession(
   return rowToPracticeSession(result.rows[0]);
 }
 
-/**
- * Update an existing practice session by session ID.
 /**
  * Update an existing practice session by session ID, scoped to the owning user.
  * When currentSession is set to true, clears the flag on any other session
@@ -440,7 +473,18 @@ export async function updatePracticeSession(
 
   if (!existing.rows[0]) return null;
 
-  const merged = { ...existing.rows[0].sessionData, ...data };
+  // Merge incoming partial data over the existing DB blob, then strip
+  // plainQuestion / questionCorrectChoices / correctAnswers / accuracyPercentage
+  // before writing back so every update gradually migrates old rows.
+  const rawMerged = {
+    ...existing.rows[0].sessionData,
+    ...data,
+  } as PracticeSession & {
+    correctAnswers?: number;
+    accuracyPercentage?: number;
+  };
+  const merged = stripSessionForDb(rawMerged);
+
   const newStatus = data.status ?? existing.rows[0].status;
   const newCurrentSession =
     data.currentSession !== undefined
