@@ -98,7 +98,7 @@ function findCorrectChoiceOrAnswerOnIBNQuestion(
     // "The correct answer is {answer}." or "Choice {answer} is correct."
     // Also handles math expressions like: "The correct answer is <span class="math-container"><img ... alt="three halves"></span>."
     const correctChoiceMatch = rationale.match(
-      /The correct answer is ([A-D])\.|Choice ([A-D]) is correct\.|alt="([^"]*)"/i,
+      /(?:The correct answer is\s+([A-D]|\d+(?:\.\d+)?|\d+\/\d+)\.?|Choice\s+([A-D]|\d+(?:\.\d+)?|\d+\/\d+)\s+is correct\.|alt="([^"]*)")/i,
     );
 
     // console.log("correctChoiceMatch", correctChoiceMatch);
