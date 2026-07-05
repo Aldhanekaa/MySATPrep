@@ -92,7 +92,7 @@ export async function migrateUserData(
         `INSERT INTO practice_sessions
            (user_id, session_id, session_data, status)
          VALUES ($1, $2, $3::jsonb, $4)
-         ON CONFLICT (session_id) DO NOTHING`,
+         ON CONFLICT (user_id, session_id) DO NOTHING`,
         [
           userId,
           session.sessionId,
@@ -134,7 +134,7 @@ export async function migrateUserData(
         `INSERT INTO saved_collections
            (user_id, collection_id, name, description, question_ids, question_details, color)
          VALUES ($1, $2, $3, $4, $5::jsonb, $6::jsonb, $7)
-         ON CONFLICT (collection_id) DO NOTHING`,
+         ON CONFLICT (user_id, collection_id) DO NOTHING`,
         [
           userId,
           collection.collectionId,

@@ -146,7 +146,11 @@ export async function PUT(request: NextRequest, context: RouteContext) {
   }
 
   try {
-    const collection = await updateCollection(collectionId, validation.data);
+    const collection = await updateCollection(
+      collectionId,
+      validation.data,
+      userId,
+    );
 
     if (!collection) {
       return NextResponse.json(
@@ -208,7 +212,7 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
   }
 
   try {
-    const deleted = await deleteCollection(collectionId);
+    const deleted = await deleteCollection(collectionId, userId);
 
     if (!deleted) {
       return NextResponse.json(

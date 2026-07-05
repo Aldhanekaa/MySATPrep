@@ -359,11 +359,15 @@ export const createCollection = createAsyncThunk<
     }
 
     const json = (await response.json()) as {
-      data?: unknown;
-      summary?: unknown;
+      data?: { collection?: SavedCollection };
       error?: string;
     };
-    return json.data as SavedCollection;
+    // API returns { success: true, data: { collection: {...} } }
+    const collection = json.data?.collection;
+    if (!collection) {
+      throw new Error("Invalid response: missing collection data");
+    }
+    return collection;
   } catch (error) {
     return rejectWithValue(
       error instanceof Error ? error.message : "Failed to create collection",
@@ -403,11 +407,15 @@ export const updateCollectionThunk = createAsyncThunk<
       }
 
       const json = (await response.json()) as {
-        data?: unknown;
-        summary?: unknown;
+        data?: { collection?: SavedCollection };
         error?: string;
       };
-      return json.data as SavedCollection;
+      // API returns { success: true, data: { collection: {...} } }
+      const collection = json.data?.collection;
+      if (!collection) {
+        throw new Error("Invalid response: missing collection data");
+      }
+      return collection;
     } catch (error) {
       return rejectWithValue(
         error instanceof Error ? error.message : "Failed to update collection",

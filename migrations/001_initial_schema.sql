@@ -44,12 +44,14 @@ CREATE INDEX IF NOT EXISTS idx_practice_statistics_assessment ON practice_statis
 CREATE TABLE IF NOT EXISTS practice_sessions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
-  session_id VARCHAR(255) UNIQUE NOT NULL,
+  session_id VARCHAR(255) NOT NULL,
   session_data JSONB NOT NULL,
   status VARCHAR(50) NOT NULL, -- 'not_started', 'in_progress', 'completed'
   current_session BOOLEAN NOT NULL DEFAULT FALSE, -- true for the single active in-progress session per user
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  -- session_id is unique per user, not globally
+  UNIQUE (user_id, session_id)
 );
 
 CREATE INDEX IF NOT EXISTS idx_practice_sessions_user_id ON practice_sessions(user_id);
@@ -83,14 +85,16 @@ CREATE INDEX IF NOT EXISTS idx_saved_questions_timestamp ON saved_questions(time
 CREATE TABLE IF NOT EXISTS saved_collections (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
-  collection_id VARCHAR(255) UNIQUE NOT NULL,
+  collection_id VARCHAR(255) NOT NULL,
   name VARCHAR(255) NOT NULL,
   description TEXT,
   question_ids JSONB DEFAULT '[]'::jsonb,
   question_details JSONB DEFAULT '[]'::jsonb,
   color VARCHAR(50),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  -- collection_id is unique per user, not globally
+  UNIQUE (user_id, collection_id)
 );
 
 CREATE INDEX IF NOT EXISTS idx_saved_collections_user_id ON saved_collections(user_id);

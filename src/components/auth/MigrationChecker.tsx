@@ -441,6 +441,8 @@ export function MigrationChecker() {
           preferences: userData.preferences,
         });
 
+        console.debug("[DEBUG] userData complete", userData);
+
         if (differs) {
           console.debug("[MigrationChecker] localStorage ↔ DB diff:", details);
           // Don't stamp here either — we want to re-check after sync completes

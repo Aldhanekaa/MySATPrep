@@ -132,7 +132,7 @@ export async function syncUserData(
         `INSERT INTO practice_sessions
            (user_id, session_id, session_data, status)
          VALUES ($1, $2, $3::jsonb, $4)
-         ON CONFLICT (session_id) DO UPDATE SET
+         ON CONFLICT (user_id, session_id) DO UPDATE SET
            session_data = EXCLUDED.session_data,
            status       = EXCLUDED.status,
            updated_at   = CURRENT_TIMESTAMP`,
@@ -190,7 +190,7 @@ export async function syncUserData(
           `INSERT INTO saved_collections
            (user_id, collection_id, name, description, question_ids, question_details, color)
          VALUES ($1, $2, $3, $4, $5::jsonb, $6::jsonb, $7)
-         ON CONFLICT (collection_id) DO UPDATE SET
+         ON CONFLICT (user_id, collection_id) DO UPDATE SET
            name        = EXCLUDED.name,
            description = COALESCE(EXCLUDED.description, saved_collections.description),
            question_ids = (
@@ -214,7 +214,8 @@ export async function syncUserData(
              ) deduped
            ),
            color      = COALESCE(EXCLUDED.color, saved_collections.color),
-           updated_at = CURRENT_TIMESTAMP`,
+           updated_at = CURRENT_TIMESTAMP
+         WHERE saved_collections.user_id = EXCLUDED.user_id`,
           [
             userId,
             collection.collectionId,

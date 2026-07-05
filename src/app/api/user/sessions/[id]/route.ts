@@ -61,6 +61,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
     const updated = await updatePracticeSession(
       sessionId,
       body as Partial<PracticeSession>,
+      userId,
     );
 
     if (!updated) {

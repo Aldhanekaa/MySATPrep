@@ -348,7 +348,7 @@ export async function createPracticeSession(
     `INSERT INTO practice_sessions
        (user_id, session_id, session_data, status, current_session)
      VALUES ($1, $2, $3, $4, $5)
-     ON CONFLICT (session_id) DO UPDATE SET
+     ON CONFLICT (user_id, session_id) DO UPDATE SET
        session_data     = EXCLUDED.session_data,
        status           = EXCLUDED.status,
        current_session  = EXCLUDED.current_session,
@@ -372,6 +372,8 @@ export async function createPracticeSession(
 
 /**
  * Update an existing practice session by session ID.
+/**
+ * Update an existing practice session by session ID, scoped to the owning user.
  * When currentSession is set to true, clears the flag on any other session
  * for this user first.
  * Validates: Requirement 8.4
@@ -379,15 +381,17 @@ export async function createPracticeSession(
 export async function updatePracticeSession(
   sessionId: string,
   data: Partial<PracticeSession>,
+  userId?: string,
 ): Promise<PracticeSession | null> {
-  // Merge with existing session data
+  // Fetch existing session, optionally scoped to the owning user
   const existing = await pool.query<DbPracticeSession>(
     `SELECT session_data AS "sessionData", status, user_id AS "userId",
             current_session AS "currentSession"
      FROM practice_sessions
      WHERE session_id = $1
+       AND ($2::uuid IS NULL OR user_id = $2)
      LIMIT 1`,
-    [sessionId],
+    [sessionId, userId ?? null],
   );
 
   if (!existing.rows[0]) return null;
@@ -417,12 +421,19 @@ export async function updatePracticeSession(
          current_session = $4,
          updated_at      = CURRENT_TIMESTAMP
      WHERE session_id = $1
+       AND ($5::uuid IS NULL OR user_id = $5)
      RETURNING
        id, user_id AS "userId", session_id AS "sessionId",
        session_data AS "sessionData", status,
        current_session AS "currentSession",
        created_at AS "createdAt", updated_at AS "updatedAt"`,
-    [sessionId, JSON.stringify(merged), newStatus, newCurrentSession],
+    [
+      sessionId,
+      JSON.stringify(merged),
+      newStatus,
+      newCurrentSession,
+      userId ?? null,
+    ],
   );
 
   if (!result.rows[0]) return null;
