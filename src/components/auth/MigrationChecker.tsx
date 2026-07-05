@@ -24,12 +24,6 @@ import { SyncPrompt } from "./SyncPrompt";
 import {
   migrateLocalStorageData,
   syncLocalStorageData,
-  fetchSessions,
-  fetchBookmarksAndCollections,
-  fetchVocabulary,
-  fetchAnswerHistory,
-  fetchNotes,
-  fetchVocabPracticePerformance,
 } from "@/lib/redux/slices/userDataSlice";
 import { selectIsUserDataLoading } from "@/lib/redux/selectors";
 import type { MigrationSummary } from "@/lib/types/api";
@@ -298,7 +292,7 @@ export function MigrationChecker() {
     async function runMigrationCheck() {
       try {
         // Requirement 11.1 – fetch user data from backend
-        const response = await fetch("/api/user/complete-data", {
+        const response = await fetch("/api/user/data", {
           method: "GET",
           credentials: "include",
         });
@@ -352,199 +346,6 @@ export function MigrationChecker() {
           preferences: userData.preferences,
         });
 
-        // ── Debug: log which fields differ from DB ──────────────────────────
-        if (process.env.NODE_ENV === "development") {
-          const dbData = {
-            profile: userData.profile,
-            statistics: userData.statistics,
-            sessions: (userData.sessions ?? []) as { sessionId?: string }[],
-            bookmarks: (userData.bookmarks ?? []) as { questionId?: string }[],
-            collections: (userData.collections ?? []) as {
-              collectionId?: string;
-            }[],
-            vocabulary: userData.vocabulary,
-            preferences: userData.preferences,
-          };
-
-          const diffReport: Record<string, unknown> = {};
-
-          // Bookmarks
-          try {
-            const raw = localStorage.getItem("savedQuestions");
-            if (raw) {
-              const parsed = JSON.parse(raw);
-              const local: { questionId?: string }[] = Array.isArray(parsed)
-                ? parsed
-                : (Object.values(parsed).flat() as { questionId?: string }[]);
-              const dbIds = new Set(
-                dbData.bookmarks.map((b) => b.questionId).filter(Boolean),
-              );
-              const newLocal = local.filter(
-                (b) => b.questionId && !dbIds.has(b.questionId),
-              );
-              if (newLocal.length > 0) {
-                diffReport["bookmarks"] = {
-                  localCount: local.length,
-                  dbCount: dbData.bookmarks.length,
-                  newInLocal: newLocal.map((b) => b.questionId),
-                };
-              }
-            }
-          } catch {
-            /* ignore */
-          }
-
-          // Sessions
-          try {
-            const raw = localStorage.getItem("practiceHistory");
-            if (raw) {
-              const local: { sessionId?: string }[] = JSON.parse(raw);
-              if (Array.isArray(local)) {
-                const dbIds = new Set(
-                  dbData.sessions.map((s) => s.sessionId).filter(Boolean),
-                );
-                const newLocal = local.filter(
-                  (s) => s.sessionId && !dbIds.has(s.sessionId),
-                );
-                if (newLocal.length > 0) {
-                  diffReport["sessions"] = {
-                    localCount: local.length,
-                    dbCount: dbData.sessions.length,
-                    newInLocal: newLocal.map((s) => s.sessionId),
-                  };
-                }
-              }
-            }
-          } catch {
-            /* ignore */
-          }
-
-          // Collections
-          try {
-            const raw = localStorage.getItem("savedCollections");
-            if (raw) {
-              const parsed = JSON.parse(raw);
-              const local: { collectionId?: string }[] = Array.isArray(parsed)
-                ? parsed
-                : Object.entries(parsed).map(([id, col]) => ({
-                    ...(col as object),
-                    collectionId: id,
-                  }));
-              const dbIds = new Set(
-                dbData.collections.map((c) => c.collectionId).filter(Boolean),
-              );
-              const newLocal = local.filter(
-                (c) => c.collectionId && !dbIds.has(c.collectionId),
-              );
-              if (newLocal.length > 0) {
-                diffReport["collections"] = {
-                  localCount: local.length,
-                  dbCount: dbData.collections.length,
-                  newInLocal: newLocal.map((c) => c.collectionId),
-                };
-              }
-            }
-          } catch {
-            /* ignore */
-          }
-
-          // Profile
-          try {
-            const raw = localStorage.getItem("userProfile");
-            if (raw && dbData.profile === null) {
-              const local = JSON.parse(raw);
-              if (
-                typeof local === "object" &&
-                local !== null &&
-                (local.questionsAnswered > 0 || local.totalXP > 0)
-              ) {
-                diffReport["profile"] = {
-                  reason: "DB profile is null but localStorage has data",
-                  localQuestionsAnswered: local.questionsAnswered,
-                  localTotalXP: local.totalXP,
-                };
-              }
-            }
-          } catch {
-            /* ignore */
-          }
-
-          // Statistics
-          try {
-            const raw = localStorage.getItem("practiceStatistics");
-            if (raw) {
-              const local = JSON.parse(raw);
-              if (typeof local === "object" && local !== null) {
-                const dbStats =
-                  typeof dbData.statistics === "object" &&
-                  dbData.statistics !== null
-                    ? (dbData.statistics as Record<
-                        string,
-                        { answeredQuestions?: string[] }
-                      >)
-                    : {};
-                const statsDiff: Record<string, unknown> = {};
-                for (const [assessment, data] of Object.entries(local)) {
-                  const localAnswered: string[] =
-                    (data as { answeredQuestions?: string[] })
-                      .answeredQuestions ?? [];
-                  const dbAnswered: string[] =
-                    dbStats[assessment]?.answeredQuestions ?? [];
-                  if (localAnswered.length > dbAnswered.length) {
-                    statsDiff[assessment] = {
-                      localCount: localAnswered.length,
-                      dbCount: dbAnswered.length,
-                      newInLocal: localAnswered.filter(
-                        (id) => !dbAnswered.includes(id),
-                      ),
-                    };
-                  }
-                }
-                if (Object.keys(statsDiff).length > 0) {
-                  diffReport["statistics"] = statsDiff;
-                }
-              }
-            }
-          } catch {
-            /* ignore */
-          }
-
-          // Vocabulary
-          try {
-            const raw = localStorage.getItem("vocabsData");
-            if (raw && dbData.vocabulary === null) {
-              const local = JSON.parse(raw);
-              if (
-                typeof local === "object" &&
-                local !== null &&
-                Object.keys(local).length > 0
-              ) {
-                diffReport["vocabulary"] = {
-                  reason: "DB vocabulary is null but localStorage has data",
-                  localKeys: Object.keys(local),
-                };
-              }
-            }
-          } catch {
-            /* ignore */
-          }
-
-          if (Object.keys(diffReport).length > 0) {
-            console.group("[MigrationChecker] localStorage differs from DB");
-            for (const [field, detail] of Object.entries(diffReport)) {
-              console.log(`  ${field}:`, detail);
-            }
-            console.groupEnd();
-          } else {
-            console.log(
-              "[MigrationChecker] differs =",
-              differs,
-              "but no fields identified (may be a false positive or edge case)",
-            );
-          }
-        }
-        // ── End debug ───────────────────────────────────────────────────────
-
         if (differs) {
           setShowSyncPrompt(true);
         }
@@ -570,18 +371,6 @@ export function MigrationChecker() {
     const result = await dispatch(migrateLocalStorageData());
     if (migrateLocalStorageData.fulfilled.match(result)) {
       toast.success("Your data has been imported successfully!");
-      // The server cache is already invalidated per-userId inside the API
-      // route. Refresh all lazy-loaded data categories so the Redux store
-      // reflects the freshly-written DB rows (these are excluded from the
-      // standard /api/user/data response to keep it lightweight).
-      if (userId) {
-        dispatch(fetchSessions());
-        dispatch(fetchBookmarksAndCollections());
-        dispatch(fetchVocabulary());
-        dispatch(fetchAnswerHistory());
-        dispatch(fetchNotes());
-        dispatch(fetchVocabPracticePerformance());
-      }
       return result.payload;
     }
     throw new Error(
@@ -594,16 +383,6 @@ export function MigrationChecker() {
     const result = await dispatch(syncLocalStorageData());
     if (syncLocalStorageData.fulfilled.match(result)) {
       toast.success("Your data has been synced successfully!");
-      // Same as migration: refresh all lazy-loaded categories from the DB
-      // after the server cache has been invalidated.
-      if (userId) {
-        dispatch(fetchSessions());
-        dispatch(fetchBookmarksAndCollections());
-        dispatch(fetchVocabulary());
-        dispatch(fetchAnswerHistory());
-        dispatch(fetchNotes());
-        dispatch(fetchVocabPracticePerformance());
-      }
       return result.payload;
     }
     throw new Error((result.payload as string | undefined) ?? "Sync failed");
