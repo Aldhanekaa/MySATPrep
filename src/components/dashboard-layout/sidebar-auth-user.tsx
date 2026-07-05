@@ -74,6 +74,7 @@ export const SidebarAuthUser = memo(function SidebarAuthUser({
     dispatch(clearUserData());
     toast.success("You've been signed out.");
     router.push("/");
+    router.refresh();
   }
 
   return (

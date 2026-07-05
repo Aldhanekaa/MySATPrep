@@ -18,6 +18,7 @@ import {
   RabbitIcon,
   SettingsIcon,
   TrendingUpIcon,
+  UserCircleIcon,
 } from "lucide-react";
 
 import { NavMain } from "@/components/dashboard-layout/nav-main";
@@ -146,6 +147,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         title: "Preferences",
         url: "/dashboard/preferences",
         icon: SettingsIcon,
+      },
+      {
+        title: "Account",
+        url: "/dashboard/account",
+        icon: UserCircleIcon,
       },
     ],
 
