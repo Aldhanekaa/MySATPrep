@@ -83,6 +83,15 @@ export function HomeTab({ selectedAssessment }: HomeTabProps) {
     null,
   );
 
+  // ── Server-derived success rate (authenticated only) ──────────────────────
+  const [serverSuccessRate, setServerSuccessRate] = useState<number | null>(
+    null,
+  );
+
+  // ── Loading flags for server fetches ──────────────────────────────────────
+  const [isLoadingTime, setIsLoadingTime] = useState(false);
+  const [isLoadingSuccessRate, setIsLoadingSuccessRate] = useState(false);
+
   // ── Resolved data: Redux when authenticated, localStorage otherwise ─────────
   const userProfile = isAuthenticated ? reduxProfile : localProfile;
   const practiceStats = isAuthenticated
@@ -117,21 +126,47 @@ export function HomeTab({ selectedAssessment }: HomeTabProps) {
   // ── Fetch server-side total time for authenticated users ───────────────────
   useEffect(() => {
     if (!isAuthenticated) return;
+    setIsLoadingTime(true);
     fetch("/api/user/sessions/time-spent")
-      .then((res) => res.json())
       .then(
-        (json: { success?: boolean; data?: { totalTimeSpentMs?: number } }) => {
-          if (
-            json?.success &&
-            typeof json.data?.totalTimeSpentMs === "number"
-          ) {
-            setServerTotalTimeMs(json.data.totalTimeSpentMs);
-          }
-        },
+        (res) =>
+          res.json() as Promise<{
+            success?: boolean;
+            data?: { totalTimeSpentMs?: number };
+          }>,
       )
+      .then((json) => {
+        if (json?.success && typeof json.data?.totalTimeSpentMs === "number") {
+          setServerTotalTimeMs(json.data.totalTimeSpentMs);
+        }
+      })
       .catch(() => {
         // silently fall back to Redux-derived value
-      });
+      })
+      .finally(() => setIsLoadingTime(false));
+  }, [isAuthenticated]);
+
+  // ── Fetch server-side success rate for authenticated users ─────────────────
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    setIsLoadingSuccessRate(true);
+    fetch("/api/user/profile/success-rate")
+      .then(
+        (res) =>
+          res.json() as Promise<{
+            success?: boolean;
+            data?: { successRate?: number };
+          }>,
+      )
+      .then((json) => {
+        if (json?.success && typeof json.data?.successRate === "number") {
+          setServerSuccessRate(json.data.successRate);
+        }
+      })
+      .catch(() => {
+        // silently fall back to Redux-derived value
+      })
+      .finally(() => setIsLoadingSuccessRate(false));
   }, [isAuthenticated]);
 
   // ── Derived metrics — useMemo instead of useState+useEffect to avoid an
@@ -150,8 +185,16 @@ export function HomeTab({ selectedAssessment }: HomeTabProps) {
       ? (serverTotalTimeMs ?? calculateTotalTimeSpent(practiceHistory))
       : calculateTotalTimeSpent(practiceHistory);
     const totalTimeMin = Math.round(totalTimeMs / (1000 * 60));
-    const successRate =
-      (userProfile.questionsAnswered ?? 0) > 0
+    const successRate = isAuthenticated
+      ? (serverSuccessRate ??
+        ((userProfile.questionsAnswered ?? 0) > 0
+          ? Math.round(
+              ((userProfile.correctAnswers ?? 0) /
+                userProfile.questionsAnswered) *
+                100,
+            )
+          : 0))
+      : (userProfile.questionsAnswered ?? 0) > 0
         ? Math.round(
             ((userProfile.correctAnswers ?? 0) /
               userProfile.questionsAnswered) *
@@ -186,7 +229,13 @@ export function HomeTab({ selectedAssessment }: HomeTabProps) {
         prefix: "",
       },
     ];
-  }, [userProfile, practiceHistory, isAuthenticated, serverTotalTimeMs]);
+  }, [
+    userProfile,
+    practiceHistory,
+    isAuthenticated,
+    serverTotalTimeMs,
+    serverSuccessRate,
+  ]);
   return (
     <div className="space-y-4 grid grid-cols-7">
       <div className="px-4 col-span-7 md:col-span-4 xl:col-span-5 space-y-4">
@@ -310,6 +359,9 @@ export function HomeTab({ selectedAssessment }: HomeTabProps) {
           externalMetrics={activityMetrics}
           externalStreakDays={streakDays}
           onViewDetails={() => {}}
+          isLoadingMetrics={
+            isAuthenticated && (isLoadingTime || isLoadingSuccessRate)
+          }
         />
       </div>
     </div>

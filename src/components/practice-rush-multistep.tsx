@@ -2394,9 +2394,15 @@ export default function PracticeRushMultistep({
         // Create a hash of the practice selections to check cache compatibility
         const selectionsHash = JSON.stringify({
           assessment: selections.assessment,
-          domains: selections.domains?.map((d) => d.primaryClassCd).sort(),
-          difficulties: selections.difficulties?.sort(),
-          skills: selections.skills?.map((s) => s.skill_cd).sort(),
+          domains: selections.domains
+            ?.map((d) => d.primaryClassCd)
+            .slice()
+            .sort(),
+          difficulties: selections.difficulties?.slice().sort(),
+          skills: selections.skills
+            ?.map((s) => s.skill_cd)
+            .slice()
+            .sort(),
           // Don't include questionIds in hash as those are for shared links
         });
 

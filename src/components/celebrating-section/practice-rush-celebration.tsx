@@ -458,7 +458,7 @@ export default function PracticeRushCelebration({
                             }
                           />
                           <Bar
-                            dataKey="summary"
+                            dataKey="correctAnswers"
                             background={{
                               radius: 10,
                               fill: "var(--color-blue-300)",
@@ -467,24 +467,22 @@ export default function PracticeRushCelebration({
                             fill="var(--color-blue-400)"
                             radius={10}
                             shape={(props: any) => {
-                              console.log("shape", props);
+                              const totalAnswers =
+                                props.payload.correctAnswers +
+                                props.payload.incorrectAnswers;
+                              const barWidth =
+                                totalAnswers > 0
+                                  ? (props.payload.correctAnswers /
+                                      totalAnswers) *
+                                    props.width
+                                  : 0;
 
                               return (
-                                <>
-                                  <Rectangle
-                                    {...props}
-                                    width={
-                                      (props.payload.correctAnswers /
-                                        (props.payload.correctAnswers +
-                                          props.payload.incorrectAnswers)) *
-                                      props.background.width
-                                    }
-                                  />
+                                <g>
+                                  <Rectangle {...props} width={barWidth} />
                                   <text
                                     x={props.x + 25}
-                                    y={
-                                      props.y + props.background.height / 2 + 3
-                                    }
+                                    y={props.y + props.height / 2 + 3}
                                     fill="var(--color-blue-900)"
                                     fontSize={12.5}
                                   >
@@ -494,20 +492,20 @@ export default function PracticeRushCelebration({
                                     }
                                   </text>
                                   <text
-                                    x={props.background.width - 10}
-                                    y={
-                                      props.y + props.background.height / 2 + 3
-                                    }
+                                    x={props.x + props.width - 10}
+                                    y={props.y + props.height / 2 + 3}
                                     textAnchor="end"
                                     fill="var(--fg)"
                                   >
-                                    {(props.payload.correctAnswers /
-                                      (props.payload.correctAnswers +
-                                        props.payload.incorrectAnswers)) *
-                                      100}{" "}
-                                    %
+                                    {totalAnswers > 0
+                                      ? `${Math.round(
+                                          (props.payload.correctAnswers /
+                                            totalAnswers) *
+                                            100,
+                                        )} %`
+                                      : "0 %"}
                                   </text>
-                                </>
+                                </g>
                               );
                             }}
                           />
