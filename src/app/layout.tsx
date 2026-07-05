@@ -207,8 +207,8 @@ export default function RootLayout({
               "transparent",
             ]}
           >
-            MySATPrep Is On Alpha Phase. Any Bug Reports Are Appreciated. Visit
-            /report-bug to Report It
+            UPDATE : Authentication system occasionally returns an error,
+            returning back to
           </Banner2>
 
           <Banner />
