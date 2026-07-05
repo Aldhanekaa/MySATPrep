@@ -7,6 +7,7 @@ import { fetchBookmarksAndCollections } from "@/lib/redux";
 import {
   selectIsAuthenticated,
   selectUserDataLoading,
+  selectDataInitialized,
 } from "@/lib/redux/selectors";
 
 function Spinner() {
@@ -40,16 +41,26 @@ export default function BookmarksPage() {
   const dispatch = useAppDispatch();
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
   const loading = useAppSelector(selectUserDataLoading);
+  const dataInitialized = useAppSelector(selectDataInitialized);
   const fetchedRef = useRef(false);
 
   useEffect(() => {
     if (!isAuthenticated) return;
+    // Wait until fetchUserData/fulfilled has run — bookmarks endpoint
+    // requires the user identity established by that call.
+    if (!dataInitialized) return;
     if (fetchedRef.current) return;
     if (loading.bookmarks || loading.collections) return;
 
     fetchedRef.current = true;
     dispatch(fetchBookmarksAndCollections());
-  }, [isAuthenticated, loading.bookmarks, loading.collections, dispatch]);
+  }, [
+    isAuthenticated,
+    dataInitialized,
+    loading.bookmarks,
+    loading.collections,
+    dispatch,
+  ]);
 
   const isLoading =
     isAuthenticated && (loading.bookmarks || loading.collections);

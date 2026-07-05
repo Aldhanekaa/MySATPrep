@@ -71,7 +71,7 @@ function collectionsToSavedCollections(
       description: col.description,
       createdAt: col.createdAt,
       updatedAt: col.updatedAt,
-      questionIds: col.questionIds,
+      questionIds: col.questionIds ?? [], // guard against undefined from server
       questionDetails: (col.questionDetails ?? []).map((d) => ({
         questionId: d.questionId,
         externalId: d.externalId ?? null,

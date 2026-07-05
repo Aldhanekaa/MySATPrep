@@ -130,6 +130,9 @@ export const selectUserPreferences = (state: RootState) =>
 export const selectUserDataLoading = (state: RootState) =>
   state.userData.loading;
 
+export const selectDataInitialized = (state: RootState): boolean =>
+  state.userData.dataInitialized;
+
 /**
  * Selects the userData error message, or null if no error.
  */

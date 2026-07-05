@@ -1302,28 +1302,39 @@ export const fetchSessions = createAsyncThunk<PracticeSession[], void>(
 export const fetchBookmarksAndCollections = createAsyncThunk<
   { bookmarks: SavedQuestion[]; collections: SavedCollection[] },
   void
->("userData/fetchBookmarksAndCollections", async (_, { rejectWithValue }) => {
-  try {
-    const response = await fetch("/api/user/bookmarks", {
-      method: "GET",
-      credentials: "include",
-    });
-    if (response.status === 401) return rejectWithValue("Unauthorized");
-    if (!response.ok)
-      throw new Error(`Failed to fetch bookmarks: ${response.status}`);
-    const json = (await response.json()) as {
-      data?: { bookmarks?: SavedQuestion[]; collections?: SavedCollection[] };
-    };
-    return {
-      bookmarks: (json.data?.bookmarks ?? []) as SavedQuestion[],
-      collections: (json.data?.collections ?? []) as SavedCollection[],
-    };
-  } catch (error) {
-    return rejectWithValue(
-      error instanceof Error ? error.message : "Failed to fetch bookmarks",
-    );
-  }
-});
+>(
+  "userData/fetchBookmarksAndCollections",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await fetch("/api/user/bookmarks", {
+        method: "GET",
+        credentials: "include",
+      });
+      if (response.status === 401) return rejectWithValue("Unauthorized");
+      if (!response.ok)
+        throw new Error(`Failed to fetch bookmarks: ${response.status}`);
+      const json = (await response.json()) as {
+        data?: { bookmarks?: SavedQuestion[]; collections?: SavedCollection[] };
+      };
+      return {
+        bookmarks: (json.data?.bookmarks ?? []) as SavedQuestion[],
+        collections: (json.data?.collections ?? []) as SavedCollection[],
+      };
+    } catch (error) {
+      return rejectWithValue(
+        error instanceof Error ? error.message : "Failed to fetch bookmarks",
+      );
+    }
+  },
+  {
+    // Must not run before fetchUserData/fulfilled has set dataInitialized.
+    // This ensures user identity is established before fetching bookmarks.
+    condition: (_, { getState }) => {
+      const state = getState() as { userData: UserDataState };
+      return state.userData.dataInitialized;
+    },
+  },
+);
 
 /**
  * Fetches vocabulary progress from the server on demand.

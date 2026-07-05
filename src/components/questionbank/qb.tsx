@@ -9,7 +9,7 @@ import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
 import { fetchBookmarksAndCollections } from "@/lib/redux";
 import {
   selectIsAuthenticated,
-  selectSessionChecked,
+  selectDataInitialized,
   selectUserBookmarks,
   selectUserCollections,
 } from "@/lib/redux/selectors";
@@ -17,7 +17,7 @@ import {
 export default function QuestionBankPageComponent() {
   const dispatch = useAppDispatch();
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
-  const sessionChecked = useAppSelector(selectSessionChecked);
+  const dataInitialized = useAppSelector(selectDataInitialized);
   const bookmarks = useAppSelector(selectUserBookmarks);
   const collections = useAppSelector(selectUserCollections);
 
@@ -33,8 +33,9 @@ export default function QuestionBankPageComponent() {
       return;
     }
 
-    // Wait for the auth session check to finish
-    if (!sessionChecked) return;
+    // Wait for fetchUserData/fulfilled — bookmarks must come after user data
+    // is initialized so the server can identify the user.
+    if (!dataInitialized) return;
 
     // If bookmarks and collections are already in Redux (loaded elsewhere),
     // skip refetching and unblock immediately
@@ -59,7 +60,7 @@ export default function QuestionBankPageComponent() {
 
     prefetch();
   }, [
-    sessionChecked,
+    dataInitialized,
     isAuthenticated,
     bookmarks.length,
     collections.length,
