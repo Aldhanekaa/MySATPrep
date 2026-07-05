@@ -92,7 +92,7 @@ export const SignUpModal = memo(function SignUpModal({
   return (
     /* Backdrop */
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 z-[200] flex items-center justify-center p-4"
       aria-modal="true"
       role="dialog"
       aria-labelledby={titleId}

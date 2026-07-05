@@ -81,7 +81,7 @@ const CoachmarkOverlay = ({
   onFinishTour?: () => void;
 }) => {
   const [targetPosition, setTargetPosition] = useState(
-    getElementPosition(step.targetSelector)
+    getElementPosition(step.targetSelector),
   );
   const overlayRef = useRef<HTMLDivElement>(null);
 
@@ -176,7 +176,7 @@ const CoachmarkOverlay = ({
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       className={`fixed inset-0 ${
-        step.biggerZIndex ? "z-[100]" : "z-50"
+        step.biggerZIndex ? "z-[300]" : "z-[200]"
       } pointer-events-none h-screen`}
       role="dialog"
       aria-modal="true"
@@ -262,7 +262,7 @@ const CoachmarkOverlay = ({
               (pos) =>
                 pos.fitsHorizontally &&
                 pos.fitsVertically &&
-                !pos.overlapsOnboarding
+                !pos.overlapsOnboarding,
             )
             .sort((a, b) => a.priority - b.priority)[0];
 
@@ -278,7 +278,7 @@ const CoachmarkOverlay = ({
 
           fallbackLeft = Math.max(
             margin,
-            Math.min(fallbackLeft, window.innerWidth - cardWidth - margin)
+            Math.min(fallbackLeft, window.innerWidth - cardWidth - margin),
           );
 
           const maxTop = window.innerHeight - cardHeight - margin;
@@ -418,7 +418,7 @@ export function InteractiveOnboardingChecklist({
       ]);
 
       const currentStepIndex = steps.findIndex(
-        (step) => step.id === completedStepId
+        (step) => step.id === completedStepId,
       );
       const nextIncompleteStep = steps
         .slice(currentStepIndex + 1)
@@ -431,7 +431,7 @@ export function InteractiveOnboardingChecklist({
       }
 
       const completedAllSteps = steps.filter((step) =>
-        newCompletedSteps.has(step.id)
+        newCompletedSteps.has(step.id),
       );
 
       if (completedAllSteps.length === steps.length) {
@@ -442,13 +442,13 @@ export function InteractiveOnboardingChecklist({
         setTimeout(() => onFinish?.(), 100);
       }
     },
-    [steps, internalCompletedSteps, onFinish]
+    [steps, internalCompletedSteps, onFinish],
   );
 
   useEffect(() => {
     if (open && !activeCoachmark) {
       const firstIncompleteStep = steps.find(
-        (step) => !completedSteps.has(step.id)
+        (step) => !completedSteps.has(step.id),
       );
       if (firstIncompleteStep) {
         const timer = setTimeout(() => {
@@ -557,7 +557,7 @@ export function InteractiveOnboardingChecklist({
   const activeStepIndex = activeStep ? steps.indexOf(activeStep) : -1;
 
   const completedCount = steps.filter((step) =>
-    completedSteps.has(step.id)
+    completedSteps.has(step.id),
   ).length;
   const totalSteps = steps.length;
   const progress = (completedCount / totalSteps) * 100;
@@ -582,7 +582,7 @@ export function InteractiveOnboardingChecklist({
           <Dialog.Content
             className={`fixed bottom-4 ${
               placement == "left" ? "left-4" : "right-4"
-            } z-100 w-80 max-h-[calc(100vh-2rem)] bg-card border rounded-xl shadow-xl pointer-events-auto`}
+            } z-[200] w-80 max-h-[calc(100vh-2rem)] bg-card border rounded-xl shadow-xl pointer-events-auto`}
             onOpenAutoFocus={(e) => e.preventDefault()}
             onEscapeKeyDown={(e) => e.preventDefault()}
             onPointerDownOutside={(e) => e.preventDefault()}
@@ -663,7 +663,7 @@ export function InteractiveOnboardingChecklist({
                             "hover:bg-accent/50 focus:outline-none focus:ring-2 focus:ring-ring",
                             isCompleted &&
                               "bg-success/10 border-success/30 cursor-default",
-                            isActive && "ring-2 ring-primary"
+                            isActive && "ring-2 ring-primary",
                           )}
                           aria-describedby={`step-${step.id}-description`}
                         >
@@ -684,7 +684,7 @@ export function InteractiveOnboardingChecklist({
                                     "font-medium text-sm",
                                     isCompleted
                                       ? "text-muted-foreground line-through"
-                                      : "text-foreground"
+                                      : "text-foreground",
                                   )}
                                 >
                                   {step.title}
@@ -697,7 +697,7 @@ export function InteractiveOnboardingChecklist({
                                     "text-xs",
                                     isCompleted
                                       ? "text-muted-foreground"
-                                      : "text-muted-foreground"
+                                      : "text-muted-foreground",
                                   )}
                                 >
                                   {step.description}

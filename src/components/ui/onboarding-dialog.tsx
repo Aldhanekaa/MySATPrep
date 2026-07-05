@@ -1,19 +1,24 @@
-import * as React from "react"
-import { motion, AnimatePresence } from "motion/react"
-import useEmblaCarousel from "embla-carousel-react"
+import * as React from "react";
+import { motion, AnimatePresence } from "motion/react";
+import useEmblaCarousel from "embla-carousel-react";
 
 function cn(...classes: (string | boolean | undefined | null)[]) {
-  return classes.filter(Boolean).join(" ")
+  return classes.filter(Boolean).join(" ");
 }
 
 type PlaceholderImageOptions = {
-  title: string
-  startColor: string
-  endColor: string
-  accentColor: string
-}
+  title: string;
+  startColor: string;
+  endColor: string;
+  accentColor: string;
+};
 
-const createPlaceholderImage = ({ title, startColor, endColor, accentColor }: PlaceholderImageOptions) => {
+const createPlaceholderImage = ({
+  title,
+  startColor,
+  endColor,
+  accentColor,
+}: PlaceholderImageOptions) => {
   const svg = `
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" fill="none">
   <defs>
@@ -30,78 +35,114 @@ const createPlaceholderImage = ({ title, startColor, endColor, accentColor }: Pl
   <rect x="196" y="410" width="620" height="30" rx="15" fill="${accentColor}" fill-opacity="0.56" />
   <rect x="196" y="456" width="720" height="30" rx="15" fill="${accentColor}" fill-opacity="0.46" />
   <text x="196" y="565" fill="${accentColor}" font-family="Arial, Helvetica, sans-serif" font-size="46" font-weight="700">${title}</text>
-</svg>`
-  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`
-}
+</svg>`;
+  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+};
 
 const slides = [
   {
     id: "welcome",
     alt: "Dashboard preview",
     title: "Welcome to your new workspace",
-    description: "Track tasks, documents, and progress from one focused dashboard built for daily execution.",
-    image: createPlaceholderImage({ accentColor: "#0B1E47", endColor: "#CDE2FF", startColor: "#EAF2FF", title: "Welcome Dashboard" }),
+    description:
+      "Track tasks, documents, and progress from one focused dashboard built for daily execution.",
+    image: createPlaceholderImage({
+      accentColor: "#0B1E47",
+      endColor: "#CDE2FF",
+      startColor: "#EAF2FF",
+      title: "Welcome Dashboard",
+    }),
   },
   {
     id: "automations",
     alt: "Automation workflow preview",
     title: "Automate repetitive work",
-    description: "Use smart flows to remove manual busywork and keep your team aligned without extra status meetings.",
-    image: createPlaceholderImage({ accentColor: "#0A3D30", endColor: "#CAF6E8", startColor: "#E8FFF7", title: "Automations" }),
+    description:
+      "Use smart flows to remove manual busywork and keep your team aligned without extra status meetings.",
+    image: createPlaceholderImage({
+      accentColor: "#0A3D30",
+      endColor: "#CAF6E8",
+      startColor: "#E8FFF7",
+      title: "Automations",
+    }),
   },
   {
     id: "collaboration",
     alt: "Collaboration preview",
     title: "Collaborate in context",
-    description: "Share feedback directly where decisions happen so updates stay clear, timely, and easy to follow.",
-    image: createPlaceholderImage({ accentColor: "#4A2B00", endColor: "#FFE8C2", startColor: "#FFF6E8", title: "Team Collaboration" }),
+    description:
+      "Share feedback directly where decisions happen so updates stay clear, timely, and easy to follow.",
+    image: createPlaceholderImage({
+      accentColor: "#4A2B00",
+      endColor: "#FFE8C2",
+      startColor: "#FFF6E8",
+      title: "Team Collaboration",
+    }),
   },
   {
     id: "insights",
     alt: "Insights reporting preview",
     title: "Measure outcomes",
-    description: "Turn activity into insights with reporting views that highlight what is improving and what needs attention.",
-    image: createPlaceholderImage({ accentColor: "#2D1457", endColor: "#E1D4FF", startColor: "#F2ECFF", title: "Insights Reporting" }),
+    description:
+      "Turn activity into insights with reporting views that highlight what is improving and what needs attention.",
+    image: createPlaceholderImage({
+      accentColor: "#2D1457",
+      endColor: "#E1D4FF",
+      startColor: "#F2ECFF",
+      title: "Insights Reporting",
+    }),
   },
-] as const
+] as const;
 
-export function OnboardingDialog({ defaultOpen = true }: { defaultOpen?: boolean }) {
-  const [open, setOpen] = React.useState(defaultOpen)
-  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: false })
-  const [activeIndex, setActiveIndex] = React.useState(0)
+export function OnboardingDialog({
+  defaultOpen = true,
+}: {
+  defaultOpen?: boolean;
+}) {
+  const [open, setOpen] = React.useState(defaultOpen);
+  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: false });
+  const [activeIndex, setActiveIndex] = React.useState(0);
 
   React.useEffect(() => {
-    if (!emblaApi) return
-    const onSelect = () => setActiveIndex(emblaApi.selectedScrollSnap())
-    onSelect()
-    emblaApi.on("select", onSelect)
-    return () => { emblaApi.off("select", onSelect) }
-  }, [emblaApi])
+    if (!emblaApi) return;
+    const onSelect = () => setActiveIndex(emblaApi.selectedScrollSnap());
+    onSelect();
+    emblaApi.on("select", onSelect);
+    return () => {
+      emblaApi.off("select", onSelect);
+    };
+  }, [emblaApi]);
 
-  const isFirstSlide = activeIndex === 0
-  const isLastSlide = activeIndex === slides.length - 1
-  const currentSlide = slides[activeIndex] ?? slides[0]
+  const isFirstSlide = activeIndex === 0;
+  const isLastSlide = activeIndex === slides.length - 1;
+  const currentSlide = slides[activeIndex] ?? slides[0];
 
   const handleNext = () => {
-    if (isLastSlide) { setOpen(false); return }
-    emblaApi?.scrollNext()
-  }
+    if (isLastSlide) {
+      setOpen(false);
+      return;
+    }
+    emblaApi?.scrollNext();
+  };
 
-  const handlePrevious = () => emblaApi?.scrollPrev()
+  const handlePrevious = () => emblaApi?.scrollPrev();
 
   if (!open) {
     return (
       <button
-        onClick={() => { setOpen(true); setTimeout(() => emblaApi?.scrollTo(0), 50) }}
+        onClick={() => {
+          setOpen(true);
+          setTimeout(() => emblaApi?.scrollTo(0), 50);
+        }}
         className="px-4 py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90"
       >
         Restart Onboarding
       </button>
-    )
+    );
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 z-[200] flex items-center justify-center">
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/60" />
 
@@ -142,7 +183,9 @@ export function OnboardingDialog({ defaultOpen = true }: { defaultOpen?: boolean
                   aria-label={`Go to ${slide.title}`}
                   className={cn(
                     "h-2 w-full rounded-full transition-colors cursor-pointer",
-                    index === activeIndex ? "bg-foreground" : "bg-border hover:bg-muted-foreground"
+                    index === activeIndex
+                      ? "bg-foreground"
+                      : "bg-border hover:bg-muted-foreground",
                   )}
                 />
               </motion.div>
@@ -157,11 +200,17 @@ export function OnboardingDialog({ defaultOpen = true }: { defaultOpen?: boolean
                 animate={{ opacity: currentSlide.id === slide.id ? 1 : 0 }}
                 initial={false}
                 className="col-start-1 row-start-1"
-                style={{ pointerEvents: currentSlide.id === slide.id ? "auto" : "none" }}
+                style={{
+                  pointerEvents: currentSlide.id === slide.id ? "auto" : "none",
+                }}
                 transition={{ duration: 0.24, ease: "easeOut" }}
               >
-                <h2 className="text-lg font-semibold text-foreground">{slide.title}</h2>
-                <p className="text-sm text-muted-foreground mt-2">{slide.description}</p>
+                <h2 className="text-lg font-semibold text-foreground">
+                  {slide.title}
+                </h2>
+                <p className="text-sm text-muted-foreground mt-2">
+                  {slide.description}
+                </p>
               </motion.div>
             ))}
           </div>
@@ -196,5 +245,5 @@ export function OnboardingDialog({ defaultOpen = true }: { defaultOpen?: boolean
         </div>
       </div>
     </div>
-  )
+  );
 }

@@ -80,7 +80,7 @@ function getElementPosition(id: string) {
 
 function calculateContentPosition(
   elementPos: { top: number; left: number; width: number; height: number },
-  position: "top" | "bottom" | "left" | "right" = "bottom"
+  position: "top" | "bottom" | "left" | "right" = "bottom",
 ) {
   let left = elementPos.left;
   let top = elementPos.top;
@@ -202,7 +202,7 @@ export function TourProvider({
         }
       }
     },
-    [currentStep, elementPosition, steps]
+    [currentStep, elementPosition, steps],
   );
 
   useEffect(() => {
@@ -240,7 +240,7 @@ export function TourProvider({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 z-50 overflow-hidden bg-black/50"
+              className="fixed inset-0 z-[300] overflow-hidden bg-black/50"
               style={{
                 clipPath: `polygon(
                   0% 0%,
@@ -258,13 +258,13 @@ export function TourProvider({
                     elementPosition.left +
                     (steps[currentStep]?.width || elementPosition.width)
                   }px ${
-                  elementPosition.top +
-                  (steps[currentStep]?.height || elementPosition.height)
-                }px,
+                    elementPosition.top +
+                    (steps[currentStep]?.height || elementPosition.height)
+                  }px,
                   ${elementPosition.left}px ${
-                  elementPosition.top +
-                  (steps[currentStep]?.height || elementPosition.height)
-                }px,
+                    elementPosition.top +
+                    (steps[currentStep]?.height || elementPosition.height)
+                  }px,
                   ${elementPosition.left}px 0%
                 )`,
               }}
@@ -280,7 +280,7 @@ export function TourProvider({
                 width: elementPosition.width,
                 height: elementPosition.height,
               }}
-              className={cn("z-[100] border-2 border-primary", className)}
+              className={cn("z-[300] border-2 border-primary", className)}
             />
 
             <motion.div
@@ -290,7 +290,7 @@ export function TourProvider({
                 y: 0,
                 ...calculateContentPosition(
                   elementPosition,
-                  steps[currentStep]?.position
+                  steps[currentStep]?.position,
                 ),
               }}
               transition={{
@@ -300,7 +300,7 @@ export function TourProvider({
               exit={{ opacity: 0, y: 10 }}
               style={{
                 position: "fixed",
-                zIndex: 1000,
+                zIndex: 300,
                 width: CONTENT_WIDTH,
               }}
               className="bg-background relative rounded-lg border p-4 shadow-lg min-h-[120px]"

@@ -97,13 +97,13 @@ export const SignInModal = memo(function SignInModal({
   return (
     /* Backdrop */
     <div
-      className="fixed inset-0 z-20 "
+      className="fixed inset-0 z-[200] "
       aria-modal="true"
       role="dialog"
       aria-labelledby={titleId}
       onKeyDown={handleKeyDown}
     >
-      <div className="relative w-full h-full z-20 flex items-center justify-center p-4">
+      <div className="relative w-full h-full z-[200] flex items-center justify-center p-4">
         {/* Scrim */}
         <div
           className="absolute inset-0 bg-black/50 backdrop-blur-sm"

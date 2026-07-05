@@ -228,7 +228,11 @@ const authSlice = createSlice({
         state.isAuthenticated = false;
         state.loading = false;
         state.error = null;
-        state.sessionChecked = false;
+        // Keep sessionChecked = true: the session IS checked, result is "not authenticated".
+        // Setting it to false would cause DashboardLoadingGuard to spin forever
+        // because SessionInitializer only dispatches checkSession on mount and
+        // won't re-run after logout/redirect.
+        state.sessionChecked = true;
       })
       .addCase(logout.rejected, (state, action) => {
         // Even on failure, clear local state for security
@@ -236,6 +240,8 @@ const authSlice = createSlice({
         state.isAuthenticated = false;
         state.loading = false;
         state.error = action.payload as string;
+        // Same as fulfilled: session is resolved (unauthenticated), not pending.
+        state.sessionChecked = true;
       });
 
     // ── checkSession ─────────────────────────────────────────────────────────

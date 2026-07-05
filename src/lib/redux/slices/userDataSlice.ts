@@ -695,7 +695,10 @@ export const migrateLocalStorageData = createAsyncThunk<MigrationSummary, void>(
       };
       const summary = json.summary as MigrationSummary;
 
-      // After successful migration, refresh user data from the database
+      // After successful migration, reset the initialized flag so the
+      // fetchUserData condition guard allows the re-fetch to proceed, then
+      // refresh Redux state from the freshly written database rows.
+      dispatch(userDataSlice.actions.resetDataInitialized());
       dispatch(fetchUserData());
 
       return summary;
@@ -1191,7 +1194,10 @@ export const syncLocalStorageData = createAsyncThunk<
       };
       const summary = json.summary as MigrationSummary;
 
-      // After successful sync, refresh user data from the database
+      // After successful sync, reset the initialized flag so the
+      // fetchUserData condition guard allows the re-fetch to proceed, then
+      // refresh Redux state from the freshly written database rows.
+      dispatch(userDataSlice.actions.resetDataInitialized());
       dispatch(fetchUserData());
 
       return summary;
@@ -1769,6 +1775,13 @@ const userDataSlice = createSlice({
       state.error = action.payload;
     },
 
+    // Reset dataInitialized flag so fetchUserData will re-run on next dispatch.
+    // Used after a successful migration or sync so the Redux state reflects
+    // the freshly written database rows.
+    resetDataInitialized: (state) => {
+      state.dataInitialized = false;
+    },
+
     // Clear all user data (on logout)
     clearUserData: (state) => {
       state.profile = null;
@@ -2257,6 +2270,7 @@ export const {
   setDataLoading,
   setDataError,
   clearUserData,
+  resetDataInitialized,
 } = userDataSlice.actions;
 
 // Alias: updateCollection → updateCollectionLocal (sync reducer)

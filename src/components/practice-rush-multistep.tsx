@@ -310,7 +310,7 @@ function SuccessFeedback({ isVisible, onContinue }: SuccessFeedbackProps) {
   if (!isVisible || hideSuccessFeedback) return null;
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/20 dark:bg-black/40">
+    <div className="fixed inset-0 flex items-center justify-center z-[200] bg-black/20 dark:bg-black/40">
       <div className="bg-green-100 dark:bg-green-950 border-4 border-green-200 dark:border-green-800 rounded-3xl p-8 max-w-md w-full mx-4 shadow-2xl">
         <div className="text-center">
           <div className="flex items-center justify-center gap-3 mb-6">
@@ -390,7 +390,7 @@ function ExitConfirmation({
   if (!isVisible) return null;
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/20 dark:bg-black/40">
+    <div className="fixed inset-0 flex items-center justify-center z-[200] bg-black/20 dark:bg-black/40">
       <div className="bg-red-50 dark:bg-red-950 border-4 border-red-200 dark:border-red-800 rounded-3xl p-8 max-w-md w-full mx-4 shadow-2xl">
         <div className="text-center">
           <div className="flex items-center justify-center gap-3 mb-6">
@@ -458,7 +458,7 @@ function FinishConfirmation({
   if (!isVisible) return null;
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/20 dark:bg-black/40">
+    <div className="fixed inset-0 flex items-center justify-center z-[200] bg-black/20 dark:bg-black/40">
       <div className="bg-green-50 dark:bg-green-950 border-4 border-green-200 dark:border-green-800 rounded-3xl p-8 max-w-md w-full mx-4 shadow-2xl">
         <div className="text-center">
           <div className="flex items-center justify-center gap-3 mb-6">
@@ -568,7 +568,7 @@ function ShareModal({
   if (!isVisible) return null;
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/20 dark:bg-black/40">
+    <div className="fixed inset-0 flex items-center justify-center z-[200] bg-black/20 dark:bg-black/40">
       <div className="bg-blue-50 dark:bg-blue-950 border-4 border-blue-200 dark:border-blue-800 rounded-3xl p-8 max-w-lg w-full mx-4 shadow-2xl">
         <div className="text-center">
           <div className="flex items-center justify-center gap-3 mb-6">

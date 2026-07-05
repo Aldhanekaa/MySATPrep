@@ -512,7 +512,7 @@ export function SessionsTab() {
 
       {/* Duolingo-styled Delete Confirmation Modal */}
       {deleteModalOpen && sessionToDelete && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/20">
+        <div className="fixed inset-0 flex items-center justify-center z-[200] bg-black/20">
           <div className="bg-red-50 border-4 border-red-200 rounded-3xl p-8 max-w-md w-full mx-4 shadow-2xl">
             <div className="text-center">
               <div className="mb-6">

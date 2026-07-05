@@ -30,11 +30,14 @@ export function SessionInitializer() {
     (state: RootState) => state.auth.sessionChecked,
   );
 
-  // Dispatch on mount. The thunk's condition bails out if already done or
-  // in-flight, so double-mounts (React StrictMode) are harmless.
+  // Dispatch on mount, and re-dispatch any time sessionChecked is reset to
+  // false (e.g. edge cases where state is explicitly cleared). The thunk's
+  // condition guard still bails out if a check is already in-flight.
   useEffect(() => {
-    dispatch(checkSession());
-  }, [dispatch]);
+    if (!sessionChecked) {
+      dispatch(checkSession());
+    }
+  }, [sessionChecked, dispatch]);
 
   // Once session is confirmed and user is authenticated, fetch their data.
   // The thunk's condition bails out if dataInitialized is true or in-flight.

@@ -1214,7 +1214,7 @@ const QuestionProblemCard = React.memo(function QuestionProblemCard({
 
       {/* Share Modal */}
       {isShareModalOpen && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/20 dark:bg-black/50">
+        <div className="fixed inset-0 flex items-center justify-center z-[200] bg-black/20 dark:bg-black/50">
           <div className="bg-background rounded-2xl border-2 border-b-4 border-border shadow-2xl p-6 max-w-md w-full mx-4">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-xl font-bold text-foreground">
