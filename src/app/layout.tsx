@@ -208,7 +208,7 @@ export default function RootLayout({
             ]}
           >
             Authentication is up and running. You can use the platform without
-            SignIn. Any bug reports are appreciated, report it on /report-bug
+            SignIn. Any bug reports are appreciated, report it on /report-bug .
           </Banner2>
 
           <Banner />
