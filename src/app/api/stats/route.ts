@@ -12,7 +12,7 @@ import {
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(
-  request: NextRequest
+  request: NextRequest,
 ): Promise<NextResponse<StatsAPIResponse | StatsAPIErrorResponse>> {
   const { searchParams } = new URL(request.url);
   const assessment = searchParams.get("assessment");
@@ -97,9 +97,9 @@ export async function GET(
 
     statsData.totalQuestions = allQuestions.length;
 
-    console.log(
-      `Total questions fetched across all domains: ${statsData.totalQuestions}`
-    );
+    // console.log(
+    //   `Total questions fetched across all domains: ${statsData.totalQuestions}`
+    // );
 
     return NextResponse.json<StatsAPIResponse>(
       {
@@ -121,7 +121,7 @@ export async function GET(
           "CDN-Cache-Control": "public, s-maxage=60",
           "Vercel-CDN-Cache-Control": "public, s-maxage=3600",
         },
-      }
+      },
     );
   } catch (error) {
     console.error("Error fetching question stats:", error);
@@ -131,7 +131,7 @@ export async function GET(
         error: "Failed to fetch question bank stats",
         details: error instanceof Error ? error.message : "Unknown error",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -50,7 +50,7 @@ export default async function ContributorsSection() {
           <p>
             Want to be featured? Visit our{" "}
             <a
-              href="https://github.com/MySATPrep/"
+              href="https://github.com/aldhanekaa/MySATPrep/"
               className="text-blue-500 hover:underline"
             >
               open source GitHub repository

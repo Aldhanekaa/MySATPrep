@@ -175,42 +175,7 @@ export async function GET(request: NextRequest) {
           success: boolean;
           data?: API_Response_Question_List;
         };
-        // if (internalData.success && internalData.data) {
-        //   const seenExternalIds = new Set<string>();
-        //   const seenIbns = new Set<string>();
-
-        //   for (const question of questions) {
-        //     const { externalId, ibn } = questionDedupKey(question);
-
-        //     if (externalId) seenExternalIds.add(externalId);
-        //     if (ibn) seenIbns.add(ibn);
-        //   }
-
-        //   console.log("seenExternalIds", seenExternalIds);
-        //   console.log("seenIbns", seenIbns);
-
-        //   const uniqueInternalQuestions = internalData.data.filter(
-        //     (question) => {
-        //       const { externalId, ibn } = questionDedupKey(question);
-
-        //       const alreadySeen =
-        //         (externalId !== null && seenExternalIds.has(externalId)) ||
-        //         (ibn !== null && seenIbns.has(ibn));
-
-        //       if (alreadySeen) {
-        //         return false;
-        //       }
-
-        //       if (externalId) seenExternalIds.add(externalId);
-        //       if (ibn) seenIbns.add(ibn);
-
-        //       return true;
-        //     },
-        //   );
-
-        //   questions = [...questions, ...uniqueInternalQuestions];
-        // }
-        questions = [...questions, ...(internalData.data ?? [])];
+        questions = [...questions, ...(internalData.data || [])];
       }
     } catch (internalError) {
       console.warn(
@@ -229,6 +194,34 @@ export async function GET(request: NextRequest) {
       { status: 500 },
     );
   }
+
+  let uniqueInternalQuestions: API_Response_Question_List = [];
+
+  if (questions.length > 0) {
+    const seenExternalIds = new Set<string>();
+    const seenIbns = new Set<string>();
+
+    for (const question of questions) {
+      const { externalId, ibn } = questionDedupKey(question);
+
+      // console.log("Checking question:", { externalId, ibn });
+
+      const alreadySeen =
+        (externalId !== null && seenExternalIds.has(externalId)) ||
+        (ibn !== null && seenIbns.has(ibn));
+
+      if (alreadySeen) {
+        // console.log("ALREADY SEEN IT", { externalId, ibn });
+        continue;
+      }
+
+      uniqueInternalQuestions.push(question);
+      if (externalId) seenExternalIds.add(externalId);
+      if (ibn) seenIbns.add(ibn);
+    }
+  }
+  // console.log("questions", questions);
+  questions = [...uniqueInternalQuestions];
 
   try {
     if (excludeQuestionIds.length > 0) {
