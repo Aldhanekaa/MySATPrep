@@ -98,6 +98,22 @@ import {
   selectQuestionNotes,
 } from "@/lib/redux/selectors";
 import { setUiFlag, mergeNotes } from "@/lib/redux/slices/userDataSlice";
+import Fraction from "fraction.js";
+
+const checkAnswerValidity = (
+  userAnswer: string | null | undefined,
+  correctAnswers: string[] | undefined | null
+): boolean => {
+  if (!userAnswer || !correctAnswers || correctAnswers.length === 0) return false;
+
+  if (Number(userAnswer)) {
+    return correctAnswers
+      .map((e) => Number(new Fraction(e)) || e)
+      .includes(Number(new Fraction(userAnswer)) || userAnswer);
+  }
+
+  return correctAnswers.map((a) => a.trim()).includes(userAnswer.trim());
+};
 
 // Duolingo-styled Loading Spinner Component
 interface DuolingoLoadingSpinnerProps {
@@ -748,11 +764,11 @@ const AnswerOptions = React.memo(function AnswerOptions({
       {optionEntries.map(([key, value], index) => {
         const trimmedKey = key.trim();
         const isCorrectAnswer =
-          isAnswerChecked && correctAnswers.includes(trimmedKey);
+          isAnswerChecked && checkAnswerValidity(trimmedKey, correctAnswers);
         const isSelectedWrongAnswer =
           isAnswerChecked &&
           selectedAnswer?.trim() === trimmedKey &&
-          !correctAnswers.includes(trimmedKey);
+          !checkAnswerValidity(trimmedKey, correctAnswers);
         const isSelected = selectedAnswer?.trim() === trimmedKey;
 
         return (
@@ -780,7 +796,7 @@ const AnswerOptions = React.memo(function AnswerOptions({
                     : "cursor-pointer"
               } w-full transition duration-500 ${
                 isAnswerChecked &&
-                (isCorrectAnswer || correctAnswers.includes(key))
+                (isCorrectAnswer || checkAnswerValidity(key, correctAnswers))
                   ? "border-2 border-green-500 bg-green-500/10"
                   : isSelectedWrongAnswer
                     ? "border-2 border-red-500 bg-red-500/10"
@@ -1048,9 +1064,10 @@ function appReducer(state: AppState, action: AppAction): AppState {
         disabledOptions: {},
         isAnswerChecked: isReturningToPreviousQuestion,
         isAnswerCorrect: isReturningToPreviousQuestion
-          ? state.questions?.[newStep]?.correct_answer
-              .map((answer) => answer.trim())
-              .includes(previousAnswer?.trim() || "") || false
+          ? checkAnswerValidity(
+              previousAnswer,
+              state.questions?.[newStep]?.correct_answer
+            )
           : false,
         questionStartTime: Date.now(), // Always start from current time
         currentQuestionElapsedTime: isReturningToInProgress
@@ -1364,7 +1381,7 @@ export default function PracticeRushMultistep({
           ? question.correct_answer
           : [question.correct_answer];
 
-        if (correctAnswers.map((e) => e.trim()).includes(userAnswer)) {
+        if (checkAnswerValidity(userAnswer, correctAnswers)) {
           correctAnswersCount++;
         }
       }
@@ -1522,10 +1539,8 @@ export default function PracticeRushMultistep({
         dispatch({ type: "SET_SELECTED_ANSWER", payload: savedAnswer });
 
         // Check if the answer was correct
-        const correctAnswers = currentQuestion.correct_answer.map((e) =>
-          e.trim(),
-        );
-        const isCorrect = correctAnswers.includes(savedAnswer.trim());
+        const correctAnswers = currentQuestion.correct_answer;
+        const isCorrect = checkAnswerValidity(savedAnswer, correctAnswers);
 
         // Set answer as checked with correct status
         dispatch({
@@ -1702,7 +1717,7 @@ export default function PracticeRushMultistep({
                 ? question.correct_answer
                 : [question.correct_answer];
 
-              if (correctAnswers.map((e) => e.trim()).includes(userAnswer)) {
+              if (checkAnswerValidity(userAnswer, correctAnswers)) {
                 correctAnswersCount++;
               }
             }
@@ -1800,7 +1815,7 @@ export default function PracticeRushMultistep({
           ? question.correct_answer
           : [question.correct_answer];
 
-        if (correctAnswers.map((e) => e.trim()).includes(userAnswer)) {
+        if (checkAnswerValidity(userAnswer, correctAnswers)) {
           correctAnswersCount++;
         }
       }
@@ -2285,9 +2300,7 @@ export default function PracticeRushMultistep({
               );
               return (
                 userAnswer &&
-                question?.correct_answer
-                  ?.map((a) => a.trim())
-                  .includes(userAnswer)
+                checkAnswerValidity(userAnswer, question?.correct_answer)
               );
             }).length;
 
@@ -2610,9 +2623,7 @@ export default function PracticeRushMultistep({
                 );
                 return (
                   userAnswer &&
-                  question?.correct_answer
-                    ?.map((a) => a.trim())
-                    .includes(userAnswer)
+                  checkAnswerValidity(userAnswer, question?.correct_answer)
                 );
               },
             ).length;
@@ -3012,10 +3023,9 @@ export default function PracticeRushMultistep({
 
         if (!state.isAnswerChecked) {
           // First time answering this question
-          const correctAnswers = currentQuestion.correct_answer.map((e) =>
-            e.trim(),
-          );
-          const correct = correctAnswers.includes(state.selectedAnswer.trim());
+          const correctAnswers = currentQuestion.correct_answer;
+
+          const correct = checkAnswerValidity(state.selectedAnswer, correctAnswers);
 
           // Play sound based on answer correctness
           if (correct) {
@@ -3337,7 +3347,7 @@ export default function PracticeRushMultistep({
           ? question.correct_answer
           : [question.correct_answer];
 
-        if (correctAnswers.map((e) => e.trim()).includes(userAnswer)) {
+        if (checkAnswerValidity(userAnswer, correctAnswers)) {
           correctAnswersCount++;
         }
       }
@@ -3504,9 +3514,7 @@ export default function PracticeRushMultistep({
                               const isAnswered = Boolean(userAnswer);
                               const isCorrect =
                                 isAnswered &&
-                                question.correct_answer
-                                  .map((a) => a.trim())
-                                  .includes(userAnswer?.trim() || "");
+                                checkAnswerValidity(userAnswer, question.correct_answer);
                               const timeSpent =
                                 state.questionTimes[questionId] || 0;
                               const isCurrent =

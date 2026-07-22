@@ -17,10 +17,11 @@ import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
 import { Logo } from "../logo";
 import PlatformAnnouncementBanner from "@/src/platform-announcement-banner.png";
-import ImportData from "@/src/ImportData.png";
 
 import FeatureAnnouncement from "@/src/fourthJuly.png";
-import SignInMethod from "@/src/SignInMethod.png";
+import Proof from "@/src/proof.png";
+import IncorrectAnswers from "@/src/incorrect-answers.png";
+import OpenSource from "@/src/opensource.png";
 
 import SyncDataAcrossDevices from "@/src/SyncDataAcrossDevices.png";
 
@@ -31,26 +32,33 @@ export default function Dialog02() {
 
   const steps = [
     {
-      title: "Let's Get Started",
-      description: "Take a quick look at what’s new and why it matters.",
+      title: "July 22nd Release",
+      description:
+        "Fixed Bugs and Answering Your Question. One of the bug fixed is the issue with duplicated questions. ",
       image: PlatformAnnouncementBanner,
     },
     {
-      title: "You Can Now Sign In With Google or Email",
+      title: "Is it real questions?",
       description:
-        "Sign in faster with a cleaner experience built for every screen.",
+        "Yes. We directly use College Board question bank original source. It's an open source project : https://github.com/aldhanekaa/MySATPrep",
+      image: Proof,
+    },
+    {
+      title: "Why are there ridiculous incorrect answers?",
+      description:
+        "Long story short, it's due to the unstructured data from College Board database. Sometimes they don't provide all possible answers such as .5, 0.5, 1/2. Nevertheless, we’ve partially fixed it (not sure about the rest), so it's important to provide the question id when you guys file a bug report.  Example : ",
+      image: IncorrectAnswers,
+    },
+    {
+      title: "We are open for all contributions",
+      description:
+        "So if you open our github repo on issues (https://github.com/aldhanekaa/MySATPrep), you will see list of user suggestions / bug reports submitted by users through the website's form. Feel free to contribute to the project. We will review your PR and merge it if it's good. We will also give you credit for your contribution.",
+      image: OpenSource,
+    },
+    {
+      title: "Sign In With Google or Email",
+      description: "Sign in to move your local data to the cloud.",
       image: FeatureAnnouncement,
-    },
-    {
-      title: "Choose Your Preferred Sign In Method!",
-      description: "Pick the sign-in method that fits you best and get moving.",
-      image: SignInMethod,
-    },
-    {
-      title: "Import Your Local Browser Data to Cloud!",
-      description:
-        "Move your local data to the cloud for smarter, personalized insights.",
-      image: ImportData,
     },
     {
       title: "Sync Data Across Devices",
@@ -70,7 +78,7 @@ export default function Dialog02() {
 
   useEffect(() => {
     // Check if the tour has been completed
-    const tourCompleted = localStorage.getItem("new-update-tour");
+    const tourCompleted = localStorage.getItem("new-update-tour-bugs-fixed");
     if (!tourCompleted || tourCompleted === "false") {
       setIsOpen(true);
     }
@@ -113,8 +121,7 @@ export default function Dialog02() {
               </div>
               <h2 className="text-lg font-medium">Welcome to MySATPrep!</h2>
               <p className="text-sm opacity-80">
-                We&apos;ve got bunch of new features to help you ace your SAT
-                prep.
+                We just fixed some issues and bugs.
               </p>
               <div className="flex flex-col gap-3 mt-6 max-h-60 overflow-y-auto">
                 {steps.map((s, index) => (

@@ -48,6 +48,24 @@ import {
   useResolvedBookmarks,
   useResolvedCollections,
 } from "@/hooks/use-resolved-user-data";
+import Fraction from "fraction.js";
+
+const checkAnswerValidity = (
+  userAnswer: string | null | undefined,
+  correctAnswers: (string | number)[] | undefined | null
+): boolean => {
+  if (!userAnswer || !correctAnswers || correctAnswers.length === 0) return false;
+
+  if (Number(userAnswer)) {
+    return correctAnswers
+      .map((e) => Number(new Fraction(String(e))) || String(e))
+      .includes(Number(new Fraction(userAnswer)) || userAnswer);
+  }
+
+  return correctAnswers
+    .map((a) => String(a).trim().toLowerCase())
+    .includes(userAnswer.trim().toLowerCase());
+};
 
 // Duolingo-styled Input Component
 interface DuolingoInputProps {
@@ -430,13 +448,7 @@ const QuestionProblemCard = React.memo(function QuestionProblemCard({
     (answer: string) => {
       if (!answer) return null;
 
-      return question.problem.answerOptions
-        ? question.problem.correct_answer?.includes(answer) || false
-        : question.problem.correct_answer?.some(
-            (correctAnswer) =>
-              correctAnswer.trim().toLowerCase() ===
-              answer.trim().toLowerCase(),
-          ) || false;
+      return checkAnswerValidity(answer, question.problem.correct_answer);
     },
     [question.problem.answerOptions, question.problem.correct_answer],
   );
@@ -459,15 +471,7 @@ const QuestionProblemCard = React.memo(function QuestionProblemCard({
   // Submit answer and save statistics - memoized to prevent recreation on every render
   const submitAnswer = useCallback(
     (answer: string) => {
-      // For multiple choice questions
-      const isCorrect = question.problem.answerOptions
-        ? question.problem.correct_answer?.includes(answer) || false
-        : // For text input questions, compare with correct answers (case insensitive, trimmed)
-          question.problem.correct_answer?.some(
-            (correctAnswer) =>
-              correctAnswer.trim().toLowerCase() ===
-              answer.trim().toLowerCase(),
-          ) || false;
+      const isCorrect = checkAnswerValidity(answer, question.problem.correct_answer);
 
       const timeElapsed = Date.now() - questionStartTime;
 
@@ -846,9 +850,7 @@ const QuestionProblemCard = React.memo(function QuestionProblemCard({
               <RadioGroup className="flex flex-col gap-3" disabled>
                 {Object.entries(question.problem.answerOptions).map(
                   ([optionKey, optionText], index) => {
-                    const isCorrect =
-                      question.problem.correct_answer?.includes(optionKey) ||
-                      false;
+                    const isCorrect = checkAnswerValidity(optionKey, question.problem.correct_answer);
 
                     // For current session answers
                     const isSelected = selectedAnswer === optionKey;

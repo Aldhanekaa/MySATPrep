@@ -7,6 +7,7 @@ import {
   QuestionById_Data,
 } from "@/types/question";
 import { NextRequest, NextResponse } from "next/server";
+import { normalizeAnswerOptions } from "@/lib/formatAnswerOptions";
 
 export const revalidate = 86400;
 
@@ -40,43 +41,6 @@ type DbQuestionByExternalRow = {
 
 // `sql` is provided by the shared DB client in `@/lib/db`
 
-const normalizeAnswerOptions = (
-  answeroptions: unknown,
-): API_Response_Question["answerOptions"] => {
-  if (Array.isArray(answeroptions)) {
-    const arr = answeroptions as Array<{ content?: unknown }>;
-    const [a, b, c, d] = arr.map((item) => item?.content);
-    if (
-      typeof a === "string" &&
-      typeof b === "string" &&
-      typeof c === "string" &&
-      typeof d === "string"
-    ) {
-      return { A: a, B: b, C: c, D: d };
-    }
-    return undefined;
-  }
-
-  if (answeroptions && typeof answeroptions === "object") {
-    const obj = answeroptions as Record<string, unknown>;
-    const a = obj.A ?? obj.a;
-    const b = obj.B ?? obj.b;
-    const c = obj.C ?? obj.c;
-    const d = obj.D ?? obj.d;
-
-    if (
-      typeof a === "string" &&
-      typeof b === "string" &&
-      typeof c === "string" &&
-      typeof d === "string"
-    ) {
-      return { A: a, B: b, C: c, D: d };
-    }
-  }
-
-  return undefined;
-};
-
 const toPlainQuestion = (row: DbQuestionRow): PlainQuestionType => ({
   questionId: row.questionid,
   updateDate: row.updatedate ?? 0,
@@ -105,19 +69,7 @@ const getQuestionByIdCached = unstable_cache(
       `
         SELECT
           questionid,
-          updatedate,
-          ppcc,
-          skill_cd,
-          score_band_range_cd,
-          uid,
-          skill_desc,
-          createdate,
-          program,
-          primary_class_cd_desc,
-          ibn,
-          external_id,
-          primary_class_cd,
-          difficulty
+          external_id
         FROM questions
         WHERE questionid = $1
         LIMIT 1

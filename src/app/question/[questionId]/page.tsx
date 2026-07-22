@@ -1,6 +1,6 @@
 import { SiteHeader } from "@/app/navbar";
 import QuestionNotFound from "@/components/question-not-found";
-import QuestionProblemCard from "@/components/question-problem-card";
+import QuestionPageClient from "@/components/question/QuestionPageClient";
 import getInternalAPITargetURL from "@/lib/getInternalAPITargetURL";
 import { QuestionById_Response } from "@/types";
 import React from "react";
@@ -161,16 +161,10 @@ export default async function Page({
 
   const questionData = result.data;
 
-  // console.log("Question data:", JSON.stringify(result.data, null, 2));
-
   return (
     <React.Fragment>
       <SiteHeader />
-      <main className="w-full flex items-center flex-col min-h-[85vh] py-16 lg:py-32 px-3 md:px-10">
-        <section className="space-y-4 max-w-screen md:max-w-5xl mt-8">
-          <QuestionProblemCard question={questionData} hideViewQuestionButton />
-        </section>
-      </main>
+      <QuestionPageClient questionData={questionData} />
     </React.Fragment>
   );
 }

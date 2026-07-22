@@ -276,7 +276,9 @@ export const primaryClassCdObjectData = (() => {
 })();
 
 // Returns the subject for a given skillCd (e.g., "CID", "H.A.")
-export function getSubjectBySkillCd(skillCd: string): string | undefined {
+export function getSubjectBySkillCd(
+  skillCd: string,
+): "reading-writing" | "math" | undefined {
   for (const [subject, domainArr] of Object.entries(domains)) {
     for (const domain of domainArr) {
       if (domain.skill.some((skill) => skill.skill_cd === skillCd)) {
@@ -289,7 +291,7 @@ export function getSubjectBySkillCd(skillCd: string): string | undefined {
 
 // Returns the subject for a given primaryClassCd (e.g., "INI", "H")
 export function getSubjectByPrimaryClassCd(
-  primaryClassCd: string
+  primaryClassCd: string,
 ): string | undefined {
   for (const [subject, domainArr] of Object.entries(domains)) {
     if (domainArr.some((domain) => domain.primaryClassCd === primaryClassCd)) {

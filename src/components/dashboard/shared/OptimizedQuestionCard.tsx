@@ -1,3 +1,4 @@
+"use client";
 import React, { memo, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card-v2";
@@ -69,11 +70,10 @@ interface AnsweredQuestionWithData extends BaseQuestionWithData {
   selectedAnswer?: string;
 }
 
-// Props for the optimized question card
 interface OptimizedQuestionCardProps {
   question: BaseQuestionWithData | AnsweredQuestionWithData;
   index: number;
-  onRetry: (index: number, questionId: string) => void;
+  onRetry?: (index: number, questionId: string) => void;
   type: "saved" | "answered" | "standard";
   withDate?: boolean;
   answerVisibility?: string;
@@ -196,7 +196,7 @@ export const OptimizedQuestionCard = memo(
                   variant="outline"
                   size="sm"
                   className="mt-2"
-                  onClick={() => onRetry(index, question.questionId)}
+                  onClick={() => onRetry?.(index, question.questionId)}
                 >
                   Retry
                 </Button>

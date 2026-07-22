@@ -5,6 +5,7 @@ import {
   SPRDisclosedQuestion,
 } from "@/types/question";
 import getInternalAPITargetURL from "./getInternalAPITargetURL";
+import Fraction from "fraction.js";
 
 export interface QuestionFetchResult {
   success: boolean;
@@ -24,7 +25,7 @@ function translateFractionWordsToAnswer(fractionWord: string): string {
   if (!fractionWord) return "";
 
   const normalized = fractionWord.toLowerCase().trim();
-  console.log("normalized", normalized);
+  // console.log("normalized", normalized);
 
   // Numerator words
   const numerators: { [key: string]: number } = {
@@ -42,22 +43,33 @@ function translateFractionWordsToAnswer(fractionWord: string): string {
 
   // Denominator words
   const denominators: { [key: string]: number } = {
+    two: 2,
     half: 2,
     halves: 2,
+    three: 3,
     third: 3,
     thirds: 3,
+    four: 4,
+    fourth: 4,
+    fourths: 4,
     quarter: 4,
     quarters: 4,
+    five: 5,
     fifth: 5,
     fifths: 5,
+    six: 6,
     sixth: 6,
     sixths: 6,
+    seven: 7,
     seventh: 7,
     sevenths: 7,
     eighth: 8,
+    eight: 8,
     eighths: 8,
+    nine: 9,
     ninth: 9,
     ninths: 9,
+    ten: 10,
     tenth: 10,
     tenths: 10,
   };
@@ -94,11 +106,20 @@ function findCorrectChoiceOrAnswerOnIBNQuestion(
   } else {
     const rationale = data.answer.rationale;
 
+    // Check for "either X or Y" pattern
+    const eitherOrMatch = rationale.match(
+      /The correct answer is(?: either)?\s+([A-D]|\d+\/\d+|\d+(?:\.\d+)?)\s+or\s+([A-D]|\d+\/\d+|\d+(?:\.\d+)?)/i,
+    );
+
+    if (eitherOrMatch) {
+      return [eitherOrMatch[1].toUpperCase(), eitherOrMatch[2].toUpperCase()];
+    }
+
     // try to find the correct choice in the rationale by looking for patterns like:
     // "The correct answer is {answer}." or "Choice {answer} is correct."
     // Also handles math expressions like: "The correct answer is <span class="math-container"><img ... alt="three halves"></span>."
     const correctChoiceMatch = rationale.match(
-      /(?:The correct answer is\s+([A-D]|\d+(?:\.\d+)?|\d+\/\d+)\.?|Choice\s+([A-D]|\d+(?:\.\d+)?|\d+\/\d+)\s+is correct\.|alt="([^"]*)")/i,
+      /(?:The correct answer is\s+([A-D]|\d+\/\d+|\d+(?:\.\d+)?)\.?|Choice\s+([A-D]|\d+\/\d+|\d+(?:\.\d+)?)\s+is correct\.|alt="([^"]*)")/i,
     );
 
     // console.log("correctChoiceMatch", correctChoiceMatch);
@@ -107,7 +128,7 @@ function findCorrectChoiceOrAnswerOnIBNQuestion(
       const correctChoice =
         correctChoiceMatch[1] || correctChoiceMatch[2] || correctChoiceMatch[3];
 
-      console.log("correctChoiceMatch[3]", correctChoiceMatch[3]);
+      // console.log("correctChoiceMatch[3]", correctChoiceMatch[3]);
       // If it's a written fraction (from alt text), translate it to numeric form
       if (correctChoiceMatch[3]) {
         const translatedFraction = translateFractionWordsToAnswer(

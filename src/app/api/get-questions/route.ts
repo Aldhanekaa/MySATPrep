@@ -55,11 +55,6 @@ export async function GET(request: NextRequest) {
       .map((id) => id.trim());
   }
 
-  // console.log("domains", domainsParam);
-  // console.log("assessment", assessment);
-  // console.log("random", random);
-  // console.log("excludeQuestionIds", excludeQuestionIds);
-
   if (random == "true") {
   }
 
@@ -175,7 +170,11 @@ export async function GET(request: NextRequest) {
           success: boolean;
           data?: API_Response_Question_List;
         };
+        // console.log("questions length", questions?.length);
+
         questions = [...questions, ...(internalData.data || [])];
+
+        // console.log("internalData.data length", internalData.data?.length);
       }
     } catch (internalError) {
       console.warn(
@@ -195,7 +194,9 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  let uniqueInternalQuestions: API_Response_Question_List = [];
+  let uniqueQuestions: API_Response_Question_List = [];
+  let counter = 0;
+  // console.log("questions length before deduplication", questions.length);
 
   if (questions.length > 0) {
     const seenExternalIds = new Set<string>();
@@ -210,18 +211,26 @@ export async function GET(request: NextRequest) {
         (externalId !== null && seenExternalIds.has(externalId)) ||
         (ibn !== null && seenIbns.has(ibn));
 
-      if (alreadySeen) {
-        // console.log("ALREADY SEEN IT", { externalId, ibn });
-        continue;
-      }
+      if (!alreadySeen) {
+        // uniqueQuestions.push(question);
+        // if (externalId) seenExternalIds.add(externalId);
+        // if (ibn) seenIbns.add(ibn);
+        uniqueQuestions.push(question);
+        if (externalId) seenExternalIds.add(externalId);
+        if (ibn) seenIbns.add(ibn);
+      } else {
+        // console.log("Duplicate question found, skipping:", { externalId, ibn });
 
-      uniqueInternalQuestions.push(question);
-      if (externalId) seenExternalIds.add(externalId);
-      if (ibn) seenIbns.add(ibn);
+        counter += 1;
+      }
     }
   }
+
+  // console.log("Counter ", counter, "questions filtered out due to duplicates");
+  // console.log("uniqueQuestions", uniqueQuestions.length, "after deduplication");
   // console.log("questions", questions);
-  questions = [...uniqueInternalQuestions];
+  questions = uniqueQuestions;
+  // console.log("questions ", questions.length, "after deduplication");
 
   try {
     if (excludeQuestionIds.length > 0) {
