@@ -27,54 +27,6 @@ import {
 } from "@/static-data/domains";
 import { cn } from "@/lib/utils";
 
-const chartData = [
-  {
-    country: "United States",
-    count: 45000,
-    percentage: 45.0,
-  },
-  {
-    country: "Canada",
-    count: 34000,
-    percentage: 18.0,
-  },
-  {
-    country: "United Kingdom",
-    count: 30000,
-    percentage: 12.0,
-  },
-  {
-    country: "Germany",
-    count: 25000,
-    percentage: 9.0,
-  },
-  {
-    country: "Australia",
-    count: 22000,
-    percentage: 7.5,
-  },
-  {
-    country: "France",
-    count: 18000,
-    percentage: 6.0,
-  },
-  {
-    country: "Japan",
-    count: 15000,
-    percentage: 4.5,
-  },
-  {
-    country: "Brazil",
-    count: 13000,
-    percentage: 5.0,
-  },
-  {
-    country: "Indonesia",
-    count: 10030,
-    percentage: 6.0,
-  },
-];
-
 const chartConfig = {
   correctAnswers: {
     label: "Count",
