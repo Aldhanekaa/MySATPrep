@@ -72,7 +72,7 @@ export default function Dialog02() {
   };
 
   const handleDialogClose = () => {
-    localStorage.setItem("new-update-tour", "true");
+    localStorage.setItem("new-update-tour-bugs-fixed", "true");
     setIsOpen(false);
   };
 
