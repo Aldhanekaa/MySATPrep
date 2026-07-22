@@ -102,9 +102,10 @@ import Fraction from "fraction.js";
 
 const checkAnswerValidity = (
   userAnswer: string | null | undefined,
-  correctAnswers: string[] | undefined | null
+  correctAnswers: string[] | undefined | null,
 ): boolean => {
-  if (!userAnswer || !correctAnswers || correctAnswers.length === 0) return false;
+  if (!userAnswer || !correctAnswers || correctAnswers.length === 0)
+    return false;
 
   if (Number(userAnswer)) {
     return correctAnswers
@@ -237,138 +238,6 @@ function DuolingoTimer({
       >
         {isVisible ? "Hide Timer" : "Show Timer"}
       </button>
-    </div>
-  );
-}
-
-// Success Feedback Component
-interface SuccessFeedbackProps {
-  isVisible: boolean;
-  onContinue: () => void;
-}
-
-function SuccessFeedback({ isVisible, onContinue }: SuccessFeedbackProps) {
-  const [dontShowAgain, setDontShowAgain] = React.useState(false);
-
-  // Read authentication state and Redux values
-  const dispatch = useAppDispatch();
-  const isAuthenticated = useAppSelector(selectIsAuthenticated);
-  const reduxHideFlag = useAppSelector(selectUiFlag("hideSuccessFeedback"));
-  const currentPrefs = useAppSelector(selectUserPreferences);
-
-  // Determine whether to hide success feedback:
-  // - For authenticated users: use Redux value; fall back to localStorage only if Redux is false
-  // - For unauthenticated users: read directly from localStorage
-  const hideSuccessFeedback = React.useMemo(() => {
-    if (isAuthenticated) {
-      if (reduxHideFlag) return true;
-      // Fallback: check localStorage when Redux value is false (legacy data before sync)
-      try {
-        return localStorage.getItem("hideSuccessFeedback") === "true";
-      } catch {
-        return false;
-      }
-    }
-    try {
-      return localStorage.getItem("hideSuccessFeedback") === "true";
-    } catch {
-      return false;
-    }
-  }, [isAuthenticated, reduxHideFlag]);
-
-  // Auto-continue if user has opted out
-  // React.useEffect(() => {
-  //   if (isVisible && hideSuccessFeedback) {
-  //     const timeoutId = setTimeout(() => onContinue(), 1000);
-  //     return () => clearTimeout(timeoutId);
-  //   }
-  // }, [isVisible, hideSuccessFeedback, onContinue]);
-
-  const randomMessage = useMemo(() => {
-    return CONGRATULATORY_MESSAGES[
-      Math.floor(Math.random() * CONGRATULATORY_MESSAGES.length)
-    ];
-  }, []);
-
-  const handleContinue = () => {
-    if (dontShowAgain) {
-      // Always write localStorage as an optimistic local mirror
-      try {
-        localStorage.setItem("hideSuccessFeedback", "true");
-      } catch (error) {
-        console.error("Failed to save preference to localStorage:", error);
-      }
-
-      if (isAuthenticated) {
-        // Dispatch Redux update for immediate UI consistency
-        dispatch(setUiFlag({ key: "hideSuccessFeedback", value: true }));
-
-        // Persist to database via the preferences sync layer
-        const updatedPrefs = {
-          ...(currentPrefs ?? {}),
-          uiFlags: {
-            ...(currentPrefs?.uiFlags ?? {}),
-            hideSuccessFeedback: true,
-          },
-        };
-        // We need the current Redux state for debouncedSavePreferences, but since
-        // this runs inside a component we pass a synthetic state reference via the
-        // store. The dispatch reference already has the updated flag committed.
-        // Import store to get the state snapshot at call time.
-        import("@/lib/redux/store").then(({ store }) => {
-          debouncedSavePreferences(updatedPrefs, dispatch, store.getState());
-        });
-      }
-    }
-    onContinue();
-  };
-
-  if (!isVisible || hideSuccessFeedback) return null;
-
-  return (
-    <div className="fixed inset-0 flex items-center justify-center z-[200] bg-black/20 dark:bg-black/40">
-      <div className="bg-green-100 dark:bg-green-950 border-4 border-green-200 dark:border-green-800 rounded-3xl p-8 max-w-md w-full mx-4 shadow-2xl">
-        <div className="text-center">
-          <div className="flex items-center justify-center gap-3 mb-6">
-            <CheckCircle className="h-8 w-8 text-green-600 dark:text-green-400" />
-            <h2 className="text-3xl font-bold text-green-800 dark:text-green-200">
-              {randomMessage}
-            </h2>
-          </div>
-
-          {/* Checkbox for "Don't show again" */}
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <Checkbox
-              id="dontShowAgain"
-              checked={dontShowAgain}
-              onCheckedChange={(checked: boolean) => {
-                const isChecked = checked === true;
-                setDontShowAgain(isChecked);
-                // Play appropriate checkbox sound
-                if (isChecked) {
-                  playSound("tap-checkbox-checked.wav");
-                } else {
-                  playSound("tap-checkbox-unchecked.wav");
-                }
-              }}
-              className="border-green-300 dark:border-green-700 data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600"
-            />
-            <label
-              htmlFor="dontShowAgain"
-              className="text-sm text-green-700 dark:text-green-300 cursor-pointer select-none"
-            >
-              Don&apos;t show this again
-            </label>
-          </div>
-
-          <button
-            onClick={handleContinue}
-            className="cursor-pointer w-full bg-green-600 hover:bg-green-700 text-white font-bold text-xl py-4 px-8 rounded-2xl border-b-4 border-green-800 hover:border-green-900 shadow-lg hover:shadow-xl transform transition-all duration-200 active:translate-y-0.5 active:border-b-2"
-          >
-            CONTINUE
-          </button>
-        </div>
-      </div>
     </div>
   );
 }
@@ -1066,7 +935,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
         isAnswerCorrect: isReturningToPreviousQuestion
           ? checkAnswerValidity(
               previousAnswer,
-              state.questions?.[newStep]?.correct_answer
+              state.questions?.[newStep]?.correct_answer,
             )
           : false,
         questionStartTime: Date.now(), // Always start from current time
@@ -3025,7 +2894,10 @@ export default function PracticeRushMultistep({
           // First time answering this question
           const correctAnswers = currentQuestion.correct_answer;
 
-          const correct = checkAnswerValidity(state.selectedAnswer, correctAnswers);
+          const correct = checkAnswerValidity(
+            state.selectedAnswer,
+            correctAnswers,
+          );
 
           // Play sound based on answer correctness
           if (correct) {
@@ -3514,7 +3386,10 @@ export default function PracticeRushMultistep({
                               const isAnswered = Boolean(userAnswer);
                               const isCorrect =
                                 isAnswered &&
-                                checkAnswerValidity(userAnswer, question.correct_answer);
+                                checkAnswerValidity(
+                                  userAnswer,
+                                  question.correct_answer,
+                                );
                               const timeSpent =
                                 state.questionTimes[questionId] || 0;
                               const isCurrent =
@@ -4491,31 +4366,6 @@ export default function PracticeRushMultistep({
             return "";
           }
         })()}
-      />
-
-      {/* Success Feedback - only show for newly answered questions, not when reviewing */}
-      <SuccessFeedback
-        isVisible={
-          state.isAnswerChecked &&
-          state.isAnswerCorrect &&
-          state.isTimerActive === false // Timer is stopped only when answering, not when reviewing
-        }
-        onContinue={() => {
-          if (
-            state.questions &&
-            state.currentQuestionStep < state.questions.length - 1
-          ) {
-            dispatch({
-              type: "SET_CURRENT_QUESTION_STEP",
-              payload: state.currentQuestionStep + 1,
-            });
-          } else {
-            // At end of loaded questions - don't automatically continue
-            console.log(
-              "Reached end of loaded questions in success feedback. User can choose to continue or finish.",
-            );
-          }
-        }}
       />
 
       {/* Exit Confirmation */}
