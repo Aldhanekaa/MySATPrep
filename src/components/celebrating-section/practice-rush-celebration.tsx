@@ -462,25 +462,21 @@ export default function PracticeRushCelebration({
                                 : 100,
                             skillLabel:
                               skillCdsObjectData[s.text]?.text ?? s.text,
-                            pctLabel: `${(
-                              s.correctAnswers + s.incorrectAnswers > 0
-                                ? Math.round(
-                                    (s.correctAnswers /
-                                      (s.correctAnswers +
-                                        s.incorrectAnswers)) *
-                                      100,
-                                  )
-                                : 0
+                            pctLabel: `${(s.correctAnswers +
+                              s.incorrectAnswers >
+                            0
+                              ? Math.round(
+                                  (s.correctAnswers /
+                                    (s.correctAnswers + s.incorrectAnswers)) *
+                                    100,
+                                )
+                              : 0
                             ).toString()} %`,
                           }))}
                           layout="vertical"
                           margin={{ left: 0, right: 48, top: 0, bottom: 0 }}
                         >
-                          <XAxis
-                            type="number"
-                            domain={[0, 100]}
-                            hide
-                          />
+                          <XAxis type="number" domain={[0, 100]} hide />
                           <YAxis dataKey="text" type="category" hide />
                           <ChartTooltip
                             cursor={false}
