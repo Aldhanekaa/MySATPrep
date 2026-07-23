@@ -69,8 +69,7 @@ export function HeroSection() {
 
                 <p className="mx-auto mt-6 max-w-2xl text-pretty text-lg">
                   Level up your digital SAT® prep with thousands of practice
-                  questions originally from CollegeBoard questionbank at your
-                  fingertips.
+                  questions originally from the College Board Educator Question Bank.
                 </p>
 
                 <motion.div
