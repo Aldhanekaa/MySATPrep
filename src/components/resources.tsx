@@ -121,7 +121,7 @@ const IntegrationCard = ({
 // --- Logos (inline SVG) ---
 const KhanAcademyLogo = () => (
   <Image
-    src="https://upload.wikimedia.org/wikipedia/commons/thumb/f/f6/Khan_Academy_logo_%282018%29.svg/1024px-Khan_Academy_logo_%282018%29.svg.png"
+    src="https://support.khanacademy.org/hc/article_attachments/360008341612"
     alt="Khan Academy Logo"
     width={200}
     height={60}

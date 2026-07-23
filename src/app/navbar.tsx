@@ -18,7 +18,7 @@ import {
 
 const menuItems = [
   { name: "Dashboard", href: "/dashboard" },
-  { name: "Questionbank", href: "/questionbank" },
+  { name: "Question Bank", href: "/questionbank" },
   { name: "Resources", href: "/resources" },
 ];
 

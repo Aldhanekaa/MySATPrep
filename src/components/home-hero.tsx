@@ -64,13 +64,12 @@ export function HeroSection() {
                 <ContinuePracticeRushButton />
 
                 <h1 className="text-balance text-4xl font-medium sm:text-5xl md:text-6xl">
-                  Free SAT Practice Platform from CollegeBoard Questionbank
+                  Free SAT® Practice Platform
                 </h1>
 
                 <p className="mx-auto mt-6 max-w-2xl text-pretty text-lg">
                   Level up your digital SAT® prep with thousands of practice
-                  questions originally from CollegeBoard questionbank at your
-                  fingertips.
+                  questions originally from the College Board Educator Question Bank.
                 </p>
 
                 <motion.div
