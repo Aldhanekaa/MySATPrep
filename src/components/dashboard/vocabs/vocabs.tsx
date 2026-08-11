@@ -255,7 +255,7 @@ export default function VocabsMainPage() {
 
       <div className="w-full grid grid-cols-9 gap-6">
         <div className="col-span-12 xl:col-span-3 ">
-          <div className="sticky top-16">
+          <div className="xl:sticky xl:top-16 xl:max-h-[calc(100vh-5rem)] xl:overflow-y-auto xl:overscroll-contain">
             <Card
               variant="accent"
               className={cn("rounded-3xl", "transition-all duration-300")}
